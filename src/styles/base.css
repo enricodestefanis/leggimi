@@ -1,0 +1,92 @@
+:root {
+  color-scheme: light;
+  --bg: #faf9f5;
+  --surface: #ffffff;
+  --surface-2: #f0efe9;
+  --text: #1a1915;
+  --text-muted: #6e6e69;
+  --border: #e8e6df;
+  --accent: #c15f3c;
+  --accent-soft: rgba(193, 95, 60, 0.1);
+  --code-bg: #f5f4ef;
+  --shadow: 0 4px 24px rgba(26, 25, 21, 0.1);
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #262624;
+  --surface: #30302e;
+  --surface-2: #33322f;
+  --text: #ececea;
+  --text-muted: #a6a39a;
+  --border: #3f3e3a;
+  --accent: #d97757;
+  --accent-soft: rgba(217, 119, 87, 0.14);
+  --code-bg: #1b1a19;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--sans);
+  font-size: 16px;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+::highlight(find) {
+  background-color: rgba(250, 204, 21, 0.4);
+}
+
+::highlight(find-current) {
+  background-color: #f59e0b;
+  color: #1a1915;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
