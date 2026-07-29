@@ -40,4 +40,5 @@ Nota: in dev Vite non applica la CSP configurata in `tauri.conf.json` — testar
 - `src/` — frontend TypeScript + Vite (markdown-it, highlight.js, DOMPurify, mermaid)
 - `src-tauri/` — backend Rust: comandi per lettura file/albero, watcher con debounce (notify), single-instance, associazione file `.md`
 - `samples/` — documenti di prova (`test-funzionalita.md` esercita tutte le funzionalità, `brief-esempio.md` è un documento di lavoro realistico)
-- `private/` — cartella esclusa da git, per i tuoi documenti personali
+
+Una cartella `private/`, se la crei, è esclusa da git: usala per i documenti personali che vuoi aprire con il viewer senza rischiare di committarli.
