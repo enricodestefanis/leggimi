@@ -4,6 +4,7 @@ import "./styles/markdown.css";
 import "./styles/code.css";
 import "./styles/ui.css";
 
+import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -209,8 +210,14 @@ function wireUi(): void {
   });
 }
 
+async function showVersion(): Promise<void> {
+  const v = `v${await getVersion()}`;
+  for (const el of document.querySelectorAll("#help-version, #empty-version")) el.textContent = v;
+}
+
 async function boot(): Promise<void> {
   theme.init();
+  showVersion().catch(() => {});
   theme.onChange((t) => rerenderForTheme(article, t === "dark").catch(() => {}));
   wireUi();
 

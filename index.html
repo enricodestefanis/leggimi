@@ -59,6 +59,7 @@
               <h2>No document open</h2>
               <p>Drop a Markdown file here, or</p>
               <button id="btn-open-empty" class="primary-btn">Open a file…</button>
+              <p class="empty-version">Markdown Viewer <span id="empty-version"></span> · press <kbd>F1</kbd> for help</p>
             </div>
           </div>
         </main>
@@ -72,7 +73,7 @@
 
     <dialog id="help-dialog">
       <div class="help-head">
-        <h2>Markdown Viewer</h2>
+        <h2>Markdown Viewer <span id="help-version" class="version-badge"></span></h2>
         <button id="help-close" class="icon-btn" title="Close (Esc)">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>

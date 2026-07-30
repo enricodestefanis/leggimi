@@ -15,7 +15,7 @@ centered reading column with light and dark themes, and never modifies the files
 - Double-click any `.md` file in File Explorer — the installer registers the association
 - Single instance: further files open in the existing window
 - Drag and drop files onto the window, or press `Ctrl+O`
-- Built-in help (`F1`)
+- Built-in help (`F1`) showing the running version
 
 ## Keyboard shortcuts
 
@@ -37,6 +37,24 @@ root, so navigating into a subfolder does not hide the rest of the tree; the up 
 root to the parent folder. Opening a document outside the current root re-roots the panel there.
 Folders with no Markdown files are hidden, as are hidden folders and build directories such as
 `node_modules`, `target` and `dist`.
+
+## Versioning and releases
+
+`package.json` is the single source of truth for the app version: `tauri.conf.json` reads it
+from there, so the window, the installer and the version shown in the app can never drift apart.
+The running version appears in the help dialog (`F1`) and on the empty screen.
+
+To cut a release:
+
+```powershell
+npm version patch      # a fix        (0.2.0 -> 0.2.1)
+npm version minor      # new features (0.2.0 -> 0.3.0)
+npm run tauri build    # installer carries the new version
+```
+
+Record what changed in [CHANGELOG.md](CHANGELOG.md). `npm version` also creates a git tag; push
+it with `git push --follow-tags`. Keep `src-tauri/Cargo.toml` in step for tidiness — it is the
+crate version and does not drive what the app displays.
 
 ## Development
 

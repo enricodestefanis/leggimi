@@ -36,7 +36,11 @@ export async function renderMermaidIn(article: HTMLElement, dark: boolean): Prom
       const banner = document.createElement("div");
       banner.className = "mermaid-error";
       banner.textContent = `Invalid Mermaid diagram: ${err instanceof Error ? err.message : String(err)}`;
-      holder.replaceWith(banner, pre);
+      // keep the source readable, styled like every other code block
+      const block = document.createElement("div");
+      block.className = "code-block";
+      block.append(pre);
+      holder.replaceWith(banner, block);
     }
   }
 }
