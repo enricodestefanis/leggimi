@@ -48,6 +48,26 @@
   display: none;
 }
 
+#editor-pane {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+#app.editing #editor-pane {
+  display: block;
+}
+
+#app.editing #shell {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+#app.editing #tree-pane,
+#app.editing #toc-pane {
+  display: none;
+}
+
 #content-pane {
   position: relative;
   overflow-y: auto;

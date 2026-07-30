@@ -17,9 +17,16 @@ export function init(): void {
   });
 }
 
+let animTimer: number | undefined;
+
 export function toggle(): void {
   const next: Theme = current() === "dark" ? "light" : "dark";
   localStorage.setItem("theme", next);
+  // cross-fade colors only while switching; no transition cost the rest of the time
+  const root = document.documentElement;
+  root.classList.add("theme-anim");
+  clearTimeout(animTimer);
+  animTimer = window.setTimeout(() => root.classList.remove("theme-anim"), 280);
   apply(next);
 }
 

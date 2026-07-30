@@ -1,4 +1,4 @@
-# Test document — Markdown Viewer
+# Test document — Markdown Studio
 
 This document exercises every feature of the viewer.
 

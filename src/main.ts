@@ -7,11 +7,11 @@ import "./styles/ui.css";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import * as ipc from "./ipc";
-import { render } from "./renderer";
+import { render, renderFragment } from "./renderer";
 import { renderMermaidIn, rerenderForTheme } from "./mermaid";
 import * as toc from "./toc";
 import * as tree from "./tree";
@@ -30,7 +30,14 @@ const treeRootName = $("#tree-rootname");
 const btnUp = $<HTMLButtonElement>("#btn-up");
 const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
+const dirtyDot = $("#dirty-dot");
 const helpDialog = $<HTMLDialogElement>("#help-dialog");
+const editorPane = $("#editor-pane");
+const btnEdit = $<HTMLButtonElement>("#btn-edit");
+const btnSave = $<HTMLButtonElement>("#btn-save");
+const noticeBar = $("#notice-bar");
+const noticeMsg = $("#notice-msg");
+const noticeAction = $<HTMLButtonElement>("#notice-action");
 
 let currentDoc: ipc.MarkdownDoc | null = null;
 // Root of the file browser. It survives navigation *within* itself, so opening a
@@ -38,9 +45,17 @@ let currentDoc: ipc.MarkdownDoc | null = null;
 let browseRoot: string | null = null;
 let opening = false;
 
+let editing = false;
+let editorMod: typeof import("./editor") | null = null;
+let previewGen = 0;
+let previewTimer: number | undefined;
+// ignore the watcher echo of our own save for a short window
+let suppressReloadUntil = 0;
+
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 const isMarkdownPath = (p: string) => /\.(md|markdown)$/i.test(p);
 const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
+const samePath = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 function isInside(parent: string, child: string): boolean {
   const p = parent.toLowerCase().replace(/[\\/]+$/, "");
@@ -52,16 +67,25 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
   if (opening) return;
   opening = true;
   try {
+    if (editing && editorMod?.isDirty() && currentDoc && !samePath(path, currentDoc.path)) {
+      if (!(await confirmDiscard())) return;
+    }
     const doc = await ipc.readMarkdown(path);
     const anchor = opts.preserveScroll && currentDoc ? captureScrollAnchor(contentPane, article) : null;
+    const prevPath = currentDoc?.path ?? null;
     currentDoc = doc;
+
+    if (editing && prevPath !== null && !samePath(prevPath, doc.path)) exitEditMode();
 
     await render(doc, article);
     emptyState.hidden = true;
     article.hidden = false;
-    docTitle.textContent = fileName(doc.path);
-    docTitle.title = doc.path;
-    getCurrentWindow().setTitle(`${fileName(doc.path)} — Markdown Viewer`).catch(() => {});
+    if (!opts.preserveScroll) {
+      article.classList.remove("doc-enter");
+      void article.offsetWidth; // restart the entrance animation
+      article.classList.add("doc-enter");
+    }
+    updateTitles();
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
@@ -81,6 +105,180 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
     opening = false;
   }
 }
+
+function updateTitles(): void {
+  const dirty = editorMod?.isDirty() ?? false;
+  dirtyDot.hidden = !dirty;
+  btnSave.disabled = !dirty;
+  if (currentDoc) {
+    docTitle.textContent = fileName(currentDoc.path);
+    docTitle.title = currentDoc.path;
+    getCurrentWindow()
+      .setTitle(`${dirty ? "• " : ""}${fileName(currentDoc.path)} — Markdown Studio`)
+      .catch(() => {});
+  }
+}
+
+/* ---- edit mode ---- */
+
+async function toggleEditMode(): Promise<void> {
+  if (!editing) {
+    await enterEditMode();
+    return;
+  }
+  if (editorMod?.isDirty()) {
+    if (!(await confirmDiscard())) return;
+    // restore the saved document in the article before leaving the split view
+    if (currentDoc) await openFile(currentDoc.path, { preserveScroll: true });
+  }
+  exitEditMode();
+}
+
+async function enterEditMode(): Promise<void> {
+  if (editing || !currentDoc) return;
+  editorMod ??= await import("./editor");
+  editorMod.mount(editorPane, {
+    onDocChanged: schedulePreview,
+    onDirtyChanged: () => updateTitles(),
+    requestSave: () => {
+      saveFile();
+    },
+  });
+  editorMod.setContent(currentDoc.content);
+  editing = true;
+  app.classList.add("editing");
+  btnEdit.setAttribute("aria-pressed", "true");
+  updateTitles();
+  editorMod.focus();
+}
+
+function exitEditMode(): void {
+  if (!editing) return;
+  editing = false;
+  app.classList.remove("editing");
+  btnEdit.setAttribute("aria-pressed", "false");
+  // reset the buffer to the saved document: clears dirty state and undo history
+  if (currentDoc) editorMod?.setContent(currentDoc.content);
+  updateTitles();
+}
+
+const confirmDiscard = (): Promise<boolean> =>
+  ask("You have unsaved changes. Discard them?", {
+    title: "Unsaved changes",
+    kind: "warning",
+  }).catch(() => false);
+
+/* ---- live preview ---- */
+
+function schedulePreview(): void {
+  clearTimeout(previewTimer);
+  previewTimer = window.setTimeout(() => {
+    if (editorMod) updatePreview(editorMod.currentText());
+  }, 200);
+}
+
+async function updatePreview(content: string): Promise<void> {
+  if (!currentDoc) return;
+  const gen = ++previewGen;
+  try {
+    // all fallible work happens before the DOM commit; on error the previous
+    // preview stays on screen and only the notice strip appears
+    const staging = await renderFragment({ ...currentDoc, content });
+    if (gen !== previewGen) return; // a newer render superseded this one
+
+    // reuse already-rendered mermaid SVGs so untouched diagrams don't flicker
+    const mmdCache = new Map<string, string>();
+    for (const h of article.querySelectorAll<HTMLElement>(".mermaid-diagram[data-mmd-source]")) {
+      mmdCache.set(h.dataset.mmdSource ?? "", h.innerHTML);
+    }
+
+    const anchor = captureScrollAnchor(contentPane, article);
+    article.replaceChildren(...staging.childNodes);
+    for (const code of article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")) {
+      const source = code.textContent ?? "";
+      const cached = mmdCache.get(source);
+      if (cached === undefined) continue;
+      const holder = document.createElement("div");
+      holder.className = "mermaid-diagram";
+      holder.innerHTML = cached;
+      holder.dataset.mmdSource = source;
+      (code.parentElement as HTMLPreElement).replaceWith(holder);
+    }
+    restoreScrollAnchor(contentPane, article, anchor);
+
+    const headings = toc.build(article, tocList, contentPane);
+    app.classList.toggle("no-headings", headings === 0);
+    search.onContentChanged();
+    hideNotice();
+    renderMermaidIn(article, theme.current() === "dark").catch((err) =>
+      showNotice(`Diagram rendering failed: ${err}`),
+    );
+  } catch (err) {
+    if (gen === previewGen) showNotice(`Preview error: ${err}`);
+  }
+}
+
+/* ---- saving ---- */
+
+async function saveFile(): Promise<void> {
+  if (!editing || !currentDoc || !editorMod?.isDirty()) return;
+  const content = editorMod.getContent();
+  suppressReloadUntil = Date.now() + 1500;
+  try {
+    await ipc.writeMarkdown(currentDoc.path, content);
+    currentDoc = { ...currentDoc, content };
+    editorMod.markSaved();
+    hideNotice(true);
+  } catch (err) {
+    showNotice(`Save failed: ${err}`);
+  }
+}
+
+async function reloadFromDisk(): Promise<void> {
+  if (!currentDoc) return;
+  try {
+    const doc = await ipc.readMarkdown(currentDoc.path);
+    currentDoc = doc;
+    editorMod?.setContent(doc.content);
+    await updatePreview(doc.content);
+    hideNotice(true);
+  } catch (err) {
+    showNotice(`Reload failed: ${err}`);
+  }
+}
+
+/* ---- notice bar ---- */
+
+let noticeActionFn: (() => void) | null = null;
+let noticeSticky = false;
+
+function showNotice(
+  message: string,
+  opts: { action?: { label: string; fn: () => void }; sticky?: boolean } = {},
+): void {
+  noticeMsg.textContent = message;
+  noticeMsg.title = message;
+  if (opts.action) {
+    noticeAction.textContent = opts.action.label;
+    noticeAction.hidden = false;
+    noticeActionFn = opts.action.fn;
+  } else {
+    noticeAction.hidden = true;
+    noticeActionFn = null;
+  }
+  noticeSticky = opts.sticky ?? false;
+  noticeBar.hidden = false;
+}
+
+// sticky notices (external file change) survive routine preview refreshes
+function hideNotice(force = false): void {
+  if (noticeSticky && !force) return;
+  noticeBar.hidden = true;
+  noticeSticky = false;
+  noticeActionFn = null;
+}
+
+/* ---- file browser ---- */
 
 function refreshTree(): void {
   if (!browseRoot) return;
@@ -145,9 +343,13 @@ function wireUi(): void {
   $("#btn-theme").addEventListener("click", () => theme.toggle());
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
+  btnEdit.addEventListener("click", () => toggleEditMode());
+  btnSave.addEventListener("click", () => saveFile());
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
   $("#help-close").addEventListener("click", () => helpDialog.close());
   btnUp.addEventListener("click", goUp);
+  noticeAction.addEventListener("click", () => noticeActionFn?.());
+  $("#notice-close").addEventListener("click", () => hideNotice(true));
 
   // click outside the dialog body closes it
   helpDialog.addEventListener("click", (e) => {
@@ -179,6 +381,13 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.key.toLowerCase() === "o") {
       e.preventDefault();
       chooseFile();
+    } else if (e.ctrlKey && e.key.toLowerCase() === "e") {
+      e.preventDefault();
+      toggleEditMode();
+    } else if (e.ctrlKey && e.key.toLowerCase() === "s") {
+      // always swallow it: WebView2 would otherwise open its save-page dialog
+      e.preventDefault();
+      saveFile();
     } else if (e.ctrlKey && e.key.toLowerCase() === "b") {
       e.preventDefault();
       toggleSidebar("tree-hidden");
@@ -221,11 +430,33 @@ async function boot(): Promise<void> {
   theme.onChange((t) => rerenderForTheme(article, t === "dark").catch(() => {}));
   wireUi();
 
+  // registering this handler makes JS responsible for closing the window,
+  // which needs the core:window:allow-destroy capability
+  await getCurrentWindow().onCloseRequested(async (e) => {
+    if (editorMod?.isDirty() && !(await confirmDiscard())) e.preventDefault();
+  });
+
   // listeners must be live before get_initial_file, or a double-click
   // arriving during startup would be lost
   await ipc.onOpenFile((p) => openFile(p));
   await ipc.onFileChanged(() => {
-    if (currentDoc) openFile(currentDoc.path, { preserveScroll: true });
+    if (!currentDoc) return;
+    if (Date.now() < suppressReloadUntil) return; // echo of our own save
+    if (editing && editorMod?.isDirty()) {
+      // never clobber a dirty buffer
+      showNotice("File changed on disk. Saving will overwrite it.", {
+        action: {
+          label: "Reload",
+          fn: () => {
+            reloadFromDisk();
+          },
+        },
+        sticky: true,
+      });
+      return;
+    }
+    if (editing) reloadFromDisk();
+    else openFile(currentDoc.path, { preserveScroll: true });
   });
   await getCurrentWebview().onDragDropEvent((event) => {
     const type = event.payload.type;

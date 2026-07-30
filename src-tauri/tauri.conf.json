@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Markdown Viewer",
+  "productName": "Markdown Studio",
   "version": "../package.json",
   "identifier": "com.enrico.markdownviewer",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Markdown Viewer",
+        "title": "Markdown Studio",
         "label": "main",
         "width": 1200,
         "height": 860,
@@ -53,7 +53,7 @@
         "name": "Markdown",
         "description": "Markdown document",
         "mimeType": "text/markdown",
-        "role": "Viewer",
+        "role": "Editor",
         "rank": "Default"
       }
     ],

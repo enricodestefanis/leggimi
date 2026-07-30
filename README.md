@@ -1,16 +1,24 @@
-# Markdown Viewer
+# Markdown Studio
 
-A read-only Markdown viewer for Windows, built with Tauri 2. It renders documents in a clean,
-centered reading column with light and dark themes, and never modifies the files it opens.
+A fast Markdown viewer and editor for Windows, built with Tauri 2. Documents open in a clean,
+centered reading column with light and dark themes; an optional edit mode adds a split view with
+a live preview. Files are only modified when you save explicitly.
 
 ## Features
 
+- Documents always open in **viewer mode**; `Ctrl+E` switches to **edit mode**: CodeMirror
+  editor on the left, live preview on the right, updated as you type
+- Explicit save with `Ctrl+S`, unsaved-changes indicator and confirmation guards; line endings
+  (CRLF/LF) are preserved on save
+- If a preview render fails mid-edit, the last good preview stays on screen and a dismissable
+  notice appears — the pane never goes blank
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
 - Clickable **outline** with scroll-spy
 - **File browser** for the Markdown files in the folder you opened
-- **Live reload** when the file changes on disk, preserving your reading position
+- **Live reload** when the file changes on disk, preserving your reading position; with unsaved
+  edits it warns instead of overwriting your buffer
 - Find in document (`Ctrl+F`), light/dark theme, relative images
 - Double-click any `.md` file in File Explorer — the installer registers the association
 - Single instance: further files open in the existing window
@@ -22,6 +30,8 @@ centered reading column with light and dark themes, and never modifies the files
 | Keys | Action |
 |---|---|
 | `Ctrl+O` | Open a file |
+| `Ctrl+E` | Toggle edit mode |
+| `Ctrl+S` | Save the file (edit mode) |
 | `Ctrl+F` | Find in document |
 | `Enter` / `Shift+Enter` | Next / previous match |
 | `Ctrl+B` | Toggle the file browser |
@@ -47,8 +57,8 @@ The running version appears in the help dialog (`F1`) and on the empty screen.
 To cut a release:
 
 ```powershell
-npm version patch      # a fix        (0.2.0 -> 0.2.1)
-npm version minor      # new features (0.2.0 -> 0.3.0)
+npm version patch      # a fix        (1.0.0 -> 1.0.1)
+npm version minor      # new features (1.0.0 -> 1.1.0)
 npm run tauri build    # installer carries the new version
 ```
 
@@ -71,10 +81,11 @@ Mermaid in a production build too.
 
 ## Project layout
 
-- `src/` — TypeScript + Vite frontend (markdown-it, highlight.js, DOMPurify, mermaid)
-- `src-tauri/` — Rust backend: file and tree reading commands, debounced file watcher (notify),
-  single instance, `.md` file association
+- `src/` — TypeScript + Vite frontend (markdown-it, highlight.js, DOMPurify, mermaid,
+  CodeMirror 6 for the editor)
+- `src-tauri/` — Rust backend: file read/write and tree commands, debounced file watcher
+  (notify), single instance, `.md` file association
 - `samples/` — test documents; `test-features.md` exercises every feature
 
 A `private/` folder, if you create one, is excluded from git: use it for personal documents you
-want to open in the viewer without risking committing them.
+want to open in the app without risking committing them.

@@ -68,6 +68,12 @@ pub fn read_markdown(app: AppHandle, path: String) -> Result<MarkdownDoc, String
     })
 }
 
+#[tauri::command]
+pub fn write_markdown(path: String, content: String) -> Result<(), String> {
+    let canon = dunce::canonicalize(&path).map_err(|e| format!("Cannot save {path}: {e}"))?;
+    fs::write(&canon, content).map_err(|e| format!("Cannot save {}: {e}", canon.display()))
+}
+
 // editors briefly lock/replace the file during an atomic save
 fn read_with_retry(path: &Path) -> Result<String, String> {
     match fs::read_to_string(path) {

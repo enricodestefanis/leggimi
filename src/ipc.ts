@@ -16,6 +16,8 @@ export interface TreeNode {
 
 export const getInitialFile = () => invoke<string | null>("get_initial_file");
 export const readMarkdown = (path: string) => invoke<MarkdownDoc>("read_markdown", { path });
+export const writeMarkdown = (path: string, content: string) =>
+  invoke<void>("write_markdown", { path, content });
 export const listTree = (dir: string) => invoke<TreeNode>("list_tree", { dir });
 export const parentDir = (path: string) => invoke<string | null>("parent_dir", { path });
 export const watchFile = (path: string) => invoke<void>("watch_file", { path });

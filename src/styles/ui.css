@@ -7,6 +7,14 @@
   border-radius: 6px;
   color: var(--text-muted);
   flex: none;
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease),
+    transform 0.06s var(--ease);
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .icon-btn:hover {
@@ -21,6 +29,42 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#dirty-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dot-in 0.16s var(--ease);
+}
+
+#dirty-dot[hidden] {
+  display: none;
+}
+
+@keyframes dot-in {
+  from {
+    transform: scale(0);
+  }
+}
+
+.toolbar-sep {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+#btn-edit[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+#app:not(.editing) #btn-save {
+  display: none;
 }
 
 :root:not([data-theme="dark"]) #btn-theme .ico-sun,
@@ -84,6 +128,9 @@
   font-size: 13px;
   color: var(--text);
   text-align: left;
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
 }
 
 .tree-row svg {
@@ -124,12 +171,20 @@
   transform: rotate(0deg);
 }
 
-.tree-dir.collapsed > .tree-children {
-  display: none;
-}
-
 .tree-children {
   padding-left: 14px;
+  height: auto;
+  overflow: hidden;
+  /* interpolate-size on :root lets height animate to/from auto; visibility
+     keeps the hidden rows out of the tab order once the collapse ends */
+  transition:
+    height 0.18s var(--ease),
+    visibility 0.18s;
+}
+
+.tree-dir.collapsed > .tree-children {
+  height: 0;
+  visibility: hidden;
 }
 
 /* toc */
@@ -145,6 +200,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease),
+    border-color 0.12s var(--ease);
 }
 
 .toc-item:hover {
@@ -178,6 +237,15 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
+  /* restarts automatically every time the bar leaves display: none */
+  animation: bar-in 0.16s var(--ease);
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 #find-bar[hidden] {
@@ -199,6 +267,67 @@
   color: var(--text-muted);
   min-width: 34px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* notice bar — twin of the find bar */
+#notice-bar {
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
+  padding: 6px 8px 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  animation: bar-in 0.16s var(--ease);
+}
+
+#notice-bar[hidden] {
+  display: none;
+}
+
+#notice-bar > svg {
+  flex: none;
+  color: var(--accent);
+}
+
+#notice-msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-action {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: filter 0.12s;
+}
+
+.notice-action:hover {
+  filter: brightness(0.94);
+}
+
+/* editor pane (CodeMirror mounts here) */
+#editor-pane .cm-editor {
+  height: 100%;
+  background: var(--bg);
+}
+
+#editor-pane .cm-editor.cm-focused {
+  outline: none;
 }
 
 /* empty state */
@@ -238,10 +367,17 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
+  transition:
+    filter 0.12s var(--ease),
+    transform 0.06s var(--ease);
 }
 
 .primary-btn:hover {
   filter: brightness(1.08);
+}
+
+.primary-btn:active {
+  transform: scale(0.97);
 }
 
 /* help dialog */
@@ -257,8 +393,26 @@
   overflow: hidden;
 }
 
+#help-dialog[open] {
+  animation: dialog-in 0.18s var(--ease);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
 #help-dialog::backdrop {
   background: rgba(0, 0, 0, 0.42);
+  animation: backdrop-in 0.18s var(--ease);
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .help-head {
@@ -380,6 +534,7 @@
   background: color-mix(in srgb, var(--bg) 60%, transparent);
   backdrop-filter: blur(2px);
   pointer-events: none;
+  animation: backdrop-in 0.15s var(--ease);
 }
 
 #app.dropping #drop-overlay {

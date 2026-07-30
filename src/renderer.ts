@@ -30,13 +30,20 @@ const md: MarkdownIt = MarkdownIt({
   .use(anchor, { tabIndex: false })
   .use(taskLists, { label: true });
 
-export async function render(doc: MarkdownDoc, article: HTMLElement): Promise<void> {
+// All fallible work (markdown-it, DOMPurify, image IPC) happens here, before
+// anything touches the live DOM — callers can keep the previous content on error.
+export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {
   const clean = DOMPurify.sanitize(md.render(doc.content));
   const staging = document.createElement("div");
   staging.innerHTML = clean;
   await rewriteImages(staging, doc.dir);
   wrapCodeBlocks(staging);
   wrapTables(staging);
+  return staging;
+}
+
+export async function render(doc: MarkdownDoc, article: HTMLElement): Promise<void> {
+  const staging = await renderFragment(doc);
   article.replaceChildren(...staging.childNodes);
 }
 
@@ -73,7 +80,7 @@ function wrapCodeBlocks(root: HTMLElement): void {
     const btn = document.createElement("button");
     btn.className = "code-copy icon-btn";
     btn.type = "button";
-    btn.title = "Copia";
+    btn.title = "Copy";
     btn.innerHTML = COPY_ICON;
     btn.addEventListener("click", async () => {
       try {

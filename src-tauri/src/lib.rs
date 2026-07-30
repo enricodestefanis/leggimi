@@ -41,6 +41,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_initial_file,
             commands::read_markdown,
+            commands::write_markdown,
             commands::list_tree,
             commands::parent_dir,
             commands::watch_file,
