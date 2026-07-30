@@ -1,44 +1,62 @@
 # Markdown Viewer
 
-Visualizzatore Markdown per Windows (sola lettura), costruito con Tauri 2. Estetica ispirata al viewer di Claude Cowork: colonna di lettura centrata, tema chiaro/scuro, tipografia curata.
+A read-only Markdown viewer for Windows, built with Tauri 2. It renders documents in a clean,
+centered reading column with light and dark themes, and never modifies the files it opens.
 
-## Funzionalità
+## Features
 
-- Rendering GitHub-flavored Markdown (tabelle, task list, strikethrough, autolink)
-- Syntax highlighting dei blocchi di codice con pulsante copia
-- Diagrammi **Mermaid** (bundle locale, funziona offline)
-- **Indice** (TOC) cliccabile con scroll-spy
-- **Albero dei file** .md della cartella del documento aperto
-- **Ricarica automatica** quando il file cambia su disco, con scroll preservato
-- Ricerca nel documento (`Ctrl+F`), tema chiaro/scuro, immagini relative
-- Doppio click su un file `.md` in Esplora risorse (associazione registrata dall'installer)
-- Istanza singola: i file successivi si aprono nella finestra esistente
-- Drag & drop di file sulla finestra, `Ctrl+O` per il dialog di apertura
+- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
+- Syntax-highlighted code blocks with a copy button
+- **Mermaid** diagrams, bundled locally so they work offline
+- Clickable **outline** with scroll-spy
+- **File browser** for the Markdown files in the folder you opened
+- **Live reload** when the file changes on disk, preserving your reading position
+- Find in document (`Ctrl+F`), light/dark theme, relative images
+- Double-click any `.md` file in File Explorer — the installer registers the association
+- Single instance: further files open in the existing window
+- Drag and drop files onto the window, or press `Ctrl+O`
+- Built-in help (`F1`)
 
-## Scorciatoie
+## Keyboard shortcuts
 
-| Tasti | Azione |
+| Keys | Action |
 |---|---|
-| `Ctrl+F` | Cerca nel documento |
-| `Ctrl+O` | Apri file |
-| `Ctrl+B` | Mostra/nascondi albero file |
+| `Ctrl+O` | Open a file |
+| `Ctrl+F` | Find in document |
+| `Enter` / `Shift+Enter` | Next / previous match |
+| `Ctrl+B` | Toggle the file browser |
+| `Ctrl+I` | Toggle the outline |
+| `F1` | Show help |
+| `Esc` | Close the find bar or help |
 
-## Sviluppo
+## File browser
 
-Prerequisiti: Node 20+, Rust stable, WebView2 (preinstallato su Windows 11).
+The left panel is rooted at the folder of the document you opened and lists Markdown files up to
+four levels of subfolders (capped at 2000 files). Opening a file from the panel keeps the same
+root, so navigating into a subfolder does not hide the rest of the tree; the up arrow moves the
+root to the parent folder. Opening a document outside the current root re-roots the panel there.
+Folders with no Markdown files are hidden, as are hidden folders and build directories such as
+`node_modules`, `target` and `dist`.
+
+## Development
+
+Requirements: Node 20+, Rust stable, WebView2 (preinstalled on Windows 11).
 
 ```powershell
 npm install
-npm run tauri dev        # sviluppo
-npm run tauri build      # produce l'installer NSIS in src-tauri\target\release\bundle\nsis\
+npm run tauri dev        # development
+npm run tauri build      # produces the NSIS installer in src-tauri\target\release\bundle\nsis\
 ```
 
-Nota: in dev Vite non applica la CSP configurata in `tauri.conf.json` — testare immagini/Mermaid anche nella build di produzione.
+Note: in dev mode Vite does not apply the CSP configured in `tauri.conf.json` — test images and
+Mermaid in a production build too.
 
-## Struttura
+## Project layout
 
-- `src/` — frontend TypeScript + Vite (markdown-it, highlight.js, DOMPurify, mermaid)
-- `src-tauri/` — backend Rust: comandi per lettura file/albero, watcher con debounce (notify), single-instance, associazione file `.md`
-- `samples/` — documenti di prova (`test-funzionalita.md` esercita tutte le funzionalità, `brief-esempio.md` è un documento di lavoro realistico)
+- `src/` — TypeScript + Vite frontend (markdown-it, highlight.js, DOMPurify, mermaid)
+- `src-tauri/` — Rust backend: file and tree reading commands, debounced file watcher (notify),
+  single instance, `.md` file association
+- `samples/` — test documents; `test-features.md` exercises every feature
 
-Una cartella `private/`, se la crei, è esclusa da git: usala per i documenti personali che vuoi aprire con il viewer senza rischiare di committarli.
+A `private/` folder, if you create one, is excluded from git: use it for personal documents you
+want to open in the viewer without risking committing them.

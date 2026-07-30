@@ -35,7 +35,7 @@ export async function renderMermaidIn(article: HTMLElement, dark: boolean): Prom
       document.getElementById(`d${id}`)?.remove();
       const banner = document.createElement("div");
       banner.className = "mermaid-error";
-      banner.textContent = `Diagramma Mermaid non valido: ${err instanceof Error ? err.message : String(err)}`;
+      banner.textContent = `Invalid Mermaid diagram: ${err instanceof Error ? err.message : String(err)}`;
       holder.replaceWith(banner, pre);
     }
   }

@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Personal documents — never committed
+# Personal documents - never committed
 private/
 
 # Editor directories and files

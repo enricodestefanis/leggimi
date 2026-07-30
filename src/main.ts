@@ -25,14 +25,27 @@ const contentPane = $("#content-pane");
 const article = $("#article");
 const emptyState = $("#empty-state");
 const treeRoot = $("#tree-root");
+const treeRootName = $("#tree-rootname");
+const btnUp = $<HTMLButtonElement>("#btn-up");
 const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
+const helpDialog = $<HTMLDialogElement>("#help-dialog");
 
 let currentDoc: ipc.MarkdownDoc | null = null;
+// Root of the file browser. It survives navigation *within* itself, so opening a
+// file from a subfolder does not make the rest of the tree disappear.
+let browseRoot: string | null = null;
 let opening = false;
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 const isMarkdownPath = (p: string) => /\.(md|markdown)$/i.test(p);
+const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
+
+function isInside(parent: string, child: string): boolean {
+  const p = parent.toLowerCase().replace(/[\\/]+$/, "");
+  const c = child.toLowerCase();
+  return c === p || c.startsWith(`${p}\\`) || c.startsWith(`${p}/`);
+}
 
 async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): Promise<void> {
   if (opening) return;
@@ -58,15 +71,39 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
     renderMermaidIn(article, theme.current() === "dark").catch(() => {});
     search.onContentChanged();
 
-    ipc
-      .listTree(doc.dir)
-      .then((root) => tree.render(treeRoot, root, doc.path, (p) => openFile(p)))
-      .catch(() => treeRoot.replaceChildren());
+    if (!browseRoot || !isInside(browseRoot, doc.dir)) browseRoot = doc.dir;
+    refreshTree();
     ipc.watchFile(doc.path).catch(() => {});
   } catch (err) {
     showError(String(err));
   } finally {
     opening = false;
+  }
+}
+
+function refreshTree(): void {
+  if (!browseRoot) return;
+  const root = browseRoot;
+  btnUp.disabled = isDriveRoot(root);
+  ipc
+    .listTree(root)
+    .then((node) => {
+      treeRootName.textContent = node.name;
+      treeRootName.title = root;
+      tree.render(treeRoot, node, currentDoc?.path ?? "", (p) => openFile(p));
+    })
+    .catch(() => {
+      treeRootName.textContent = "";
+      treeRoot.replaceChildren();
+    });
+}
+
+async function goUp(): Promise<void> {
+  if (!browseRoot || isDriveRoot(browseRoot)) return;
+  const parent = await ipc.parentDir(browseRoot).catch(() => null);
+  if (parent) {
+    browseRoot = parent;
+    refreshTree();
   }
 }
 
@@ -107,6 +144,14 @@ function wireUi(): void {
   $("#btn-theme").addEventListener("click", () => theme.toggle());
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
+  $("#btn-help").addEventListener("click", () => helpDialog.showModal());
+  $("#help-close").addEventListener("click", () => helpDialog.close());
+  btnUp.addEventListener("click", goUp);
+
+  // click outside the dialog body closes it
+  helpDialog.addEventListener("click", (e) => {
+    if (e.target === helpDialog) helpDialog.close();
+  });
 
   search.init({
     root: article,
@@ -120,6 +165,13 @@ function wireUi(): void {
   });
 
   document.addEventListener("keydown", (e) => {
+    if (e.key === "F1") {
+      e.preventDefault();
+      if (helpDialog.open) helpDialog.close();
+      else helpDialog.showModal();
+      return;
+    }
+    if (helpDialog.open) return; // Esc is handled natively by <dialog>
     if (e.ctrlKey && e.key.toLowerCase() === "f") {
       e.preventDefault();
       search.open();
@@ -129,6 +181,9 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.key.toLowerCase() === "b") {
       e.preventDefault();
       toggleSidebar("tree-hidden");
+    } else if (e.ctrlKey && e.key.toLowerCase() === "i") {
+      e.preventDefault();
+      toggleSidebar("toc-hidden");
     }
   });
 

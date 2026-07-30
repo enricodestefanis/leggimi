@@ -42,6 +42,7 @@ pub fn run() {
             commands::get_initial_file,
             commands::read_markdown,
             commands::list_tree,
+            commands::parent_dir,
             commands::watch_file,
             commands::resolve_path,
             commands::show_window

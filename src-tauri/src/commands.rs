@@ -26,7 +26,20 @@ pub struct TreeNode {
     pub children: Vec<TreeNode>,
 }
 
-const SKIP_DIRS: &[&str] = &["node_modules", "target", "dist", "__pycache__", "venv"];
+const SKIP_DIRS: &[&str] = &[
+    "node_modules",
+    "target",
+    "dist",
+    "__pycache__",
+    "venv",
+    "windows",
+    "program files",
+    "program files (x86)",
+    "programdata",
+    "appdata",
+    "$recycle.bin",
+    "system volume information",
+];
 const MAX_ENTRIES: usize = 2000;
 const MAX_DEPTH: usize = 4;
 
@@ -74,6 +87,13 @@ pub fn resolve_path(dir: String, rel: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn parent_dir(path: String) -> Option<String> {
+    let canon = dunce::canonicalize(&path).ok()?;
+    let parent = canon.parent()?;
+    Some(parent.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 pub fn list_tree(dir: String) -> Result<TreeNode, String> {
     let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
     let mut count = 0usize;
@@ -81,9 +101,14 @@ pub fn list_tree(dir: String) -> Result<TreeNode, String> {
 }
 
 fn build_node(path: &Path, depth: usize, count: &mut usize) -> Option<TreeNode> {
-    let name = path.file_name()?.to_string_lossy().into_owned();
+    // a drive root such as `C:\` has no file_name
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string_lossy().into_owned());
     if path.is_dir() {
         if depth >= MAX_DEPTH
+            || *count >= MAX_ENTRIES
             || (depth > 0
                 && (name.starts_with('.') || SKIP_DIRS.contains(&name.to_lowercase().as_str())))
         {
