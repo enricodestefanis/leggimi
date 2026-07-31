@@ -140,16 +140,24 @@ async function enterEditMode(): Promise<void> {
   editorMod.mount(editorPane, {
     onDocChanged: schedulePreview,
     onDirtyChanged: () => updateTitles(),
+    onScroll: scheduleSyncPreview,
     requestSave: () => {
       saveFile();
     },
   });
+  syncSuppressedUntil = performance.now() + 200;
   editorMod.setContent(currentDoc.content);
   editing = true;
   app.classList.add("editing");
   btnEdit.setAttribute("aria-pressed", "true");
   updateTitles();
   editorMod.focus();
+
+  // open the editor at the section being read: first anchor visible in the preview
+  collectPreviewAnchors();
+  const paneTop = contentPane.getBoundingClientRect().top;
+  const first = previewAnchors.find((a) => a.el.getBoundingClientRect().top - paneTop >= -1);
+  if (first && first.line > 0) editorMod.scrollToLine(first.line);
 }
 
 function exitEditMode(): void {
@@ -192,7 +200,9 @@ async function updatePreview(content: string): Promise<void> {
       mmdCache.set(h.dataset.mmdSource ?? "", h.innerHTML);
     }
 
-    const anchor = captureScrollAnchor(contentPane, article);
+    // in edit mode the editor viewport is the source of truth for the preview
+    // position; the heading anchor only serves the non-editing path
+    const anchor = editing ? null : captureScrollAnchor(contentPane, article);
     article.replaceChildren(...staging.childNodes);
     for (const code of article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")) {
       const source = code.textContent ?? "";
@@ -202,20 +212,92 @@ async function updatePreview(content: string): Promise<void> {
       holder.className = "mermaid-diagram";
       holder.innerHTML = cached;
       holder.dataset.mmdSource = source;
+      if (code.dataset.sourceLine) holder.dataset.sourceLine = code.dataset.sourceLine;
       (code.parentElement as HTMLPreElement).replaceWith(holder);
     }
-    restoreScrollAnchor(contentPane, article, anchor);
+    collectPreviewAnchors();
+    if (anchor) restoreScrollAnchor(contentPane, article, anchor);
+    else syncPreviewToEditor();
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
     search.onContentChanged();
     hideNotice();
-    renderMermaidIn(article, theme.current() === "dark").catch((err) =>
-      showNotice(`Diagram rendering failed: ${err}`),
-    );
+    renderMermaidIn(article, theme.current() === "dark")
+      .then(() => {
+        // freshly rendered diagrams change heights: re-anchor and re-align
+        collectPreviewAnchors();
+        scheduleSyncPreview();
+      })
+      .catch((err) => showNotice(`Diagram rendering failed: ${err}`));
   } catch (err) {
     if (gen === previewGen) showNotice(`Preview error: ${err}`);
   }
+}
+
+/* ---- editor→preview scroll sync ---- */
+
+const SYNC_MARGIN = 16;
+let previewAnchors: { line: number; el: HTMLElement }[] = [];
+let syncRaf = 0;
+// brief window around edit-mode entry: CM's async scroll settling (setContent
+// reset + scrollIntoView) fires scroll events that must not move the preview
+let syncSuppressedUntil = 0;
+
+function collectPreviewAnchors(): void {
+  previewAnchors = [];
+  let last = -1;
+  for (const el of article.querySelectorAll<HTMLElement>("[data-source-line]")) {
+    const line = Number(el.dataset.sourceLine);
+    if (!Number.isFinite(line) || line <= last) continue; // keep the outermost element per line
+    previewAnchors.push({ line, el });
+    last = line;
+  }
+}
+
+function scheduleSyncPreview(): void {
+  if (!syncRaf) {
+    syncRaf = requestAnimationFrame(() => {
+      syncRaf = 0;
+      syncPreviewToEditor();
+    });
+  }
+}
+
+function syncPreviewToEditor(retry = true): void {
+  if (!editing || !editorMod || previewAnchors.length === 0) return;
+  if (performance.now() < syncSuppressedUntil) return;
+  const line = editorMod.topVisibleLine();
+
+  // binary search: lo = last anchor with .line <= line
+  let lo = -1;
+  let hi = previewAnchors.length;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (previewAnchors[mid].line <= line) lo = mid;
+    else hi = mid;
+  }
+  const a1 = lo >= 0 ? previewAnchors[lo] : null;
+  const a2 = hi < previewAnchors.length ? previewAnchors[hi] : null;
+  if ((a1 && !a1.el.isConnected) || (a2 && !a2.el.isConnected)) {
+    // the mermaid pass detached an anchor mid-flight; recollect once
+    if (retry) {
+      collectPreviewAnchors();
+      syncPreviewToEditor(false);
+    }
+    return;
+  }
+
+  const paneTop = contentPane.getBoundingClientRect().top;
+  const yOf = (el: HTMLElement) => el.getBoundingClientRect().top - paneTop + contentPane.scrollTop;
+  const l1 = a1 ? a1.line : 0;
+  const y1 = a1 ? yOf(a1.el) : yOf(article);
+  const l2 = a2 ? a2.line : editorMod.lineCount();
+  const y2 = a2
+    ? yOf(a2.el)
+    : article.getBoundingClientRect().bottom - paneTop + contentPane.scrollTop;
+  const t = l2 > l1 ? (line - l1) / (l2 - l1) : 0;
+  contentPane.scrollTop = Math.max(0, y1 + t * (y2 - y1) - SYNC_MARGIN);
 }
 
 /* ---- saving ---- */

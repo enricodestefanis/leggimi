@@ -16,6 +16,7 @@ import { tags } from "@lezer/highlight";
 export interface EditorCallbacks {
   onDocChanged(): void;
   onDirtyChanged(dirty: boolean): void;
+  onScroll(): void;
   requestSave(): void;
 }
 
@@ -85,6 +86,8 @@ export function mount(host: HTMLElement, cb: EditorCallbacks): void {
     parent: host,
     state: makeState(""),
   });
+  // scrollDOM survives setState(), so one listener covers the app's lifetime
+  view.scrollDOM.addEventListener("scroll", () => callbacks?.onScroll(), { passive: true });
 }
 
 function makeState(content: string): EditorState {
@@ -158,4 +161,32 @@ export function isDirty(): boolean {
 
 export function focus(): void {
   view?.focus();
+}
+
+// 0-based fractional source line at the top of the editor viewport. The
+// fraction walks smoothly through the visual rows of a wrapped logical line.
+export function topVisibleLine(): number {
+  if (!view) return 0;
+  const h = view.scrollDOM.getBoundingClientRect().top - view.documentTop;
+  const block = view.lineBlockAtHeight(h);
+  const line = view.state.doc.lineAt(block.from);
+  const frac = block.height > 0 ? Math.min(1, Math.max(0, (h - block.top) / block.height)) : 0;
+  return line.number - 1 + frac;
+}
+
+export function lineCount(): number {
+  return view?.state.doc.lines ?? 1;
+}
+
+// One-shot jump to a 0-based source line (edit-mode entry). Moves the caret
+// too: a caret left at line 1 would fling both panes to the top on the first
+// arrow key. Selection-only dispatches do not fire onDocChanged.
+export function scrollToLine(line: number): void {
+  if (!view) return;
+  const n = Math.max(1, Math.min(view.state.doc.lines, Math.floor(line) + 1));
+  const pos = view.state.doc.line(n).from;
+  view.dispatch({
+    selection: { anchor: pos },
+    effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: 12 }),
+  });
 }

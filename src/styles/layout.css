@@ -25,7 +25,10 @@
   min-height: 0;
 }
 
+/* Explicit column assignments: hiding a pane must collapse its own track,
+   not shift the remaining panes into the wrong ones. */
 #tree-pane {
+  grid-column: 1;
   width: 260px;
   overflow-y: auto;
   padding: 14px 8px 24px;
@@ -33,6 +36,7 @@
 }
 
 #toc-pane {
+  grid-column: 3;
   width: 240px;
   overflow-y: auto;
   padding: 14px 10px 24px;
@@ -49,6 +53,8 @@
 }
 
 #editor-pane {
+  /* column 1 is free in edit mode: the tree pane is hidden there */
+  grid-column: 1;
   display: none;
   min-width: 0;
   overflow: hidden;
@@ -69,6 +75,7 @@
 }
 
 #content-pane {
+  grid-column: 2;
   position: relative;
   overflow-y: auto;
   min-width: 0;

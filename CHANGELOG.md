@@ -7,6 +7,19 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.0.1] - 2026-07-31
+
+### Added
+- Scroll sync in edit mode: scrolling the editor keeps the preview aligned with the
+  visible source lines (one-way — scrolling the preview by hand stays free until the
+  editor moves again). Entering edit mode opens the editor at the section being read,
+  with the caret placed there.
+
+### Fixed
+- Hiding the file browser and/or the outline no longer pushes the reading column to
+  the left: each pane now has an explicit grid column, so the content stays centered
+  in any combination of open panels.
+
 ## [1.0.0] - 2026-07-30
 
 ### Added

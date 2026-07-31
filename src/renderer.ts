@@ -30,6 +30,16 @@ const md: MarkdownIt = MarkdownIt({
   .use(anchor, { tabIndex: false })
   .use(taskLists, { label: true });
 
+// Tag every rendered block with its source line for editor→preview scroll sync.
+// Fence attrs land on the <code> element; html_block drops attrs (no anchor there).
+md.core.ruler.push("source_line_map", (state) => {
+  for (const token of state.tokens) {
+    if (token.map && token.nesting !== -1) {
+      token.attrSet("data-source-line", String(token.map[0]));
+    }
+  }
+});
+
 // All fallible work (markdown-it, DOMPurify, image IPC) happens here, before
 // anything touches the live DOM — callers can keep the previous content on error.
 export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {

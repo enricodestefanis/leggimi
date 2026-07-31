@@ -23,6 +23,8 @@ export async function renderMermaidIn(article: HTMLElement, dark: boolean): Prom
     const source = code.textContent ?? "";
     const holder = document.createElement("div");
     holder.className = "mermaid-diagram";
+    // keep the scroll-sync anchor alive on the diagram that replaces the fence
+    if (code.dataset.sourceLine) holder.dataset.sourceLine = code.dataset.sourceLine;
     pre.replaceWith(holder);
 
     const id = `mmd-${++seq}`;
