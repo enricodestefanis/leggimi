@@ -4,11 +4,10 @@ A fast Markdown viewer and editor for Windows, built with Tauri 2. Documents ope
 centered reading column with light and dark themes; an optional edit mode adds a split view with
 a live preview. Files are only modified when you save explicitly.
 
-
-<img width="1863" height="1241" alt="Markdown Studio screen 1" src="https://github.com/user-attachments/assets/10af9556-1678-4b0c-8047-263cd3c885ba" />
-
-<img width="1863" height="1241" alt="Markdown Studio screen 2" src="https://github.com/user-attachments/assets/6778669f-1e1e-4e14-9ed7-18ceb80250ba" />
-
+<p align="center">
+  <img alt="Markdown Studio screen 1" src="https://github.com/user-attachments/assets/10af9556-1678-4b0c-8047-263cd3c885ba" width="49%" />
+  <img alt="Markdown Studio screen 2" src="https://github.com/user-attachments/assets/6778669f-1e1e-4e14-9ed7-18ceb80250ba" width="49%" />
+</p>
 
 ## Features
 
