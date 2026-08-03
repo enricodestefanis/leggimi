@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="Leggimi icon" src="docs/icon.png" width="120" />
+</p>
+
 # Leggimi
 
 *Leggimi* — Italian for "read me" — is a fast Markdown viewer and editor for Windows, built with
