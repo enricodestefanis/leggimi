@@ -400,7 +400,10 @@ function flashDone(btn: HTMLButtonElement): void {
 async function copyDocAsRichText(): Promise<void> {
   if (!currentDoc) return;
   try {
-    await copyAsRichText(article, currentDoc.dir);
+    // the plain-text flavor is the markdown source; in edit mode that means
+    // the unsaved buffer, which is what the preview (and the eye) shows
+    const plain = editing && editorMod ? editorMod.currentText() : currentDoc.content;
+    await copyAsRichText(article, currentDoc.dir, plain);
     flashDone(btnCopyDoc);
   } catch (err) {
     showNotice(`Copy failed: ${err}`);
