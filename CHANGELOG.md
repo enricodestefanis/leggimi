@@ -7,6 +7,15 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.2.0] - 2026-08-03
+
+### Added
+- **KaTeX math rendering**, bundled for offline use: `$…$` inline, `$$…$$` or a
+  ` ```math ` fence for display blocks. Long formulas scroll sideways instead of
+  breaking the reading column.
+- **GitHub-style alert callouts** (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`,
+  `[!WARNING]`, `[!CAUTION]`) with the GitHub palette in both themes.
+
 ## [1.1.0] - 2026-08-03
 
 ### Changed

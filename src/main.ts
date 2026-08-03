@@ -3,6 +3,7 @@ import "./styles/layout.css";
 import "./styles/markdown.css";
 import "./styles/code.css";
 import "./styles/ui.css";
+import "katex/dist/katex.min.css";
 
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";

@@ -1,11 +1,16 @@
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import taskLists from "markdown-it-task-lists";
+import katexModule from "@vscode/markdown-it-katex";
+import githubAlerts from "markdown-it-github-alerts";
 import hljs from "highlight.js/lib/common";
 import DOMPurify from "dompurify";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { resolvePath, type MarkdownDoc } from "./ipc";
+
+// @vscode/markdown-it-katex is CJS-only; not every loader unwraps its default
+const katex = ((katexModule as { default?: unknown }).default ?? katexModule) as typeof katexModule;
 
 const COPY_ICON =
   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -28,7 +33,9 @@ const md: MarkdownIt = MarkdownIt({
   },
 })
   .use(anchor, { tabIndex: false })
-  .use(taskLists, { label: true });
+  .use(taskLists, { label: true })
+  .use(katex, { enableFencedBlocks: true })
+  .use(githubAlerts);
 
 // Tag every rendered block with its source line for editor→preview scroll sync.
 // Fence attrs land on the <code> element; html_block drops attrs (no anchor there).

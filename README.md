@@ -21,6 +21,8 @@ explicitly.
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
+- **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences for display blocks
+- **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - Clickable **outline** with scroll-spy
 - **File browser** for the Markdown files in the folder you opened; collapsed folders are
   remembered across navigation and restarts
