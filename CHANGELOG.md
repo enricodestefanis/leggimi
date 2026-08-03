@@ -7,6 +7,15 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.0.2] - 2026-08-03
+
+### Fixed
+- The file browser remembers which folders you collapsed. Selecting a file used to
+  rebuild the whole tree fully expanded; now the collapse state survives file
+  selection, watcher reloads and app restarts, and selecting a file in the same
+  root just moves the highlight without rebuilding. Folders on the path of a newly
+  selected file still auto-expand to reveal it.
+
 ## [1.0.1] - 2026-07-31
 
 ### Added
