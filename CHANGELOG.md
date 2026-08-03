@@ -17,6 +17,15 @@ The running version is shown in the help dialog (`F1`) and on the empty screen.
   `SHAddToRecentDocs`, so it appears in Windows' Recent items and in the app's
   taskbar jump list.
 
+### Changed
+- **New app icon** for the Leggimi identity: a white page with a folded corner,
+  a markdown `#` heading and text lines on the terracotta accent.
+
+### Fixed
+- Exported HTML/DOCX and rich-text copy now embed local images correctly: asset-protocol
+  URLs (`http://asset.localhost`) were mistaken for web URLs and left un-inlined, and the
+  production CSP did not allow fetching them.
+
 ### Notes
 - The `.md`/`.markdown` file association and "Open with" were already registered by
   the installer since 0.1.0. Mica/acrylic window effects were evaluated and skipped:
