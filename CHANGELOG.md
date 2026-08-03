@@ -7,6 +7,25 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.7.1] - 2026-08-03
+
+### Changed
+- **Rich-text copy rebuilt**: the clipboard now carries fully inline-styled HTML, so
+  pasting into Word, Outlook, Gmail, Google Docs or Teams keeps the document's look —
+  syntax-colored code in a shaded box with a language label, bordered tables with a
+  tinted header row, terracotta links and blockquotes, tinted alert callouts and
+  ☑/☐ task lists. Formulas travel as MathML only (native, editable Word equations —
+  no more doubled math) and Mermaid diagrams as crisp PNGs. Output is always
+  light-themed, whatever the app theme. In Word, paste with
+  "Keep Source Formatting" to get the full styling.
+- Pasting into a plain-text editor (Notepad, VS Code…) now yields the original
+  markdown source instead of flattened text.
+
+### Fixed
+- Copying or exporting DOCX from dark theme produced unreadable Mermaid PNGs
+  (light strokes on a white page): diagrams now briefly re-render on the neutral
+  theme for the snapshot, then switch back.
+
 ## [1.7.0] - 2026-08-03
 
 ### Added
