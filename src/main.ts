@@ -400,7 +400,7 @@ function flashDone(btn: HTMLButtonElement): void {
 async function copyDocAsRichText(): Promise<void> {
   if (!currentDoc) return;
   try {
-    await copyAsRichText(article);
+    await copyAsRichText(article, currentDoc.dir);
     flashDone(btnCopyDoc);
   } catch (err) {
     showNotice(`Copy failed: ${err}`);
@@ -423,6 +423,7 @@ function toggleExportMenu(): void {
   exportMenu.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
   exportMenu.style.left = "auto";
   exportMenu.hidden = false;
+  exportMenu.querySelector<HTMLButtonElement>(".menu-item")?.focus();
 }
 
 async function exportDocAsHtml(): Promise<void> {
@@ -434,7 +435,7 @@ async function exportDocAsHtml(): Promise<void> {
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   try {
-    const html = await buildStandaloneHtml(article, fileName(currentDoc.path));
+    const html = await buildStandaloneHtml(article, fileName(currentDoc.path), currentDoc.dir);
     await ipc.exportFile(target, html);
     flashDone(btnExport);
   } catch (err) {
@@ -451,7 +452,7 @@ async function exportDocAsDocx(): Promise<void> {
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   try {
-    const data = await buildDocxBase64(article, fileName(currentDoc.path));
+    const data = await buildDocxBase64(article, fileName(currentDoc.path), currentDoc.dir);
     await ipc.exportBinary(target, data);
     flashDone(btnExport);
   } catch (err) {
@@ -741,6 +742,9 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.key.toLowerCase() === "o") {
       e.preventDefault();
       chooseFile();
+    } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "e") {
+      e.preventDefault();
+      toggleExportMenu();
     } else if (e.ctrlKey && e.key.toLowerCase() === "e") {
       e.preventDefault();
       toggleEditMode();

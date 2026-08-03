@@ -58,6 +58,7 @@ explicitly.
 | `Ctrl+I` | Toggle the outline |
 | `Ctrl+P` | Print or save as PDF |
 | `Ctrl+Shift+C` | Copy the document as rich text |
+| `Ctrl+Shift+E` | Export (HTML / DOCX) |
 | `F1` | Show help |
 | `Esc` | Close the find bar or help |
 

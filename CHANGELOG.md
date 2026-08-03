@@ -25,6 +25,11 @@ The running version is shown in the help dialog (`F1`) and on the empty screen.
 - Exported HTML/DOCX and rich-text copy now embed local images correctly: asset-protocol
   URLs (`http://asset.localhost`) were mistaken for web URLs and left un-inlined, and the
   production CSP did not allow fetching them.
+- DOCX export, which Word renders through its limited HTML filter: task lists no longer
+  degrade to plain bullets (☑/☐ symbols now), alert callouts keep their per-type color
+  and get a text icon instead of the dropped SVG, and relative links to other files
+  (e.g. `nested/deeper.md`) become working `file:///` links. The link fix applies to
+  HTML export and rich-text copy too. Export menu now also on `Ctrl+Shift+E`.
 
 ### Notes
 - The `.md`/`.markdown` file association and "Open with" were already registered by

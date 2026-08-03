@@ -43,12 +43,34 @@ article { max-width: 760px; margin: 0 auto; padding: 48px 32px 96px; }
 `;
 
 // App-only affordances (copy buttons, sync anchors) don't belong in output.
-function cleanedClone(article: HTMLElement): HTMLElement {
+function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
   const clone = article.cloneNode(true) as HTMLElement;
   for (const el of clone.querySelectorAll(".code-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-source-line]")) el.removeAttribute("data-source-line");
   for (const el of clone.querySelectorAll("[data-mmd-source]")) el.removeAttribute("data-mmd-source");
+  absolutizeLinks(clone, docDir);
   return clone;
+}
+
+// Relative links (other .md files, mostly) only resolve inside the app;
+// outside it they must point at the file itself. Web URLs and #anchors stay.
+function absolutizeLinks(root: HTMLElement, docDir: string): void {
+  for (const a of root.querySelectorAll("a[href]")) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href || href.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(href)) continue;
+    a.setAttribute("href", toFileUrl(docDir, href));
+  }
+}
+
+function toFileUrl(dir: string, rel: string): string {
+  const joined = `${dir}\\${decodeURIComponent(rel)}`.replace(/\//g, "\\");
+  const segs: string[] = [];
+  for (const s of joined.split("\\")) {
+    if (!s || s === ".") continue;
+    if (s === "..") segs.pop();
+    else segs.push(s);
+  }
+  return encodeURI(`file:///${segs.join("/")}`);
 }
 
 // Local images are served via the asset protocol (asset: or the
@@ -81,8 +103,8 @@ const blobToDataUri = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
-export async function copyAsRichText(article: HTMLElement): Promise<void> {
-  const clone = cleanedClone(article);
+export async function copyAsRichText(article: HTMLElement, docDir: string): Promise<void> {
+  const clone = cleanedClone(article, docDir);
   await inlineImages(clone);
   await navigator.clipboard.write([
     new ClipboardItem({
@@ -107,18 +129,68 @@ table { border-collapse: collapse; }
 th, td { border: 1pt solid #cccccc; padding: 4pt 8pt; text-align: left; }
 th { background: #f0efe9; }
 blockquote { border-left: 3pt solid #c15f3c; padding-left: 8pt; margin-left: 0; color: #555555; }
-.markdown-alert { border-left: 3pt solid #0969da; padding-left: 8pt; }
-.markdown-alert-title { font-weight: bold; color: #0969da; }
+.markdown-alert-title { font-weight: bold; }
 img { max-width: 100%; }
 a { color: #c15f3c; }
 `;
 
+// GitHub's palette, baked into inline styles because Word's HTML filter
+// applies stylesheet classes unreliably. Symbols replace the SVG octicons
+// Word drops.
+const WORD_ALERTS: Record<string, { color: string; symbol: string }> = {
+  "markdown-alert-note": { color: "#0969da", symbol: "ℹ️" },
+  "markdown-alert-tip": { color: "#1a7f37", symbol: "💡" },
+  "markdown-alert-important": { color: "#8250df", symbol: "❗" },
+  "markdown-alert-warning": { color: "#9a6700", symbol: "⚠️" },
+  "markdown-alert-caution": { color: "#cf222e", symbol: "⛔" },
+};
+
+function wordifyAlerts(root: HTMLElement): void {
+  for (const alert of root.querySelectorAll<HTMLElement>(".markdown-alert")) {
+    const type = [...alert.classList].find((c) => c in WORD_ALERTS) ?? "markdown-alert-note";
+    const { color, symbol } = WORD_ALERTS[type];
+    alert.style.borderLeft = `3pt solid ${color}`;
+    alert.style.paddingLeft = "8pt";
+    const title = alert.querySelector<HTMLElement>(".markdown-alert-title");
+    if (title) {
+      for (const svg of title.querySelectorAll("svg")) svg.remove();
+      title.style.color = color;
+      title.prepend(document.createTextNode(`${symbol} `));
+    }
+  }
+}
+
+// Word drops <input> checkboxes, leaving bare bullets: rewrite task lists
+// as paragraphs with ballot-box symbols. Inner lists first, so nesting
+// survives as its own block.
+function wordifyTaskLists(root: HTMLElement): void {
+  for (const list of [...root.querySelectorAll("ul.contains-task-list")].reverse()) {
+    const holder = document.createElement("div");
+    for (const li of list.querySelectorAll<HTMLElement>(":scope > li.task-list-item")) {
+      const box = li.querySelector("input.task-list-item-checkbox");
+      const done = box?.hasAttribute("checked") ?? false;
+      box?.remove();
+      const p = document.createElement("p");
+      p.style.margin = "0 0 4pt";
+      p.innerHTML = `${done ? "☑" : "☐"}&nbsp; ${li.innerHTML}`;
+      holder.append(p);
+    }
+    list.replaceWith(holder);
+  }
+}
+
 // Word can't lay out KaTeX's HTML spans or draw inline SVG: hand it MathML
 // (converted to native equations on open) and PNG renderings of diagrams.
-export async function buildDocxBase64(article: HTMLElement, title: string): Promise<string> {
-  const clone = cleanedClone(article);
+export async function buildDocxBase64(
+  article: HTMLElement,
+  title: string,
+  docDir: string,
+): Promise<string> {
+  const clone = cleanedClone(article, docDir);
   await inlineImages(clone);
   for (const el of clone.querySelectorAll(".katex-html")) el.remove();
+  wordifyAlerts(clone);
+  wordifyTaskLists(clone);
   const liveDiagrams = article.querySelectorAll<HTMLElement>(".mermaid-diagram");
   const cloneDiagrams = clone.querySelectorAll<HTMLElement>(".mermaid-diagram");
   for (let i = 0; i < cloneDiagrams.length; i++) {
@@ -182,8 +254,12 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
   return btoa(binary);
 }
 
-export async function buildStandaloneHtml(article: HTMLElement, title: string): Promise<string> {
-  const clone = cleanedClone(article);
+export async function buildStandaloneHtml(
+  article: HTMLElement,
+  title: string,
+  docDir: string,
+): Promise<string> {
+  const clone = cleanedClone(article, docDir);
   await inlineImages(clone);
   return [
     "<!doctype html>",
