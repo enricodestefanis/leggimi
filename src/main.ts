@@ -650,7 +650,18 @@ function wireUi(): void {
 
   $("#btn-tree").addEventListener("click", () => toggleSidebar("tree-hidden"));
   $("#btn-toc").addEventListener("click", () => toggleSidebar("toc-hidden"));
-  $("#btn-theme").addEventListener("click", () => theme.toggle());
+  const btnTheme = $("#btn-theme");
+  const themeTitles: Record<theme.ThemePref, string> = {
+    light: "Theme: light — click for dark",
+    dark: "Theme: dark — click to follow Windows",
+    system: "Theme: follows Windows — click for light",
+  };
+  const updateThemeTitle = () => (btnTheme.title = themeTitles[theme.currentPref()]);
+  btnTheme.addEventListener("click", () => {
+    theme.cycle();
+    updateThemeTitle();
+  });
+  updateThemeTitle();
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
   btnEdit.addEventListener("click", () => toggleEditMode());

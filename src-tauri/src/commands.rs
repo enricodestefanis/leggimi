@@ -64,6 +64,7 @@ pub fn read_markdown(app: AppHandle, path: String) -> Result<MarkdownDoc, String
         .to_path_buf();
     // let the asset protocol serve images from the document's folder
     let _ = app.asset_protocol_scope().allow_directory(&dir, true);
+    add_to_recent(&canon);
     Ok(MarkdownDoc {
         path: canon.to_string_lossy().into_owned(),
         dir: dir.to_string_lossy().into_owned(),
@@ -87,6 +88,23 @@ pub fn export_file(path: String, content: String) -> Result<(), String> {
     let target = parent.join(name);
     fs::write(&target, content).map_err(|e| format!("Cannot export {}: {e}", target.display()))
 }
+
+/// Feeds Windows' Recent list and the taskbar jump list (the app is the
+/// registered .md handler, so entries show under "Recent" when pinned).
+#[cfg(windows)]
+fn add_to_recent(path: &Path) {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::UI::Shell::{SHAddToRecentDocs, SHARD_PATHW};
+    let wide: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    unsafe { SHAddToRecentDocs(SHARD_PATHW as u32, wide.as_ptr().cast()) };
+}
+
+#[cfg(not(windows))]
+fn add_to_recent(_path: &Path) {}
 
 // editors briefly lock/replace the file during an atomic save
 fn read_with_retry(path: &Path) -> Result<String, String> {

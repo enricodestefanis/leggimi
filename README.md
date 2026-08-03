@@ -37,7 +37,8 @@ explicitly.
 - **Print / save as PDF** (`Ctrl+P`) with a paper-oriented layout, and **export to
   self-contained HTML or DOCX** — in Word, math becomes native equations and Mermaid
   diagrams become images
-- Find in document (`Ctrl+F`), light/dark theme, relative images
+- Find in document (`Ctrl+F`), relative images; theme cycles **light / dark / follow Windows**
+- Opened files land in Windows' **Recent items and the taskbar jump list**
 - Double-click any `.md` file in File Explorer — the installer registers the association
 - Single instance: further files open in the existing window
 - Drag and drop files onto the window, or press `Ctrl+O`

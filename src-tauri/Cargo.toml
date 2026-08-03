@@ -1,6 +1,6 @@
 [package]
 name = "leggimi"
-version = "1.6.0"
+version = "1.7.0"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
 edition = "2021"
@@ -28,3 +28,6 @@ notify-debouncer-full = "0.5"
 walkdir = "2"
 dunce = "1"
 base64 = "0.22"
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell"] }

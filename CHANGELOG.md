@@ -7,6 +7,21 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.7.0] - 2026-08-03
+
+### Added
+- **Three-state theme**: the toolbar button now cycles light → dark → follow Windows.
+  In "follow Windows" the app tracks the system light/dark setting live, including
+  re-rendering Mermaid diagrams. The button icon shows what the next click switches to.
+- **Windows Recent & jump list**: every file opened is registered with
+  `SHAddToRecentDocs`, so it appears in Windows' Recent items and in the app's
+  taskbar jump list.
+
+### Notes
+- The `.md`/`.markdown` file association and "Open with" were already registered by
+  the installer since 0.1.0. Mica/acrylic window effects were evaluated and skipped:
+  the app draws an opaque themed background, so they would not be visible.
+
 ## [1.6.0] - 2026-08-03
 
 ### Added

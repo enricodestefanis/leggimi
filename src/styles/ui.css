@@ -67,8 +67,16 @@
   display: none;
 }
 
-:root:not([data-theme="dark"]) #btn-theme .ico-sun,
-[data-theme="dark"] #btn-theme .ico-moon {
+/* the theme button shows what a click switches to:
+   light → moon (dark), dark → monitor (system), system → sun (light) */
+:root:not([data-theme-pref]) #btn-theme .ico-moon,
+:root:not([data-theme-pref]) #btn-theme .ico-auto,
+:root[data-theme-pref="light"] #btn-theme .ico-sun,
+:root[data-theme-pref="light"] #btn-theme .ico-auto,
+:root[data-theme-pref="dark"] #btn-theme .ico-sun,
+:root[data-theme-pref="dark"] #btn-theme .ico-moon,
+:root[data-theme-pref="system"] #btn-theme .ico-moon,
+:root[data-theme-pref="system"] #btn-theme .ico-auto {
   display: none;
 }
 

@@ -1903,7 +1903,7 @@ dependencies = [
 
 [[package]]
 name = "leggimi"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "base64 0.22.1",
  "dunce",
@@ -1918,6 +1918,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-window-state",
  "walkdir",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
