@@ -280,6 +280,20 @@ fn rel_assets_path(target: &Path) -> String {
     format!("assets/{}", target.file_name().unwrap_or_default().to_string_lossy())
 }
 
+/// export_file for binary formats: base64 payload, not-yet-existing target.
+#[tauri::command]
+pub fn export_binary(path: String, data: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    let name = p.file_name().ok_or_else(|| format!("Invalid path: {path}"))?;
+    let parent = p.parent().ok_or_else(|| format!("Invalid path: {path}"))?;
+    let parent = dunce::canonicalize(parent).map_err(|e| format!("Cannot export to {path}: {e}"))?;
+    let bytes = B64
+        .decode(data.as_bytes())
+        .map_err(|e| format!("Invalid data: {e}"))?;
+    let target = parent.join(name);
+    fs::write(&target, bytes).map_err(|e| format!("Cannot export {}: {e}", target.display()))
+}
+
 /// Base64-decoded clipboard image, written to `<dir>/assets/`; returns the
 /// document-relative path to insert in the markdown.
 #[tauri::command]

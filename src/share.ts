@@ -1,6 +1,8 @@
 // Turning the rendered article into shareable output: rich-text clipboard
 // copy and a self-contained HTML export.
 
+import { asBlob } from "html-docx-js-typescript";
+
 import markdownCss from "./styles/markdown.css?inline";
 import codeCss from "./styles/code.css?inline";
 import katexCss from "katex/dist/katex.min.css?inline";
@@ -87,6 +89,93 @@ export async function copyAsRichText(article: HTMLElement): Promise<void> {
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Word's HTML filter understands only simple CSS: point sizes, borders,
+// system fonts. The app stylesheets stay out of this on purpose.
+const DOCX_CSS = `
+body { font-family: "Segoe UI", Calibri, sans-serif; font-size: 11pt; color: #1a1915; }
+h1 { font-size: 20pt; } h2 { font-size: 15pt; } h3 { font-size: 12.5pt; }
+pre, code { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; }
+pre { background: #f5f4ef; padding: 8pt; }
+.code-lang { color: #888888; font-size: 8pt; }
+table { border-collapse: collapse; }
+th, td { border: 1pt solid #cccccc; padding: 4pt 8pt; text-align: left; }
+th { background: #f0efe9; }
+blockquote { border-left: 3pt solid #c15f3c; padding-left: 8pt; margin-left: 0; color: #555555; }
+.markdown-alert { border-left: 3pt solid #0969da; padding-left: 8pt; }
+.markdown-alert-title { font-weight: bold; color: #0969da; }
+img { max-width: 100%; }
+a { color: #c15f3c; }
+`;
+
+// Word can't lay out KaTeX's HTML spans or draw inline SVG: hand it MathML
+// (converted to native equations on open) and PNG renderings of diagrams.
+export async function buildDocxBase64(article: HTMLElement, title: string): Promise<string> {
+  const clone = cleanedClone(article);
+  await inlineImages(clone);
+  for (const el of clone.querySelectorAll(".katex-html")) el.remove();
+  const liveDiagrams = article.querySelectorAll<HTMLElement>(".mermaid-diagram");
+  const cloneDiagrams = clone.querySelectorAll<HTMLElement>(".mermaid-diagram");
+  for (let i = 0; i < cloneDiagrams.length; i++) {
+    const svg = liveDiagrams[i]?.querySelector("svg");
+    if (!svg) continue;
+    try {
+      const png = await rasterizeSvg(svg);
+      const img = document.createElement("img");
+      img.src = png.dataUrl;
+      img.width = png.width;
+      img.height = png.height;
+      cloneDiagrams[i].replaceChildren(img);
+    } catch {
+      /* leave the SVG in; recent Word builds may still show it */
+    }
+  }
+  const html =
+    `<!DOCTYPE html><html><head><meta charset="utf-8">` +
+    `<title>${escapeHtml(title)}</title><style>${DOCX_CSS}</style></head>` +
+    `<body>${clone.innerHTML}</body></html>`;
+  const blob = (await asBlob(html, { orientation: "portrait" })) as Blob;
+  return arrayBufferToBase64(await blob.arrayBuffer());
+}
+
+// drawn from the live, laid-out SVG: a detached clone has no geometry
+function rasterizeSvg(svg: SVGSVGElement): Promise<{ dataUrl: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const rect = svg.getBoundingClientRect();
+    const xml = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const w = Math.round(img.naturalWidth || rect.width || 800);
+      const h = Math.round(img.naturalHeight || rect.height || 400);
+      const scale = 2; // crisp on print and hi-dpi
+      const canvas = document.createElement("canvas");
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas unavailable"));
+        return;
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve({ dataUrl: canvas.toDataURL("image/png"), width: w, height: h });
+    };
+    img.onerror = () => reject(new Error("SVG rasterization failed"));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
+  });
+}
+
+function arrayBufferToBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const CHUNK = 0x8000; // String.fromCharCode argument limit
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
 
 export async function buildStandaloneHtml(article: HTMLElement, title: string): Promise<string> {
   const clone = cleanedClone(article);

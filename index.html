@@ -30,7 +30,7 @@
         <button id="btn-print" class="icon-btn" title="Print / save as PDF (Ctrl+P)" disabled>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         </button>
-        <button id="btn-export" class="icon-btn" title="Export as HTML…" disabled>
+        <button id="btn-export" class="icon-btn" title="Export…" disabled>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
         <span class="toolbar-sep"></span>
@@ -105,6 +105,17 @@
         </aside>
       </div>
       <div id="drop-overlay"><div class="drop-card">Drop to open</div></div>
+    </div>
+
+    <div id="export-menu" class="menu" hidden>
+      <button id="export-html" class="menu-item" type="button">
+        <span class="menu-title">HTML</span>
+        <span class="menu-hint">Self-contained page, opens in any browser</span>
+      </button>
+      <button id="export-docx" class="menu-item" type="button">
+        <span class="menu-title">DOCX</span>
+        <span class="menu-hint">Microsoft Word document</span>
+      </button>
     </div>
 
     <dialog id="help-dialog">
@@ -193,7 +204,7 @@
         <ul>
           <li><strong>Copy as rich text</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> or the clipboard button): puts the rendered document on the clipboard with formatting, ready to paste into Outlook, Word or Teams. Local images are embedded.</li>
           <li><strong>Print / PDF</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): prints only the document, laid out for paper, always on a light background. Choose "Save as PDF" in the print dialog to produce a PDF.</li>
-          <li><strong>Export as HTML</strong> (download button): saves a single self-contained <code>.html</code> file — styles and local images embedded — that opens in any browser.</li>
+          <li><strong>Export</strong> (download button): saves the document as a single self-contained <code>.html</code> page that opens in any browser, or as a <code>.docx</code> optimized for Microsoft Word — math becomes native Word equations, diagrams become images.</li>
         </ul>
         <h3>Theme</h3>
         <p>The viewer follows the Windows light/dark setting. The sun/moon button overrides it and remembers your choice.</p>

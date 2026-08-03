@@ -1,7 +1,7 @@
 {
   "name": "leggimi",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,6 +23,7 @@
     "@vscode/markdown-it-katex": "^1.1.2",
     "dompurify": "^3.4.12",
     "highlight.js": "^11.11.1",
+    "html-docx-js-typescript": "^0.1.5",
     "katex": "^0.16.47",
     "markdown-it": "^14.3.0",
     "markdown-it-anchor": "^9.2.1",

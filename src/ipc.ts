@@ -28,6 +28,8 @@ export const writeMarkdown = (path: string, content: string) =>
   invoke<void>("write_markdown", { path, content });
 export const exportFile = (path: string, content: string) =>
   invoke<void>("export_file", { path, content });
+export const exportBinary = (path: string, data: string) =>
+  invoke<void>("export_binary", { path, data });
 export const saveClipboardImage = (dir: string, data: string, ext: string) =>
   invoke<string>("save_clipboard_image", { dir, data, ext });
 export const importImage = (dir: string, source: string) =>

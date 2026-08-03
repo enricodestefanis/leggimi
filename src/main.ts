@@ -21,7 +21,7 @@ import * as search from "./search";
 import * as theme from "./theme";
 import { captureScrollAnchor, restoreScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
-import { buildStandaloneHtml, copyAsRichText } from "./share";
+import { buildDocxBase64, buildStandaloneHtml, copyAsRichText } from "./share";
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -45,6 +45,7 @@ const btnSave = $<HTMLButtonElement>("#btn-save");
 const btnCopyDoc = $<HTMLButtonElement>("#btn-copy-doc");
 const btnPrint = $<HTMLButtonElement>("#btn-print");
 const btnExport = $<HTMLButtonElement>("#btn-export");
+const exportMenu = $("#export-menu");
 const noticeBar = $("#notice-bar");
 const noticeMsg = $("#notice-msg");
 const noticeAction = $<HTMLButtonElement>("#notice-action");
@@ -411,6 +412,19 @@ function printDoc(): void {
   window.print();
 }
 
+function toggleExportMenu(): void {
+  if (!exportMenu.hidden) {
+    exportMenu.hidden = true;
+    return;
+  }
+  if (!currentDoc) return;
+  const r = btnExport.getBoundingClientRect();
+  exportMenu.style.top = `${r.bottom + 6}px`;
+  exportMenu.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
+  exportMenu.style.left = "auto";
+  exportMenu.hidden = false;
+}
+
 async function exportDocAsHtml(): Promise<void> {
   if (!currentDoc) return;
   const base = fileName(currentDoc.path).replace(/\.(md|markdown)$/i, "");
@@ -422,6 +436,23 @@ async function exportDocAsHtml(): Promise<void> {
   try {
     const html = await buildStandaloneHtml(article, fileName(currentDoc.path));
     await ipc.exportFile(target, html);
+    flashDone(btnExport);
+  } catch (err) {
+    showNotice(`Export failed: ${err}`);
+  }
+}
+
+async function exportDocAsDocx(): Promise<void> {
+  if (!currentDoc) return;
+  const base = fileName(currentDoc.path).replace(/\.(md|markdown)$/i, "");
+  const target = await saveDialog({
+    defaultPath: `${base}.docx`,
+    filters: [{ name: "Word document", extensions: ["docx"] }],
+  }).catch(() => null);
+  if (typeof target !== "string" || !target) return;
+  try {
+    const data = await buildDocxBase64(article, fileName(currentDoc.path));
+    await ipc.exportBinary(target, data);
     flashDone(btnExport);
   } catch (err) {
     showNotice(`Export failed: ${err}`);
@@ -626,7 +657,21 @@ function wireUi(): void {
   btnSave.addEventListener("click", () => saveFile());
   btnCopyDoc.addEventListener("click", () => copyDocAsRichText());
   btnPrint.addEventListener("click", () => printDoc());
-  btnExport.addEventListener("click", () => exportDocAsHtml());
+  btnExport.addEventListener("click", (e) => {
+    e.stopPropagation(); // the document click-away handler must not see this
+    toggleExportMenu();
+  });
+  $("#export-html").addEventListener("click", () => {
+    exportMenu.hidden = true;
+    exportDocAsHtml();
+  });
+  $("#export-docx").addEventListener("click", () => {
+    exportMenu.hidden = true;
+    exportDocAsDocx();
+  });
+  document.addEventListener("click", (e) => {
+    if (!exportMenu.hidden && !exportMenu.contains(e.target as Node)) exportMenu.hidden = true;
+  });
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
   $("#help-close").addEventListener("click", () => helpDialog.close());
   btnUp.addEventListener("click", goUp);
@@ -669,6 +714,10 @@ function wireUi(): void {
       return;
     }
     if (helpDialog.open) return; // Esc is handled natively by <dialog>
+    if (e.key === "Escape" && !exportMenu.hidden) {
+      exportMenu.hidden = true;
+      return;
+    }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
       e.preventDefault();
       app.classList.remove("tree-hidden");

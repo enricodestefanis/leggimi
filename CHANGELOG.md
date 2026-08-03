@@ -7,6 +7,14 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.6.0] - 2026-08-03
+
+### Added
+- **DOCX export**: the export button now opens a small menu with HTML and DOCX. The
+  Word document carries KaTeX math as MathML (Word converts it to native equations)
+  and Mermaid diagrams as PNG images; local images are embedded. Optimized for
+  Microsoft Word — other editors may not open the format faithfully.
+
 ## [1.5.0] - 2026-08-03
 
 ### Added

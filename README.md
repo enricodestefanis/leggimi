@@ -34,8 +34,9 @@ explicitly.
   edits it warns instead of overwriting your buffer
 - **Copy as rich text** (`Ctrl+Shift+C`): paste the rendered document with formatting into
   Outlook, Word or Teams, local images embedded
-- **Print / save as PDF** (`Ctrl+P`) with a paper-oriented layout, and **export to a
-  self-contained HTML** file that opens in any browser
+- **Print / save as PDF** (`Ctrl+P`) with a paper-oriented layout, and **export to
+  self-contained HTML or DOCX** — in Word, math becomes native equations and Mermaid
+  diagrams become images
 - Find in document (`Ctrl+F`), light/dark theme, relative images
 - Double-click any `.md` file in File Explorer — the installer registers the association
 - Single instance: further files open in the existing window
