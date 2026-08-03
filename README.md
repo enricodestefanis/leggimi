@@ -28,6 +28,10 @@ explicitly.
   remembered across navigation and restarts
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
   edits it warns instead of overwriting your buffer
+- **Copy as rich text** (`Ctrl+Shift+C`): paste the rendered document with formatting into
+  Outlook, Word or Teams, local images embedded
+- **Print / save as PDF** (`Ctrl+P`) with a paper-oriented layout, and **export to a
+  self-contained HTML** file that opens in any browser
 - Find in document (`Ctrl+F`), light/dark theme, relative images
 - Double-click any `.md` file in File Explorer — the installer registers the association
 - Single instance: further files open in the existing window
@@ -45,6 +49,8 @@ explicitly.
 | `Enter` / `Shift+Enter` | Next / previous match |
 | `Ctrl+B` | Toggle the file browser |
 | `Ctrl+I` | Toggle the outline |
+| `Ctrl+P` | Print or save as PDF |
+| `Ctrl+Shift+C` | Copy the document as rich text |
 | `F1` | Show help |
 | `Esc` | Close the find bar or help |
 

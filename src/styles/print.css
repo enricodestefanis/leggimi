@@ -1,0 +1,76 @@
+/* Printing (and Save as PDF from the print dialog): only the article, laid
+   out for paper. The light theme is forced from main.ts on beforeprint. */
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+  }
+
+  #app {
+    display: block;
+    height: auto;
+  }
+
+  #toolbar,
+  #tree-pane,
+  #toc-pane,
+  #editor-pane,
+  #find-bar,
+  #notice-bar,
+  #empty-state,
+  #drop-overlay {
+    display: none !important;
+  }
+
+  #shell {
+    display: block;
+  }
+
+  /* the scroll container must not clip the article to one viewport */
+  #content-pane {
+    overflow: visible;
+  }
+
+  article {
+    max-width: none;
+    padding: 0;
+  }
+
+  .code-block,
+  .table-scroll,
+  .mermaid-diagram,
+  .markdown-alert,
+  img {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid;
+  }
+
+  .code-copy {
+    display: none;
+  }
+
+  /* wrap instead of clipping what a screen would scroll */
+  .code-block pre {
+    overflow-x: visible;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .markdown-body .katex-display {
+    overflow: visible;
+  }
+}

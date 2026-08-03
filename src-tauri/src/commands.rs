@@ -74,6 +74,17 @@ pub fn write_markdown(path: String, content: String) -> Result<(), String> {
     fs::write(&canon, content).map_err(|e| format!("Cannot save {}: {e}", canon.display()))
 }
 
+// unlike write_markdown, the target may not exist yet: canonicalize the parent
+#[tauri::command]
+pub fn export_file(path: String, content: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    let name = p.file_name().ok_or_else(|| format!("Invalid path: {path}"))?;
+    let parent = p.parent().ok_or_else(|| format!("Invalid path: {path}"))?;
+    let parent = dunce::canonicalize(parent).map_err(|e| format!("Cannot export to {path}: {e}"))?;
+    let target = parent.join(name);
+    fs::write(&target, content).map_err(|e| format!("Cannot export {}: {e}", target.display()))
+}
+
 // editors briefly lock/replace the file during an atomic save
 fn read_with_retry(path: &Path) -> Result<String, String> {
     match fs::read_to_string(path) {

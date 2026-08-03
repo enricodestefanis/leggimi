@@ -24,6 +24,16 @@
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         </button>
         <span class="toolbar-sep"></span>
+        <button id="btn-copy-doc" class="icon-btn" title="Copy as rich text (Ctrl+Shift+C)" disabled>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        </button>
+        <button id="btn-print" class="icon-btn" title="Print / save as PDF (Ctrl+P)" disabled>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+        <button id="btn-export" class="icon-btn" title="Export as HTML…" disabled>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <span class="toolbar-sep"></span>
         <button id="btn-theme" class="icon-btn" title="Toggle light/dark theme">
           <svg class="ico-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg class="ico-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -117,6 +127,8 @@
             <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Next / previous match</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Toggle the file browser</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Toggle the outline</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Print or save as PDF</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>Copy the document as rich text</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Close the find bar or this help</td></tr>
           </tbody>
@@ -158,6 +170,12 @@
           <li>Links to web pages open in your default browser; links to other Markdown files open in the viewer.</li>
         </ul>
 
+        <h3>Sharing and export</h3>
+        <ul>
+          <li><strong>Copy as rich text</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> or the clipboard button): puts the rendered document on the clipboard with formatting, ready to paste into Outlook, Word or Teams. Local images are embedded.</li>
+          <li><strong>Print / PDF</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): prints only the document, laid out for paper, always on a light background. Choose "Save as PDF" in the print dialog to produce a PDF.</li>
+          <li><strong>Export as HTML</strong> (download button): saves a single self-contained <code>.html</code> file — styles and local images embedded — that opens in any browser.</li>
+        </ul>
         <h3>Theme</h3>
         <p>The viewer follows the Windows light/dark setting. The sun/moon button overrides it and remembers your choice.</p>
       </div>

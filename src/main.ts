@@ -3,12 +3,13 @@ import "./styles/layout.css";
 import "./styles/markdown.css";
 import "./styles/code.css";
 import "./styles/ui.css";
+import "./styles/print.css";
 import "katex/dist/katex.min.css";
 
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
+import { ask, open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import * as ipc from "./ipc";
@@ -20,6 +21,7 @@ import * as search from "./search";
 import * as theme from "./theme";
 import { captureScrollAnchor, restoreScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
+import { buildStandaloneHtml, copyAsRichText } from "./share";
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -37,6 +39,9 @@ const helpDialog = $<HTMLDialogElement>("#help-dialog");
 const editorPane = $("#editor-pane");
 const btnEdit = $<HTMLButtonElement>("#btn-edit");
 const btnSave = $<HTMLButtonElement>("#btn-save");
+const btnCopyDoc = $<HTMLButtonElement>("#btn-copy-doc");
+const btnPrint = $<HTMLButtonElement>("#btn-print");
+const btnExport = $<HTMLButtonElement>("#btn-export");
 const noticeBar = $("#notice-bar");
 const noticeMsg = $("#notice-msg");
 const noticeAction = $<HTMLButtonElement>("#notice-action");
@@ -110,6 +115,7 @@ function updateTitles(): void {
   const dirty = editorMod?.isDirty() ?? false;
   dirtyDot.hidden = !dirty;
   btnSave.disabled = !dirty;
+  btnCopyDoc.disabled = btnPrint.disabled = btnExport.disabled = currentDoc === null;
   if (currentDoc) {
     docTitle.textContent = fileName(currentDoc.path);
     docTitle.title = currentDoc.path;
@@ -329,6 +335,49 @@ async function reloadFromDisk(): Promise<void> {
   }
 }
 
+/* ---- sharing: rich-text copy, print, HTML export ---- */
+
+const BTN_CHECK_ICON =
+  '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+function flashDone(btn: HTMLButtonElement): void {
+  const original = btn.innerHTML;
+  btn.innerHTML = BTN_CHECK_ICON;
+  setTimeout(() => (btn.innerHTML = original), 1200);
+}
+
+async function copyDocAsRichText(): Promise<void> {
+  if (!currentDoc) return;
+  try {
+    await copyAsRichText(article);
+    flashDone(btnCopyDoc);
+  } catch (err) {
+    showNotice(`Copy failed: ${err}`);
+  }
+}
+
+function printDoc(): void {
+  if (!currentDoc) return;
+  window.print();
+}
+
+async function exportDocAsHtml(): Promise<void> {
+  if (!currentDoc) return;
+  const base = fileName(currentDoc.path).replace(/\.(md|markdown)$/i, "");
+  const target = await saveDialog({
+    defaultPath: `${base}.html`,
+    filters: [{ name: "HTML", extensions: ["html"] }],
+  }).catch(() => null);
+  if (typeof target !== "string" || !target) return;
+  try {
+    const html = await buildStandaloneHtml(article, fileName(currentDoc.path));
+    await ipc.exportFile(target, html);
+    flashDone(btnExport);
+  } catch (err) {
+    showNotice(`Export failed: ${err}`);
+  }
+}
+
 /* ---- notice bar ---- */
 
 let noticeActionFn: (() => void) | null = null;
@@ -427,6 +476,9 @@ function wireUi(): void {
   $("#btn-open-empty").addEventListener("click", chooseFile);
   btnEdit.addEventListener("click", () => toggleEditMode());
   btnSave.addEventListener("click", () => saveFile());
+  btnCopyDoc.addEventListener("click", () => copyDocAsRichText());
+  btnPrint.addEventListener("click", () => printDoc());
+  btnExport.addEventListener("click", () => exportDocAsHtml());
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
   $("#help-close").addEventListener("click", () => helpDialog.close());
   btnUp.addEventListener("click", goUp);
@@ -476,7 +528,26 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.key.toLowerCase() === "i") {
       e.preventDefault();
       toggleSidebar("toc-hidden");
+    } else if (e.ctrlKey && e.key.toLowerCase() === "p") {
+      // swallow it even without a document: WebView2 would print the empty UI
+      e.preventDefault();
+      printDoc();
+    } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      copyDocAsRichText();
     }
+  });
+
+  // diagrams and code keep their on-screen palette in the DOM, but the page
+  // chrome must print light: flip the theme around the native print dialog
+  let printThemeRestore: string | undefined;
+  window.addEventListener("beforeprint", () => {
+    printThemeRestore = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = "light";
+  });
+  window.addEventListener("afterprint", () => {
+    if (printThemeRestore) document.documentElement.dataset.theme = printThemeRestore;
+    printThemeRestore = undefined;
   });
 
   // in-article links: hash → in-page scroll, web → default browser, .md → open in viewer
