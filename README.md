@@ -1,12 +1,13 @@
-# Markdown Studio
+# Leggimi
 
-A fast Markdown viewer and editor for Windows, built with Tauri 2. Documents open in a clean,
-centered reading column with light and dark themes; an optional edit mode adds a split view with
-a live preview. Files are only modified when you save explicitly.
+*Leggimi* — Italian for "read me" — is a fast Markdown viewer and editor for Windows, built with
+Tauri 2. Documents open in a clean, centered reading column with light and dark themes; an
+optional edit mode adds a split view with a live preview. Files are only modified when you save
+explicitly.
 
 <p align="center">
-  <img alt="Markdown Studio screen 1" src="https://github.com/user-attachments/assets/10af9556-1678-4b0c-8047-263cd3c885ba" width="49%" />
-  <img alt="Markdown Studio screen 2" src="https://github.com/user-attachments/assets/6778669f-1e1e-4e14-9ed7-18ceb80250ba" width="49%" />
+  <img alt="Leggimi screen 1" src="https://github.com/user-attachments/assets/10af9556-1678-4b0c-8047-263cd3c885ba" width="49%" />
+  <img alt="Leggimi screen 2" src="https://github.com/user-attachments/assets/6778669f-1e1e-4e14-9ed7-18ceb80250ba" width="49%" />
 </p>
 
 ## Features
@@ -21,7 +22,8 @@ a live preview. Files are only modified when you save explicitly.
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
 - Clickable **outline** with scroll-spy
-- **File browser** for the Markdown files in the folder you opened
+- **File browser** for the Markdown files in the folder you opened; collapsed folders are
+  remembered across navigation and restarts
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
   edits it warns instead of overwriting your buffer
 - Find in document (`Ctrl+F`), light/dark theme, relative images
@@ -50,8 +52,9 @@ The left panel is rooted at the folder of the document you opened and lists Mark
 four levels of subfolders (capped at 2000 files). Opening a file from the panel keeps the same
 root, so navigating into a subfolder does not hide the rest of the tree; the up arrow moves the
 root to the parent folder. Opening a document outside the current root re-roots the panel there.
-Folders with no Markdown files are hidden, as are hidden folders and build directories such as
-`node_modules`, `target` and `dist`.
+Folders you collapse stay collapsed while you navigate and across restarts; the folders on the
+path of a newly selected file auto-expand to reveal it. Folders with no Markdown files are
+hidden, as are hidden folders and build directories such as `node_modules`, `target` and `dist`.
 
 ## Versioning and releases
 

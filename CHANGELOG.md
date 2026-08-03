@@ -7,6 +7,14 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.1.0] - 2026-08-03
+
+### Changed
+- The app is now **Leggimi** — Italian for "read me". "Markdown Studio" collides with an
+  existing app on the Microsoft Store, so the name changed ahead of Store publishing.
+- The installer identifier changed to `com.enrico.leggimi`: a previous "Markdown Studio"
+  install is treated as a different app and must be uninstalled manually.
+
 ## [1.0.2] - 2026-08-03
 
 ### Fixed

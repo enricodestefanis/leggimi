@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Markdown Studio</title>
+    <title>Leggimi</title>
   </head>
   <body>
     <div id="app">
@@ -77,7 +77,7 @@
               <h2>No document open</h2>
               <p>Drop a Markdown file here, or</p>
               <button id="btn-open-empty" class="primary-btn">Open a file…</button>
-              <p class="empty-version">Markdown Studio <span id="empty-version"></span> · press <kbd>F1</kbd> for help</p>
+              <p class="empty-version">Leggimi <span id="empty-version"></span> · press <kbd>F1</kbd> for help</p>
             </div>
           </div>
         </main>
@@ -91,7 +91,7 @@
 
     <dialog id="help-dialog">
       <div class="help-head">
-        <h2>Markdown Studio <span id="help-version" class="version-badge"></span></h2>
+        <h2>Leggimi <span id="help-version" class="version-badge"></span></h2>
         <button id="help-close" class="icon-btn" title="Close (Esc)">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -137,6 +137,7 @@
           subfolders. Opening a file from the panel keeps the same root folder, so you never lose your
           place; use the <strong>up arrow</strong> next to <em>Files</em> to move the root to the parent
           folder. Opening a document from outside the current folder re-roots the panel there.
+          Folders you collapse stay collapsed while you navigate — and across restarts.
         </p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
 

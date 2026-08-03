@@ -113,7 +113,7 @@ function updateTitles(): void {
     docTitle.textContent = fileName(currentDoc.path);
     docTitle.title = currentDoc.path;
     getCurrentWindow()
-      .setTitle(`${dirty ? "• " : ""}${fileName(currentDoc.path)} — Markdown Studio`)
+      .setTitle(`${dirty ? "• " : ""}${fileName(currentDoc.path)} — Leggimi`)
       .catch(() => {});
   }
 }

@@ -1,4 +1,4 @@
-# Test document — Markdown Studio
+# Test document — Leggimi
 
 This document exercises every feature of the viewer.
 
