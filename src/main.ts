@@ -18,6 +18,7 @@ import * as tree from "./tree";
 import * as search from "./search";
 import * as theme from "./theme";
 import { captureScrollAnchor, restoreScrollAnchor } from "./state";
+import { isInside, samePath } from "./paths";
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -55,13 +56,6 @@ let suppressReloadUntil = 0;
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 const isMarkdownPath = (p: string) => /\.(md|markdown)$/i.test(p);
 const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
-const samePath = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-
-function isInside(parent: string, child: string): boolean {
-  const p = parent.toLowerCase().replace(/[\\/]+$/, "");
-  const c = child.toLowerCase();
-  return c === p || c.startsWith(`${p}\\`) || c.startsWith(`${p}/`);
-}
 
 async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): Promise<void> {
   if (opening) return;
@@ -96,8 +90,13 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
     renderMermaidIn(article, theme.current() === "dark").catch(() => {});
     search.onContentChanged();
 
-    if (!browseRoot || !isInside(browseRoot, doc.dir)) browseRoot = doc.dir;
-    refreshTree();
+    const rootChanged = !browseRoot || !isInside(browseRoot, doc.dir);
+    if (rootChanged) browseRoot = doc.dir;
+    // Same-root selection just moves the highlight: a rebuild would discard the
+    // user's collapsed folders and flicker. Same-document reopens (watcher
+    // reloads) still rebuild so files added or removed on disk get picked up.
+    const sameDoc = prevPath !== null && samePath(prevPath, doc.path);
+    if (rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path)) refreshTree();
     ipc.watchFile(doc.path).catch(() => {});
   } catch (err) {
     showError(String(err));
