@@ -54,8 +54,16 @@
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/></svg>
             </button>
           </div>
+          <div id="tree-search-wrap">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="tree-search" type="text" placeholder="Search in folder… (Ctrl+Shift+F)" spellcheck="false" />
+            <button id="tree-search-clear" class="icon-btn small" title="Clear (Esc)" hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
           <div id="tree-rootname" class="tree-rootname"></div>
           <div id="tree-root"></div>
+          <div id="search-results" hidden></div>
         </aside>
         <div id="editor-pane"></div>
         <main id="content-pane">
@@ -124,6 +132,7 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Toggle edit mode</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save the file (edit mode)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find in document</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Search across the folder</td></tr>
             <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Next / previous match</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Toggle the file browser</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Toggle the outline</td></tr>
@@ -152,6 +161,11 @@
           Folders you collapse stay collapsed while you navigate — and across restarts.
         </p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
+        <p>
+          The search box above the tree (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) finds text in every
+          Markdown file of the folder — matches show the file and a snippet, and opening one highlights the
+          term in the document. <kbd>Esc</kbd> clears the search and brings the tree back.
+        </p>
 
         <h3>Outline</h3>
         <p>The right panel lists the document headings and highlights the one you are reading. Click any entry to jump to it.</p>

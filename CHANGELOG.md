@@ -7,6 +7,15 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.4.0] - 2026-08-03
+
+### Added
+- **Search across the folder** (`Ctrl+Shift+F` or the box above the file tree): full-text
+  and file-name search over every Markdown file under the current root, with the same
+  depth and skip rules as the tree. Results show the file and a match snippet; opening
+  one carries the query into the document's find bar so the term is highlighted in place.
+  `Esc` clears the search and brings the tree back.
+
 ## [1.3.0] - 2026-08-03
 
 ### Added

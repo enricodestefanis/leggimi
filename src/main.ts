@@ -31,6 +31,9 @@ const article = $("#article");
 const emptyState = $("#empty-state");
 const treeRoot = $("#tree-root");
 const treeRootName = $("#tree-rootname");
+const treeSearch = $<HTMLInputElement>("#tree-search");
+const treeSearchClear = $<HTMLButtonElement>("#tree-search-clear");
+const searchResults = $("#search-results");
 const btnUp = $<HTMLButtonElement>("#btn-up");
 const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
@@ -428,6 +431,104 @@ function refreshTree(): void {
     });
 }
 
+/* ---- folder-wide search ---- */
+
+const SEARCH_FILE_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+let folderSearchTimer: number | undefined;
+let folderSearchGen = 0;
+
+function scheduleFolderSearch(): void {
+  clearTimeout(folderSearchTimer);
+  folderSearchTimer = window.setTimeout(() => runFolderSearch(), 250);
+}
+
+async function runFolderSearch(): Promise<void> {
+  const q = treeSearch.value.trim();
+  treeSearchClear.hidden = treeSearch.value.length === 0;
+  const gen = ++folderSearchGen;
+  if (!q || !browseRoot) {
+    closeFolderSearch(false);
+    return;
+  }
+  try {
+    const hits = await ipc.searchInTree(browseRoot, q);
+    if (gen !== folderSearchGen) return; // a newer query superseded this one
+    renderFolderSearch(hits, q);
+  } catch {
+    /* folder gone mid-search: keep whatever is on screen */
+  }
+}
+
+function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
+  searchResults.replaceChildren();
+  treeRoot.hidden = true;
+  searchResults.hidden = false;
+  if (hits.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "search-empty";
+    empty.textContent = "No matches";
+    searchResults.append(empty);
+    return;
+  }
+  let lastPath = "";
+  for (const hit of hits) {
+    if (!samePath(hit.path, lastPath)) {
+      lastPath = hit.path;
+      const file = document.createElement("button");
+      file.type = "button";
+      file.className = "search-file";
+      file.innerHTML = SEARCH_FILE_ICON;
+      const name = document.createElement("span");
+      name.textContent = hit.name;
+      name.title = hit.path;
+      file.append(name);
+      file.addEventListener("click", () => openHit(hit.path, q));
+      searchResults.append(file);
+    }
+    if (hit.line > 0) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "search-hit";
+      row.title = `Line ${hit.line}`;
+      row.append(...highlightMatch(hit.preview, q));
+      row.addEventListener("click", () => openHit(hit.path, q));
+      searchResults.append(row);
+    }
+  }
+}
+
+// preview text with the first case-insensitive match wrapped in <mark>
+function highlightMatch(preview: string, q: string): Node[] {
+  const i = preview.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return [document.createTextNode(preview)];
+  const mark = document.createElement("mark");
+  mark.textContent = preview.slice(i, i + q.length);
+  return [
+    document.createTextNode(preview.slice(0, i)),
+    mark,
+    document.createTextNode(preview.slice(i + q.length)),
+  ];
+}
+
+async function openHit(path: string, q: string): Promise<void> {
+  await openFile(path);
+  // carry the query into the document so the match is highlighted in place
+  if (currentDoc && samePath(currentDoc.path, path)) search.openWith(q);
+}
+
+function closeFolderSearch(clearInput = true): void {
+  if (clearInput) {
+    treeSearch.value = "";
+    treeSearchClear.hidden = true;
+  }
+  folderSearchGen++;
+  searchResults.hidden = true;
+  searchResults.replaceChildren();
+  treeRoot.hidden = false;
+}
+
 async function goUp(): Promise<void> {
   if (!browseRoot || isDriveRoot(browseRoot)) return;
   const parent = await ipc.parentDir(browseRoot).catch(() => null);
@@ -482,6 +583,18 @@ function wireUi(): void {
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
   $("#help-close").addEventListener("click", () => helpDialog.close());
   btnUp.addEventListener("click", goUp);
+  treeSearch.addEventListener("input", scheduleFolderSearch);
+  treeSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeFolderSearch();
+      treeSearch.blur();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      searchResults.querySelector<HTMLButtonElement>(".search-hit, .search-file")?.click();
+    }
+  });
+  treeSearchClear.addEventListener("click", () => closeFolderSearch());
   noticeAction.addEventListener("click", () => noticeActionFn?.());
   $("#notice-close").addEventListener("click", () => hideNotice(true));
 
@@ -509,7 +622,13 @@ function wireUi(): void {
       return;
     }
     if (helpDialog.open) return; // Esc is handled natively by <dialog>
-    if (e.ctrlKey && e.key.toLowerCase() === "f") {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      app.classList.remove("tree-hidden");
+      localStorage.setItem("tree-hidden", "0");
+      treeSearch.focus();
+      treeSearch.select();
+    } else if (e.ctrlKey && e.key.toLowerCase() === "f") {
       e.preventDefault();
       search.open();
     } else if (e.ctrlKey && e.key.toLowerCase() === "o") {

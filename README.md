@@ -26,6 +26,8 @@ explicitly.
 - Clickable **outline** with scroll-spy
 - **File browser** for the Markdown files in the folder you opened; collapsed folders are
   remembered across navigation and restarts
+- **Search across the folder** (`Ctrl+Shift+F`): full-text and file-name matches with
+  snippets; opening a result highlights the term in the document
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
   edits it warns instead of overwriting your buffer
 - **Copy as rich text** (`Ctrl+Shift+C`): paste the rendered document with formatting into
@@ -46,6 +48,7 @@ explicitly.
 | `Ctrl+E` | Toggle edit mode |
 | `Ctrl+S` | Save the file (edit mode) |
 | `Ctrl+F` | Find in document |
+| `Ctrl+Shift+F` | Search across the folder |
 | `Enter` / `Shift+Enter` | Next / previous match |
 | `Ctrl+B` | Toggle the file browser |
 | `Ctrl+I` | Toggle the outline |

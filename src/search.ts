@@ -37,6 +37,13 @@ export function open(): void {
   refresh();
 }
 
+// open the find bar pre-filled, e.g. to carry a folder-search query into
+// the freshly opened document
+export function openWith(query: string): void {
+  els.input.value = query;
+  open();
+}
+
 export function close(): void {
   els.bar.hidden = true;
   ranges = [];

@@ -44,6 +44,7 @@ pub fn run() {
             commands::write_markdown,
             commands::export_file,
             commands::list_tree,
+            commands::search_in_tree,
             commands::parent_dir,
             commands::watch_file,
             commands::resolve_path,

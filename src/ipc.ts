@@ -14,6 +14,14 @@ export interface TreeNode {
   children: TreeNode[];
 }
 
+export interface SearchHit {
+  name: string;
+  path: string;
+  /** 1-based; 0 means the file name itself matched */
+  line: number;
+  preview: string;
+}
+
 export const getInitialFile = () => invoke<string | null>("get_initial_file");
 export const readMarkdown = (path: string) => invoke<MarkdownDoc>("read_markdown", { path });
 export const writeMarkdown = (path: string, content: string) =>
@@ -21,6 +29,8 @@ export const writeMarkdown = (path: string, content: string) =>
 export const exportFile = (path: string, content: string) =>
   invoke<void>("export_file", { path, content });
 export const listTree = (dir: string) => invoke<TreeNode>("list_tree", { dir });
+export const searchInTree = (dir: string, query: string) =>
+  invoke<SearchHit[]>("search_in_tree", { dir, query });
 export const parentDir = (path: string) => invoke<string | null>("parent_dir", { path });
 export const watchFile = (path: string) => invoke<void>("watch_file", { path });
 export const resolvePath = (dir: string, rel: string) => invoke<string>("resolve_path", { dir, rel });

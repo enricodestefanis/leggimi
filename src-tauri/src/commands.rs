@@ -7,6 +7,7 @@ use std::{
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
+use walkdir::WalkDir;
 
 use crate::{watcher, AppState};
 
@@ -166,6 +167,101 @@ fn build_node(path: &Path, depth: usize, count: &mut usize) -> Option<TreeNode> 
             children: Vec::new(),
         })
     }
+}
+
+#[derive(Serialize)]
+pub struct SearchHit {
+    pub path: String,
+    pub name: String,
+    /// 1-based; 0 means the file name itself matched
+    pub line: u32,
+    pub preview: String,
+}
+
+const MAX_HITS: usize = 200;
+
+#[tauri::command]
+pub fn search_in_tree(dir: String, query: String) -> Result<Vec<SearchHit>, String> {
+    let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
+    let needle = query.trim().to_lowercase();
+    if needle.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut hits = Vec::new();
+    let walker = WalkDir::new(&root)
+        .max_depth(MAX_DEPTH)
+        .into_iter()
+        .filter_entry(|e| {
+            if e.depth() == 0 || !e.file_type().is_dir() {
+                return true;
+            }
+            let name = e.file_name().to_string_lossy().to_lowercase();
+            !name.starts_with('.') && !SKIP_DIRS.contains(&name.as_str())
+        });
+    for entry in walker.filter_map(|e| e.ok()) {
+        if hits.len() >= MAX_HITS {
+            break;
+        }
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let path = entry.path();
+        let ext = path
+            .extension()
+            .map(|e| e.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+        if ext != "md" && ext != "markdown" {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let path_str = path.to_string_lossy().into_owned();
+        if name.to_lowercase().contains(&needle) {
+            hits.push(SearchHit {
+                path: path_str.clone(),
+                name: name.clone(),
+                line: 0,
+                preview: String::new(),
+            });
+        }
+        let Ok(content) = fs::read_to_string(path) else {
+            continue;
+        };
+        for (i, line) in content.lines().enumerate() {
+            if hits.len() >= MAX_HITS {
+                break;
+            }
+            if line.to_lowercase().contains(&needle) {
+                hits.push(SearchHit {
+                    path: path_str.clone(),
+                    name: name.clone(),
+                    line: (i + 1) as u32,
+                    preview: make_preview(line, &needle),
+                });
+            }
+        }
+    }
+    Ok(hits)
+}
+
+// a window of the line centred on the first match, safe on any UTF-8
+fn make_preview(line: &str, needle_lower: &str) -> String {
+    const MAX_CHARS: usize = 160;
+    let trimmed = line.trim();
+    let lower = trimmed.to_lowercase();
+    let byte = lower.find(needle_lower).unwrap_or(0);
+    let char_off = lower[..byte].chars().count();
+    let chars: Vec<char> = trimmed.chars().collect();
+    let start = char_off.saturating_sub(60).min(chars.len());
+    let end = (start + MAX_CHARS).min(chars.len());
+    let mut out = String::new();
+    if start > 0 {
+        out.push('…');
+    }
+    out.extend(&chars[start..end]);
+    if end < chars.len() {
+        out.push('…');
+    }
+    out
 }
 
 #[tauri::command]
