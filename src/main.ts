@@ -64,6 +64,7 @@ let suppressReloadUntil = 0;
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 const isMarkdownPath = (p: string) => /\.(md|markdown)$/i.test(p);
+const isImagePath = (p: string) => /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(p);
 const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
 
 async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): Promise<void> {
@@ -153,6 +154,9 @@ async function enterEditMode(): Promise<void> {
     requestSave: () => {
       saveFile();
     },
+    onImagePasted: (file) => {
+      insertPastedImage(file);
+    },
   });
   syncSuppressedUntil = performance.now() + 200;
   editorMod.setContent(currentDoc.content);
@@ -177,6 +181,49 @@ function exitEditMode(): void {
   // reset the buffer to the saved document: clears dirty state and undo history
   if (currentDoc) editorMod?.setContent(currentDoc.content);
   updateTitles();
+}
+
+/* ---- images into the editor ---- */
+
+const IMAGE_EXT_BY_MIME: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+  "image/bmp": "bmp",
+  "image/avif": "avif",
+};
+
+async function insertPastedImage(file: File): Promise<void> {
+  if (!editing || !currentDoc || !editorMod) return;
+  try {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+    const rel = await ipc.saveClipboardImage(
+      currentDoc.dir,
+      base64,
+      IMAGE_EXT_BY_MIME[file.type] ?? "png",
+    );
+    editorMod.insertAtCursor(`![](${encodeURI(rel)})`);
+  } catch (err) {
+    showNotice(`Image paste failed: ${err}`);
+  }
+}
+
+async function insertDroppedImage(path: string): Promise<void> {
+  if (!editing || !currentDoc || !editorMod) return;
+  try {
+    const rel = await ipc.importImage(currentDoc.dir, path);
+    editorMod.insertAtCursor(`![](${encodeURI(rel)})`);
+  } catch (err) {
+    showNotice(`Image drop failed: ${err}`);
+  }
 }
 
 const confirmDiscard = (): Promise<boolean> =>
@@ -736,8 +783,10 @@ async function boot(): Promise<void> {
     else if (type === "leave") app.classList.remove("dropping");
     else if (type === "drop") {
       app.classList.remove("dropping");
-      const path = event.payload.paths.find(isMarkdownPath);
-      if (path) openFile(path);
+      const md = event.payload.paths.find(isMarkdownPath);
+      const img = event.payload.paths.find(isImagePath);
+      if (md) openFile(md);
+      else if (img && editing) insertDroppedImage(img);
     }
   });
 

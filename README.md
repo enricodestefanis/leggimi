@@ -18,6 +18,8 @@ explicitly.
   (CRLF/LF) are preserved on save
 - If a preview render fails mid-edit, the last good preview stays on screen and a dismissable
   notice appears — the pane never goes blank
+- **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
+  document and linked with a relative path, Typora-style
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline

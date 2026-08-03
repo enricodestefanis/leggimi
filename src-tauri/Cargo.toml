@@ -1,6 +1,6 @@
 [package]
 name = "leggimi"
-version = "1.4.0"
+version = "1.5.0"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
 edition = "2021"
@@ -27,3 +27,4 @@ notify = "8"
 notify-debouncer-full = "0.5"
 walkdir = "2"
 dunce = "1"
+base64 = "0.22"

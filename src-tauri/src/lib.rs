@@ -43,6 +43,8 @@ pub fn run() {
             commands::read_markdown,
             commands::write_markdown,
             commands::export_file,
+            commands::save_clipboard_image,
+            commands::import_image,
             commands::list_tree,
             commands::search_in_tree,
             commands::parent_dir,

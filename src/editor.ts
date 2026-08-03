@@ -18,6 +18,8 @@ export interface EditorCallbacks {
   onDirtyChanged(dirty: boolean): void;
   onScroll(): void;
   requestSave(): void;
+  /** an image was pasted into the editor */
+  onImagePasted(file: File): void;
 }
 
 let view: EditorView | null = null;
@@ -121,6 +123,19 @@ function makeState(content: string): EditorState {
           computeDirty();
         }
       }),
+      // clipboard images (screenshots) land as files; text paste stays native.
+      // Native file *drops* never reach the DOM here — Tauri intercepts them.
+      EditorView.domEventHandlers({
+        paste: (e) => {
+          const file = [...(e.clipboardData?.items ?? [])]
+            .find((i) => i.kind === "file" && i.type.startsWith("image/"))
+            ?.getAsFile();
+          if (!file) return false;
+          e.preventDefault();
+          callbacks?.onImagePasted(file);
+          return true;
+        },
+      }),
     ],
   });
 }
@@ -161,6 +176,12 @@ export function isDirty(): boolean {
 
 export function focus(): void {
   view?.focus();
+}
+
+export function insertAtCursor(text: string): void {
+  if (!view) return;
+  view.dispatch(view.state.replaceSelection(text));
+  view.focus();
 }
 
 // 0-based fractional source line at the top of the editor viewport. The

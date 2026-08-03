@@ -1,9 +1,11 @@
 use std::{
     fs,
-    path::Path,
+    path::{Path, PathBuf},
     thread,
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
+
+use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -262,6 +264,64 @@ fn make_preview(line: &str, needle_lower: &str) -> String {
         out.push('…');
     }
     out
+}
+
+fn unique_target(assets: &Path, stem: &str, ext: &str) -> PathBuf {
+    let mut candidate = assets.join(format!("{stem}.{ext}"));
+    let mut i = 1;
+    while candidate.exists() {
+        candidate = assets.join(format!("{stem}-{i}.{ext}"));
+        i += 1;
+    }
+    candidate
+}
+
+fn rel_assets_path(target: &Path) -> String {
+    format!("assets/{}", target.file_name().unwrap_or_default().to_string_lossy())
+}
+
+/// Base64-decoded clipboard image, written to `<dir>/assets/`; returns the
+/// document-relative path to insert in the markdown.
+#[tauri::command]
+pub fn save_clipboard_image(dir: String, data: String, ext: String) -> Result<String, String> {
+    let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
+    let bytes = B64
+        .decode(data.as_bytes())
+        .map_err(|e| format!("Invalid image data: {e}"))?;
+    let assets = root.join("assets");
+    fs::create_dir_all(&assets).map_err(|e| format!("Cannot create assets folder: {e}"))?;
+    let ext = if !ext.is_empty() && ext.chars().all(|c| c.is_ascii_alphanumeric()) {
+        ext
+    } else {
+        "png".to_owned()
+    };
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let target = unique_target(&assets, &format!("pasted-{millis}"), &ext);
+    fs::write(&target, bytes).map_err(|e| format!("Cannot save image: {e}"))?;
+    Ok(rel_assets_path(&target))
+}
+
+/// Copies an image file into `<dir>/assets/`; returns the relative path.
+#[tauri::command]
+pub fn import_image(dir: String, source: String) -> Result<String, String> {
+    let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
+    let src = dunce::canonicalize(&source).map_err(|e| e.to_string())?;
+    let assets = root.join("assets");
+    fs::create_dir_all(&assets).map_err(|e| format!("Cannot create assets folder: {e}"))?;
+    let stem = src
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "image".to_owned());
+    let ext = src
+        .extension()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_else(|| "png".to_owned());
+    let target = unique_target(&assets, &stem, &ext);
+    fs::copy(&src, &target).map_err(|e| format!("Cannot copy image: {e}"))?;
+    Ok(rel_assets_path(&target))
 }
 
 #[tauri::command]

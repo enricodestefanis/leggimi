@@ -28,6 +28,10 @@ export const writeMarkdown = (path: string, content: string) =>
   invoke<void>("write_markdown", { path, content });
 export const exportFile = (path: string, content: string) =>
   invoke<void>("export_file", { path, content });
+export const saveClipboardImage = (dir: string, data: string, ext: string) =>
+  invoke<string>("save_clipboard_image", { dir, data, ext });
+export const importImage = (dir: string, source: string) =>
+  invoke<string>("import_image", { dir, source });
 export const listTree = (dir: string) => invoke<TreeNode>("list_tree", { dir });
 export const searchInTree = (dir: string, query: string) =>
   invoke<SearchHit[]>("search_in_tree", { dir, query });

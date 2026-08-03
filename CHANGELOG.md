@@ -7,6 +7,15 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.5.0] - 2026-08-03
+
+### Added
+- **Images into the editor**: pasting a screenshot saves it as
+  `assets/pasted-<timestamp>.png` next to the document; dropping an image file copies
+  it into `assets/` under its own name (uniquified if taken). Both insert a
+  relative-path `![]()` link at the cursor and the live preview picks it up
+  immediately.
+
 ## [1.4.0] - 2026-08-03
 
 ### Added
