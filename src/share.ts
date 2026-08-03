@@ -51,13 +51,18 @@ function cleanedClone(article: HTMLElement): HTMLElement {
   return clone;
 }
 
-// Local images are served via the asset protocol, which no other app can
-// resolve — embed them as data URIs so output stands alone. Web URLs stay.
+// Local images are served via the asset protocol (asset: or the
+// http://asset.localhost bridge), which no other app can resolve — embed
+// them as data URIs so output stands alone. Real web URLs stay linked.
+const isAssetUrl = (src: string) =>
+  /^asset:/i.test(src) || /^https?:\/\/asset\.localhost/i.test(src);
+
 async function inlineImages(root: HTMLElement): Promise<void> {
   await Promise.all(
     [...root.querySelectorAll("img")].map(async (img) => {
       const src = img.getAttribute("src") ?? "";
-      if (!src || src.startsWith("data:") || /^https?:/i.test(src)) return;
+      if (!src || src.startsWith("data:")) return;
+      if (!isAssetUrl(src) && /^https?:/i.test(src)) return;
       try {
         const blob = await (await fetch(src)).blob();
         img.src = await blobToDataUri(blob);
