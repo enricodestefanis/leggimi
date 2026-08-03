@@ -6,8 +6,8 @@ optional edit mode adds a split view with a live preview. Files are only modifie
 explicitly.
 
 <p align="center">
-  <img alt="Leggimi screen 1" src="https://github.com/user-attachments/assets/10af9556-1678-4b0c-8047-263cd3c885ba" width="49%" />
-  <img alt="Leggimi screen 2" src="https://github.com/user-attachments/assets/6778669f-1e1e-4e14-9ed7-18ceb80250ba" width="49%" />
+  <img alt="Leggimi — viewer mode with Mermaid, file browser and outline" src="docs/screenshot-viewer.png" width="49%" />
+  <img alt="Leggimi — edit mode with live preview, KaTeX and callouts" src="docs/screenshot-editor.png" width="49%" />
 </p>
 
 ## Features
