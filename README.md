@@ -36,12 +36,15 @@ explicitly.
   snippets; opening a result highlights the term in the document
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
   edits it warns instead of overwriting your buffer
-- **Copy as rich text** (`Ctrl+Shift+C`): paste the rendered document with formatting into
-  Outlook, Word or Teams, local images embedded
-- **Print / save as PDF** (`Ctrl+P`) with a paper-oriented layout, and **export to
-  self-contained HTML or DOCX** — in Word, math becomes native equations and Mermaid
-  diagrams become images
-- Find in document (`Ctrl+F`), relative images; theme cycles **light / dark / follow Windows**
+- **Share menu** (`Ctrl+Shift+E`) collecting everything that leaves the app: **copy as rich
+  text** (`Ctrl+Shift+C`) to paste with formatting into Outlook, Word or Teams; **print / save
+  as PDF** (`Ctrl+P`) with a paper-oriented layout; **export to self-contained HTML or DOCX** —
+  in Word, math becomes native equations and Mermaid diagrams become images
+- **Reading settings** (the `Aa` button): text size (`Ctrl+=` / `Ctrl+−` / `Ctrl+0` /
+  `Ctrl`+scroll), sans or serif font, line spacing, column width and the **light / dark /
+  follow Windows** theme — all remembered across restarts, never affecting print or export;
+  the editor text scales along with the size
+- Find in document (`Ctrl+F`), relative images
 - Opened files land in Windows' **Recent items and the taskbar jump list**
 - Double-click any `.md` file in File Explorer — the installer registers the association
 - Single instance: further files open in the existing window
@@ -62,7 +65,9 @@ explicitly.
 | `Ctrl+I` | Toggle the outline |
 | `Ctrl+P` | Print or save as PDF |
 | `Ctrl+Shift+C` | Copy the document as rich text |
-| `Ctrl+Shift+E` | Export (HTML / DOCX) |
+| `Ctrl+Shift+E` | Open the Share menu |
+| `Ctrl+=` / `Ctrl+−` | Larger / smaller text |
+| `Ctrl+0` | Reset the text size |
 | `F1` | Show help |
 | `Esc` | Close the find bar or help |
 

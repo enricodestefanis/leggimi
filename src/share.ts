@@ -24,8 +24,17 @@ const EXPORT_BASE_CSS = `
   --accent: #c15f3c;
   --accent-soft: rgba(193, 95, 60, 0.1);
   --code-bg: #f5f4ef;
+  --link: #a84b2b;
+  --code-chip-bg: #eae8df;
+  --code-chip-border: #d5d1c5;
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --serif: Georgia, Cambria, "Times New Roman", serif;
   --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+  /* pin the reader variables to their defaults: exports ignore the Aa prefs */
+  --reader-font-size: 16px;
+  --reader-line-height: 1.7;
+  --reader-max-width: 760px;
+  --reader-font: var(--sans);
 }
 * { box-sizing: border-box; }
 body {
@@ -268,7 +277,7 @@ const COPY_STYLES: StyleMap = [
   ["h4, h5, h6", "font-size:16px;font-weight:600;line-height:1.3;margin:22px 0 6px;color:#1a1915"],
   [".markdown-alert-title", "font-weight:600;font-size:15px;margin:0 0 6px"],
   ["p", "margin:0 0 16px"],
-  ["a", "color:#c15f3c;text-decoration:none"],
+  ["a", "color:#a84b2b;text-decoration:underline"],
   ["li > ul, li > ol", "margin:5px 0 0"],
   ["ul, ol", "margin:0 0 16px;padding-left:26px"],
   ["li", "margin:0 0 5px"],
@@ -281,7 +290,7 @@ const COPY_STYLES: StyleMap = [
   ["table", "border-collapse:collapse;width:100%;margin:0 0 16px;border:1px solid #e8e6df"],
   ["code", `font-family:${MONO}`],
   // block code still sits in <pre> when the map runs, so this is inline code
-  [":not(pre) > code", "background:#f5f4ef;border:1px solid #e8e6df;border-radius:4px;padding:1px 5px;font-size:13.5px"],
+  [":not(pre) > code", "background:#eae8df;border:1px solid #d5d1c5;border-radius:4px;padding:1px 5px;font-size:13.5px;color:#1a1915"],
   ["kbd", `font-family:${MONO};font-size:13.5px;background:#f0efe9;border:1px solid #e8e6df;border-radius:5px;padding:1px 6px`],
   ["s, del", "text-decoration:line-through"],
 
@@ -438,7 +447,7 @@ th { background: #f0efe9; }
 blockquote { border-left: 3pt solid #c15f3c; padding-left: 8pt; margin-left: 0; color: #555555; }
 .markdown-alert-title { font-weight: bold; }
 img { max-width: 100%; }
-a { color: #c15f3c; }
+a { color: #a84b2b; }
 `;
 
 export async function buildDocxBase64(

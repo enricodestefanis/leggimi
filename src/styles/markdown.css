@@ -1,5 +1,7 @@
 .markdown-body {
-  line-height: 1.7;
+  font-family: var(--reader-font);
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
   overflow-wrap: break-word;
 }
 
@@ -35,14 +37,14 @@
 }
 
 .markdown-body h1 {
-  font-size: 1.9rem;
+  font-size: 1.9em;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 1.2em 0 0.6em;
 }
 
 .markdown-body h2 {
-  font-size: 1.4rem;
+  font-size: 1.4em;
   font-weight: 650;
   letter-spacing: -0.008em;
   margin: 2em 0 0.7em;
@@ -51,7 +53,7 @@
 }
 
 .markdown-body h3 {
-  font-size: 1.17rem;
+  font-size: 1.17em;
   font-weight: 600;
   margin: 1.6em 0 0.5em;
 }
@@ -59,7 +61,7 @@
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  font-size: 1rem;
+  font-size: 1em;
   font-weight: 600;
   margin: 1.4em 0 0.4em;
 }
@@ -70,12 +72,16 @@
 }
 
 .markdown-body a {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--link) 45%, transparent);
+  /* explicit 1px: Chromium auto-thickens the underline at large Aa sizes */
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
 }
 
 .markdown-body a:hover {
-  text-decoration: underline;
+  text-decoration-color: var(--link);
 }
 
 .markdown-body ul,

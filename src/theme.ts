@@ -25,10 +25,7 @@ export function init(): void {
 
 let animTimer: number | undefined;
 
-// light → dark → system → light
-export function cycle(): void {
-  const order: ThemePref[] = ["light", "dark", "system"];
-  const next = order[(order.indexOf(currentPref()) + 1) % order.length];
+export function setPref(next: ThemePref): void {
   if (next === "system") localStorage.removeItem("theme");
   else localStorage.setItem("theme", next);
   // cross-fade colors only while switching; no transition cost the rest of the time
@@ -47,6 +44,6 @@ function apply(): void {
   const pref = currentPref();
   const t = pref === "system" ? systemTheme() : pref;
   document.documentElement.dataset.theme = t;
-  document.documentElement.dataset.themePref = pref; // drives the toolbar icon
+  document.documentElement.dataset.themePref = pref; // mirrored in the Aa popover
   for (const cb of listeners) cb(t);
 }

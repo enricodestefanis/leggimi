@@ -82,7 +82,7 @@
 }
 
 article {
-  max-width: 760px;
+  max-width: var(--reader-max-width);
   margin: 0 auto;
   padding: 48px 32px 96px;
 }

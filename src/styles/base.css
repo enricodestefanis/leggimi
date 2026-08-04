@@ -12,9 +12,21 @@
   --accent: #c15f3c;
   --accent-soft: rgba(193, 95, 60, 0.1);
   --code-bg: #f5f4ef;
+  /* article link ink and inline-code chip: deeper than --accent / --code-bg
+     to clear WCAG AA against the page (accent on --bg is only 4.0:1) */
+  --link: #a84b2b;
+  --code-chip-bg: #eae8df;
+  --code-chip-border: #d5d1c5;
   --shadow: 0 4px 24px rgba(26, 25, 21, 0.1);
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --serif: Georgia, Cambria, "Times New Roman", serif;
   --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+  /* reading preferences (the Aa popover); the defaults are the classic look */
+  --reader-font-size: 16px;
+  --reader-line-height: 1.7;
+  --reader-max-width: 760px;
+  --reader-font: var(--sans);
+  --editor-font-size: calc(var(--reader-font-size) * 0.875);
 }
 
 :root[data-theme="dark"] {
@@ -28,7 +40,35 @@
   --accent: #d97757;
   --accent-soft: rgba(217, 119, 87, 0.14);
   --code-bg: #1b1a19;
+  --link: #df8768;
+  --code-chip-bg: #3a3835;
+  --code-chip-border: #4c4a44;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* non-default reading preferences, set as data attributes by prefs.ts */
+:root[data-reader-font="serif"] {
+  --reader-font: var(--serif);
+}
+
+:root[data-reader-lh="compact"] {
+  --reader-line-height: 1.5;
+}
+
+:root[data-reader-lh="relaxed"] {
+  --reader-line-height: 1.9;
+}
+
+:root[data-reader-width="narrow"] {
+  --reader-max-width: 640px;
+}
+
+:root[data-reader-width="wide"] {
+  --reader-max-width: 920px;
+}
+
+:root[data-reader-width="full"] {
+  --reader-max-width: none;
 }
 
 * {

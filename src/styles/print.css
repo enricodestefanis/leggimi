@@ -6,6 +6,15 @@
     margin: 16mm;
   }
 
+  /* paper always gets the standard text layout; !important is required to
+     outrank both the inline --reader-font-size on <html> and the
+     [data-reader-*] overrides, which beat a bare :root rule */
+  :root {
+    --reader-font-size: 16px !important;
+    --reader-line-height: 1.7 !important;
+    --reader-font: var(--sans) !important;
+  }
+
   html,
   body {
     height: auto;

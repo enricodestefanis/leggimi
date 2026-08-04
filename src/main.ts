@@ -19,6 +19,7 @@ import * as toc from "./toc";
 import * as tree from "./tree";
 import * as search from "./search";
 import * as theme from "./theme";
+import * as prefs from "./prefs";
 import { captureScrollAnchor, restoreScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
 import { buildDocxBase64, buildStandaloneHtml, copyAsRichText } from "./share";
@@ -42,10 +43,13 @@ const helpDialog = $<HTMLDialogElement>("#help-dialog");
 const editorPane = $("#editor-pane");
 const btnEdit = $<HTMLButtonElement>("#btn-edit");
 const btnSave = $<HTMLButtonElement>("#btn-save");
-const btnCopyDoc = $<HTMLButtonElement>("#btn-copy-doc");
-const btnPrint = $<HTMLButtonElement>("#btn-print");
-const btnExport = $<HTMLButtonElement>("#btn-export");
-const exportMenu = $("#export-menu");
+const btnShare = $<HTMLButtonElement>("#btn-share");
+const shareMenu = $("#share-menu");
+const btnReading = $<HTMLButtonElement>("#btn-reading");
+const readingMenu = $("#reading-menu");
+const rsSizeValue = $("#rs-size-value");
+const rsSizeDec = $<HTMLButtonElement>("#rs-size-dec");
+const rsSizeInc = $<HTMLButtonElement>("#rs-size-inc");
 const noticeBar = $("#notice-bar");
 const noticeMsg = $("#notice-msg");
 const noticeAction = $<HTMLButtonElement>("#notice-action");
@@ -120,7 +124,7 @@ function updateTitles(): void {
   const dirty = editorMod?.isDirty() ?? false;
   dirtyDot.hidden = !dirty;
   btnSave.disabled = !dirty;
-  btnCopyDoc.disabled = btnPrint.disabled = btnExport.disabled = currentDoc === null;
+  btnShare.disabled = currentDoc === null;
   if (currentDoc) {
     docTitle.textContent = fileName(currentDoc.path);
     docTitle.title = currentDoc.path;
@@ -404,7 +408,7 @@ async function copyDocAsRichText(): Promise<void> {
     // the unsaved buffer, which is what the preview (and the eye) shows
     const plain = editing && editorMod ? editorMod.currentText() : currentDoc.content;
     await copyAsRichText(article, currentDoc.dir, plain);
-    flashDone(btnCopyDoc);
+    flashDone(btnShare);
   } catch (err) {
     showNotice(`Copy failed: ${err}`);
   }
@@ -415,18 +419,67 @@ function printDoc(): void {
   window.print();
 }
 
-function toggleExportMenu(): void {
-  if (!exportMenu.hidden) {
-    exportMenu.hidden = true;
+function positionMenu(menu: HTMLElement, anchor: HTMLElement): void {
+  const r = anchor.getBoundingClientRect();
+  menu.style.top = `${r.bottom + 6}px`;
+  menu.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
+  menu.style.left = "auto";
+}
+
+function toggleShareMenu(): void {
+  if (!shareMenu.hidden) {
+    shareMenu.hidden = true;
     return;
   }
   if (!currentDoc) return;
-  const r = btnExport.getBoundingClientRect();
-  exportMenu.style.top = `${r.bottom + 6}px`;
-  exportMenu.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
-  exportMenu.style.left = "auto";
-  exportMenu.hidden = false;
-  exportMenu.querySelector<HTMLButtonElement>(".menu-item")?.focus();
+  readingMenu.hidden = true;
+  positionMenu(shareMenu, btnShare);
+  shareMenu.hidden = false;
+  shareMenu.querySelector<HTMLButtonElement>(".menu-item")?.focus();
+}
+
+function toggleReadingMenu(): void {
+  if (!readingMenu.hidden) {
+    readingMenu.hidden = true;
+    return;
+  }
+  shareMenu.hidden = true;
+  syncReadingMenu();
+  positionMenu(readingMenu, btnReading);
+  readingMenu.hidden = false;
+}
+
+/* ---- reading settings (the Aa popover) ---- */
+
+function syncReadingMenu(): void {
+  const p = prefs.get();
+  const active: Record<string, string> = {
+    font: p.font,
+    lineHeight: p.lineHeight,
+    width: p.width,
+    theme: theme.currentPref(),
+  };
+  for (const seg of readingMenu.querySelectorAll<HTMLElement>(".rs-seg")) {
+    const key = seg.id === "rs-theme" ? "theme" : (seg.dataset.pref ?? "");
+    for (const opt of seg.querySelectorAll<HTMLButtonElement>(".rs-opt")) {
+      opt.setAttribute("aria-pressed", String(opt.dataset.value === active[key]));
+    }
+  }
+  rsSizeValue.textContent = `${p.size} px`;
+  const i = prefs.SIZE_STEPS.indexOf(p.size);
+  rsSizeDec.disabled = i <= 0;
+  rsSizeInc.disabled = i >= prefs.SIZE_STEPS.length - 1;
+}
+
+// a size or spacing change reflows the article: keep the section being read
+function withReadingAnchor(fn: () => void): void {
+  const anchor = currentDoc && !article.hidden ? captureScrollAnchor(contentPane, article) : null;
+  fn();
+  if (anchor) restoreScrollAnchor(contentPane, article, anchor);
+}
+
+function bumpReaderSize(dir: 1 | -1): void {
+  withReadingAnchor(() => prefs.bumpSize(dir));
 }
 
 async function exportDocAsHtml(): Promise<void> {
@@ -440,7 +493,7 @@ async function exportDocAsHtml(): Promise<void> {
   try {
     const html = await buildStandaloneHtml(article, fileName(currentDoc.path), currentDoc.dir);
     await ipc.exportFile(target, html);
-    flashDone(btnExport);
+    flashDone(btnShare);
   } catch (err) {
     showNotice(`Export failed: ${err}`);
   }
@@ -457,7 +510,7 @@ async function exportDocAsDocx(): Promise<void> {
   try {
     const data = await buildDocxBase64(article, fileName(currentDoc.path), currentDoc.dir);
     await ipc.exportBinary(target, data);
-    flashDone(btnExport);
+    flashDone(btnShare);
   } catch (err) {
     showNotice(`Export failed: ${err}`);
   }
@@ -654,39 +707,62 @@ function wireUi(): void {
 
   $("#btn-tree").addEventListener("click", () => toggleSidebar("tree-hidden"));
   $("#btn-toc").addEventListener("click", () => toggleSidebar("toc-hidden"));
-  const btnTheme = $("#btn-theme");
-  const themeTitles: Record<theme.ThemePref, string> = {
-    light: "Theme: light — click for dark",
-    dark: "Theme: dark — click to follow Windows",
-    system: "Theme: follows Windows — click for light",
-  };
-  const updateThemeTitle = () => (btnTheme.title = themeTitles[theme.currentPref()]);
-  btnTheme.addEventListener("click", () => {
-    theme.cycle();
-    updateThemeTitle();
-  });
-  updateThemeTitle();
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
   btnEdit.addEventListener("click", () => toggleEditMode());
   btnSave.addEventListener("click", () => saveFile());
-  btnCopyDoc.addEventListener("click", () => copyDocAsRichText());
-  btnPrint.addEventListener("click", () => printDoc());
-  btnExport.addEventListener("click", (e) => {
+  btnShare.addEventListener("click", (e) => {
     e.stopPropagation(); // the document click-away handler must not see this
-    toggleExportMenu();
+    toggleShareMenu();
+  });
+  btnReading.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleReadingMenu();
+  });
+  $("#share-copy").addEventListener("click", () => {
+    shareMenu.hidden = true;
+    copyDocAsRichText();
+  });
+  $("#share-print").addEventListener("click", () => {
+    shareMenu.hidden = true;
+    printDoc();
   });
   $("#export-html").addEventListener("click", () => {
-    exportMenu.hidden = true;
+    shareMenu.hidden = true;
     exportDocAsHtml();
   });
   $("#export-docx").addEventListener("click", () => {
-    exportMenu.hidden = true;
+    shareMenu.hidden = true;
     exportDocAsDocx();
   });
   document.addEventListener("click", (e) => {
-    if (!exportMenu.hidden && !exportMenu.contains(e.target as Node)) exportMenu.hidden = true;
+    const t = e.target as Node;
+    if (!shareMenu.hidden && !shareMenu.contains(t)) shareMenu.hidden = true;
+    if (!readingMenu.hidden && !readingMenu.contains(t)) readingMenu.hidden = true;
   });
+
+  // reading settings: selections keep the popover open so choices compose
+  rsSizeDec.addEventListener("click", () => bumpReaderSize(-1));
+  rsSizeInc.addEventListener("click", () => bumpReaderSize(1));
+  $("#rs-reset").addEventListener("click", () => withReadingAnchor(() => prefs.reset()));
+  for (const seg of readingMenu.querySelectorAll<HTMLElement>(".rs-seg[data-pref]")) {
+    seg.addEventListener("click", (e) => {
+      const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
+      if (!opt) return;
+      const key = seg.dataset.pref as "font" | "lineHeight" | "width";
+      const value = opt.dataset.value ?? "";
+      withReadingAnchor(() => prefs.set({ [key]: value } as Partial<prefs.ReaderPrefs>));
+    });
+  }
+  $("#rs-theme").addEventListener("click", (e) => {
+    const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
+    if (opt) theme.setPref(opt.dataset.value as theme.ThemePref);
+  });
+  prefs.onChange(() => {
+    syncReadingMenu();
+    editorMod?.refresh();
+  });
+  theme.onChange(() => syncReadingMenu());
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
   $("#help-close").addEventListener("click", () => helpDialog.close());
   btnUp.addEventListener("click", goUp);
@@ -729,8 +805,9 @@ function wireUi(): void {
       return;
     }
     if (helpDialog.open) return; // Esc is handled natively by <dialog>
-    if (e.key === "Escape" && !exportMenu.hidden) {
-      exportMenu.hidden = true;
+    if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden)) {
+      shareMenu.hidden = true;
+      readingMenu.hidden = true;
       return;
     }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
@@ -747,7 +824,7 @@ function wireUi(): void {
       chooseFile();
     } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "e") {
       e.preventDefault();
-      toggleExportMenu();
+      toggleShareMenu();
     } else if (e.ctrlKey && e.key.toLowerCase() === "e") {
       e.preventDefault();
       toggleEditMode();
@@ -768,8 +845,37 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "c") {
       e.preventDefault();
       copyDocAsRichText();
+      // !e.altKey below: on Windows AltGr reports Ctrl+Alt, and AltGr symbol
+      // combos must keep working while typing in the editor.
+      // preventDefault also suppresses WebView2's whole-page zoom.
+    } else if (e.ctrlKey && !e.altKey && (e.key === "+" || e.key === "=")) {
+      e.preventDefault();
+      bumpReaderSize(1);
+    } else if (e.ctrlKey && !e.altKey && e.key === "-") {
+      e.preventDefault();
+      bumpReaderSize(-1);
+    } else if (e.ctrlKey && !e.altKey && e.key === "0") {
+      e.preventDefault();
+      withReadingAnchor(() => prefs.set({ size: prefs.DEFAULTS.size }));
     }
   });
+
+  // Ctrl+wheel resizes the reader text instead of WebView2's whole-page zoom
+  let lastWheelBump = 0;
+  document.addEventListener(
+    "wheel",
+    (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault(); // block the native page zoom everywhere, not just over text
+      const t = e.target as Node;
+      if (!contentPane.contains(t) && !editorPane.contains(t)) return;
+      const now = performance.now();
+      if (now - lastWheelBump < 80) return; // trackpad pinches arrive in bursts
+      lastWheelBump = now;
+      bumpReaderSize(e.deltaY < 0 ? 1 : -1);
+    },
+    { passive: false },
+  );
 
   // diagrams and code keep their on-screen palette in the DOM, but the page
   // chrome must print light: flip the theme around the native print dialog
@@ -812,6 +918,7 @@ async function showVersion(): Promise<void> {
 
 async function boot(): Promise<void> {
   theme.init();
+  prefs.init();
   showVersion().catch(() => {});
   theme.onChange((t) => rerenderForTheme(article, t === "dark").catch(() => {}));
   wireUi();

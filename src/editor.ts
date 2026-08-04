@@ -34,7 +34,7 @@ let dirty = false;
 const appTheme = EditorView.theme({
   "&": {
     height: "100%",
-    fontSize: "14px",
+    fontSize: "var(--editor-font-size, 14px)",
     backgroundColor: "var(--bg)",
     color: "var(--text)",
   },
@@ -176,6 +176,11 @@ export function isDirty(): boolean {
 
 export function focus(): void {
   view?.focus();
+}
+
+// re-measure after an external font-size change (the Aa popover)
+export function refresh(): void {
+  view?.requestMeasure();
 }
 
 export function insertAtCursor(text: string): void {
