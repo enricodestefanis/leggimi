@@ -7,6 +7,33 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.8.0] - 2026-08-04
+
+### Added
+- **Reading settings**: a new `Aa` toolbar button opens a popover with text size
+  (eight steps, 13–22 px), sans or serif font, line spacing (compact / normal /
+  relaxed) and column width (narrow / normal / wide / full). Everything is
+  remembered across restarts and the defaults reproduce the previous look exactly.
+- Text-size shortcuts: `Ctrl+=` / `Ctrl+−` step the size, `Ctrl+0` resets it, and
+  `Ctrl`+scroll wheel works over the document and the editor. The reading position
+  is preserved while the text reflows.
+- The editor text scales with the chosen reading size (keeping its 14:16 ratio to
+  the document).
+
+### Changed
+- **Toolbar consolidated from 9 to 6 buttons**: Copy as rich text and Print moved
+  into the Export menu, which is now the **Share** menu (`Ctrl+Shift+E`); the theme
+  button became a Light / Dark / Auto control inside the `Aa` popover.
+- Printing and exports always use the standard text layout, whatever reading
+  settings are active.
+
+### Fixed
+- Readability: article links are now always underlined (subtle terracotta
+  underline, full strength on hover) and their light-theme color is darkened
+  to meet WCAG AA contrast (4.0:1 → 5.4:1); inline code chips get a clearly
+  visible background and a crisper border in both themes, with full-strength
+  text even inside blockquotes. Rich-text copy, HTML and DOCX export match.
+
 ## [1.7.1] - 2026-08-03
 
 ### Changed
