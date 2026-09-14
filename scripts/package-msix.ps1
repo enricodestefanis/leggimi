@@ -58,7 +58,8 @@ Copy-Item $exe $layout
 Copy-Item "$root\src-tauri\msix\Assets\*.png" "$layout\Assets"
 
 $manifest = Get-Content "$root\src-tauri\msix\Package.appxmanifest" -Raw
-$manifest = $manifest -replace 'Version="\d+\.\d+\.\d+\.\d+"', "Version=`"$msixVersion`""
+# Only the Identity's Version attribute: MinVersion/MaxVersionTested also end in Version="...".
+$manifest = $manifest -replace '(?<=\s)Version="\d+\.\d+\.\d+\.\d+"', "Version=`"$msixVersion`""
 [IO.File]::WriteAllText("$layout\Package.appxmanifest", $manifest, (New-Object Text.UTF8Encoding $false))
 
 Get-ChildItem $out -Filter *.msix -ErrorAction SilentlyContinue | Remove-Item -Force
