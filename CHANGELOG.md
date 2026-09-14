@@ -7,7 +7,7 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
-## [Unreleased]
+## [1.8.2] - 2026-09-14
 
 ### Added
 - Microsoft Store packaging: an MSIX manifest, Store tile assets and `npm run package:msix`,
