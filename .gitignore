@@ -25,3 +25,6 @@ private/
 *.njsproj
 *.sln
 *.sw?
+
+# Development code-signing certificate for local MSIX tests
+*.pfx

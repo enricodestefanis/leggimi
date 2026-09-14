@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "package:msix": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-msix.ps1"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

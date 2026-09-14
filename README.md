@@ -99,6 +99,21 @@ Record what changed in [CHANGELOG.md](CHANGELOG.md). `npm version` also creates 
 it with `git push --follow-tags`. Keep `src-tauri/Cargo.toml` in step for tidiness — it is the
 crate version and does not drive what the app displays.
 
+### Microsoft Store package
+
+The Store build is an MSIX produced by Microsoft's [winapp CLI](https://learn.microsoft.com/windows/apps/dev-tools/winapp-cli/)
+(`winget install Microsoft.WinAppCli`) from the same release exe:
+
+```powershell
+npm run package:msix                     # build + package, unsigned (the Store signs it)
+npm run package:msix -- -SkipBuild -Sign # reuse the exe, sign with a dev certificate for a local install
+```
+
+The package lands in `src-tauri\target\msix\`. The manifest is `src-tauri\msix\Package.appxmanifest`;
+its identity values come from Partner Center and its version is stamped from `package.json` at
+packaging time. To install a dev-signed package locally, trust the generated certificate once from an
+elevated prompt with `winapp cert install src-tauri\msix\devcert.pfx`, then double-click the `.msix`.
+
 ## Development
 
 Requirements: Node 20+, Rust stable, WebView2 (preinstalled on Windows 11).

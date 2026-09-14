@@ -7,6 +7,15 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [Unreleased]
+
+### Added
+- Microsoft Store packaging: an MSIX manifest, Store tile assets and `npm run package:msix`,
+  which builds the release exe and packages it with Microsoft's winapp CLI.
+- A privacy policy (`PRIVACY.md`): Leggimi never connects to the internet and collects no data.
+- If the WebView2 Runtime is missing, the app now explains it and opens the download page
+  instead of failing silently.
+
 ## [1.8.1] - 2026-09-14
 
 ### Added
