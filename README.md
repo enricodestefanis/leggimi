@@ -126,3 +126,7 @@ want to open in the app without risking committing them.
 ## License
 
 Leggimi is free and open source software released under the [MIT License](LICENSE).
+
+## Privacy
+
+Leggimi never connects to the internet and collects no data. See [PRIVACY.md](PRIVACY.md).
