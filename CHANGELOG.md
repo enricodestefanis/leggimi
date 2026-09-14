@@ -7,6 +7,21 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.8.1] - 2026-09-14
+
+### Added
+- The project is now released under the MIT License (`LICENSE` file, manifests, README
+  and the help dialog).
+
+### Fixed
+- **Outline highlight at the end of the document**: short trailing sections could
+  never become the active entry, because the scroll-spy only activated a heading
+  once it reached the top of the pane. The activation line now slides down over
+  the last viewport of scroll, so every entry gets its turn and the last one is
+  active at the bottom. A clicked entry is highlighted immediately and stays so
+  until you scroll again yourself; the active entry is also kept in view inside
+  the outline panel.
+
 ## [1.8.0] - 2026-08-04
 
 ### Added
