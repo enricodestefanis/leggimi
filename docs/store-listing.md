@@ -12,24 +12,34 @@ Leggimi
 
 Leggimi is a fast, distraction-free viewer and editor for Markdown documents on Windows.
 
+FREE AND OPEN SOURCE, NOTHING HIDDEN
+Leggimi is free software released under the MIT License, and its full source code is public on
+GitHub. There are no in-app purchases, no premium tier, no ads, no accounts and no telemetry.
+The app never connects to the internet: everything it needs ships inside the package, and it
+only touches the files and folders you open. You can read exactly what it does, build it
+yourself, or open an issue if something is off.
+
+READ
 Double-click any .md file and it opens instantly in a clean reading view with an outline of
 its headings, a file browser for the folder it lives in, and full-text search across that
 folder. Code blocks are highlighted, Mermaid diagrams and KaTeX formulas render inline, and
-images referenced by the document are shown in place.
+images referenced by the document are shown in place. When the file changes on disk, the view
+reloads by itself.
 
+EDIT
 When you need to change something, switch to the built-in editor: a Markdown-aware text
 editor with a live preview that keeps the reading position in sync. Files are only written
 when you press Ctrl+S.
 
-Share your notes the way your colleagues need them: copy the document as rich text that keeps
-its formatting when pasted into Word, Outlook or Teams, export it to HTML or DOCX, or print it
-to paper or PDF.
+SHARE
+Copy the document as rich text that keeps its formatting when pasted into Word, Outlook or
+Teams, export it to HTML or DOCX, or print it to paper or PDF.
 
+MAKE IT YOURS
 Reading settings let you choose the text size, a sans or serif font, line spacing, column width
 and a light, dark or automatic theme. Every choice is remembered.
 
-Leggimi never connects to the internet and collects no data. It is free and open source under
-the MIT License.
+Source code and issue tracker: https://github.com/enricodestefanis/leggimi
 
 ## Short description / What's new (optional, max 1 500 characters)
 
@@ -50,7 +60,8 @@ no telemetry.
 - Text size, font, line spacing, column width and theme settings
 - Light, dark or automatic theme following Windows
 - Reloads automatically when the file changes on disk
-- Free and open source, no accounts, no internet, no telemetry
+- Free and open source (MIT License), source code on GitHub
+- No in-app purchases, no ads, no accounts, no telemetry, no internet access
 
 ## Search terms (max 7, 30 characters each)
 
