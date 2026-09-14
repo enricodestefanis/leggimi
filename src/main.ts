@@ -889,6 +889,15 @@ function wireUi(): void {
     printThemeRestore = undefined;
   });
 
+  // help dialog links (licence, repository) → default browser
+  helpDialog.addEventListener("click", (e) => {
+    const a = (e.target as HTMLElement).closest("a");
+    const href = a?.getAttribute("href") ?? "";
+    if (!/^https?:/i.test(href)) return;
+    e.preventDefault();
+    openUrl(href).catch(() => {});
+  });
+
   // in-article links: hash → in-page scroll, web → default browser, .md → open in viewer
   article.addEventListener("click", (e) => {
     const a = (e.target as HTMLElement).closest("a");

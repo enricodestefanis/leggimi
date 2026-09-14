@@ -122,3 +122,7 @@ Mermaid in a production build too.
 
 A `private/` folder, if you create one, is excluded from git: use it for personal documents you
 want to open in the app without risking committing them.
+
+## License
+
+Leggimi is free and open source software released under the [MIT License](LICENSE).

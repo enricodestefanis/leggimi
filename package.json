@@ -2,6 +2,7 @@
   "name": "leggimi",
   "private": true,
   "version": "1.8.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

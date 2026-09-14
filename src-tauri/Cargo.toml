@@ -3,6 +3,7 @@ name = "leggimi"
 version = "1.8.0"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
+license = "MIT"
 edition = "2021"
 
 [lib]
