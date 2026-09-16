@@ -4,6 +4,14 @@
 
 # Leggimi
 
+<p align="center">
+  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1"><img alt="Microsoft Store" src="https://img.shields.io/badge/Microsoft_Store-Leggimi-0078D4?logo=windows&logoColor=white" /></a>
+  <a href="https://github.com/enricodestefanis/leggimi/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/enricodestefanis/leggimi?label=release&color=2ea44f" /></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <img alt="Windows 10 / 11" src="https://img.shields.io/badge/platform-Windows_10%2F11-lightgrey" />
+  <a href="PRIVACY.md"><img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-success" /></a>
+</p>
+
 *Leggimi* — Italian for "read me" — is a fast Markdown viewer and editor for Windows, built with
 Tauri 2. Documents open in a clean, centered reading column with light and dark themes; an
 optional edit mode adds a split view with a live preview. Files are only modified when you save
@@ -13,6 +21,22 @@ explicitly.
   <img alt="Leggimi — viewer mode with Mermaid, file browser and outline" src="docs/screenshot-viewer.png" width="49%" />
   <img alt="Leggimi — edit mode with live preview, KaTeX and callouts" src="docs/screenshot-editor.png" width="49%" />
 </p>
+
+## Install
+
+<p align="center">
+  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1?referrer=appbadge&mode=direct">
+    <img alt="Get it from Microsoft Store" src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" />
+  </a>
+</p>
+
+- **Microsoft Store** (recommended): install from the [Store page](https://apps.microsoft.com/detail/9PG51TBZ2CB1);
+  updates arrive automatically.
+- **Direct download**: the NSIS installer (`Leggimi_x.y.z_x64-setup.exe`) is attached to every
+  [GitHub release](https://github.com/enricodestefanis/leggimi/releases/latest). It is not
+  code-signed, so SmartScreen may ask you to confirm on first run.
+
+Both builds are the same app, free, with no accounts, no ads and no telemetry.
 
 ## Features
 
