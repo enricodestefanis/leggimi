@@ -5,7 +5,7 @@
 # Leggimi
 
 <p align="center">
-  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1"><img alt="Microsoft Store" src="https://img.shields.io/badge/Microsoft_Store-Leggimi-0078D4?logo=windows&logoColor=white" /></a>
+  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1?cid=github-badge"><img alt="Microsoft Store" src="https://img.shields.io/badge/Microsoft_Store-Leggimi-0078D4?logo=windows&logoColor=white" /></a>
   <a href="https://github.com/enricodestefanis/leggimi/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/enricodestefanis/leggimi?label=release&color=2ea44f" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   <img alt="Windows 10 / 11" src="https://img.shields.io/badge/platform-Windows_10%2F11-lightgrey" />
@@ -25,13 +25,18 @@ explicitly.
 ## Install
 
 <p align="center">
-  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1?referrer=appbadge&mode=direct">
+  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1?referrer=appbadge&cid=github-button&mode=direct">
     <img alt="Get it from Microsoft Store" src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" />
   </a>
 </p>
 
-- **Microsoft Store** (recommended): install from the [Store page](https://apps.microsoft.com/detail/9PG51TBZ2CB1);
+- **Microsoft Store** (recommended): install from the [Store page](https://apps.microsoft.com/detail/9PG51TBZ2CB1?cid=github-readme);
   updates arrive automatically.
+- **winget**: the same Store package from the command line:
+
+  ```powershell
+  winget install --id 9PG51TBZ2CB1 --source msstore
+  ```
 - **Direct download**: the NSIS installer (`Leggimi_x.y.z_x64-setup.exe`) is attached to every
   [GitHub release](https://github.com/enricodestefanis/leggimi/releases/latest). It is not
   code-signed, so SmartScreen may ask you to confirm on first run.
