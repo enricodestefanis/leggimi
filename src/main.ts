@@ -68,7 +68,10 @@ let previewTimer: number | undefined;
 let suppressReloadUntil = 0;
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
-const isMarkdownPath = (p: string) => /\.(md|markdown)$/i.test(p);
+// keep in sync with MD_EXTS in src-tauri/src/commands.rs
+const MD_EXTENSIONS = ["md", "markdown", "mdown", "mkd", "mkdn", "mdwn", "markdn", "mdtxt"];
+const MD_EXT_RE = new RegExp(`\\.(${MD_EXTENSIONS.join("|")})$`, "i");
+const isMarkdownPath = (p: string) => MD_EXT_RE.test(p);
 const isImagePath = (p: string) => /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(p);
 const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
 
@@ -484,7 +487,7 @@ function bumpReaderSize(dir: 1 | -1): void {
 
 async function exportDocAsHtml(): Promise<void> {
   if (!currentDoc) return;
-  const base = fileName(currentDoc.path).replace(/\.(md|markdown)$/i, "");
+  const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
   const target = await saveDialog({
     defaultPath: `${base}.html`,
     filters: [{ name: "HTML", extensions: ["html"] }],
@@ -501,7 +504,7 @@ async function exportDocAsHtml(): Promise<void> {
 
 async function exportDocAsDocx(): Promise<void> {
   if (!currentDoc) return;
-  const base = fileName(currentDoc.path).replace(/\.(md|markdown)$/i, "");
+  const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
   const target = await saveDialog({
     defaultPath: `${base}.docx`,
     filters: [{ name: "Word document", extensions: ["docx"] }],
@@ -691,7 +694,7 @@ function showEmpty(): void {
 async function chooseFile(): Promise<void> {
   const picked = await openDialog({
     multiple: false,
-    filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
+    filters: [{ name: "Markdown", extensions: MD_EXTENSIONS }],
   }).catch(() => null);
   if (typeof picked === "string") await openFile(picked);
 }
@@ -765,6 +768,9 @@ function wireUi(): void {
   theme.onChange(() => syncReadingMenu());
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
   $("#help-close").addEventListener("click", () => helpDialog.close());
+  $("#help-rate").addEventListener("click", () => {
+    ipc.openStoreReview().catch(() => {});
+  });
   btnUp.addEventListener("click", goUp);
   treeSearch.addEventListener("input", scheduleFolderSearch);
   treeSearch.addEventListener("keydown", (e) => {
@@ -925,10 +931,16 @@ async function showVersion(): Promise<void> {
   for (const el of document.querySelectorAll("#help-version, #empty-version")) el.textContent = v;
 }
 
+// the rating prompt only makes sense for the Microsoft Store build
+async function showStoreRating(): Promise<void> {
+  if (await ipc.isStoreInstall().catch(() => false)) $("#help-rate-card").hidden = false;
+}
+
 async function boot(): Promise<void> {
   theme.init();
   prefs.init();
   showVersion().catch(() => {});
+  showStoreRating().catch(() => {});
   theme.onChange((t) => rerenderForTheme(article, t === "dark").catch(() => {}));
   wireUi();
 

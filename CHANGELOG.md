@@ -7,6 +7,14 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.8.3] - 2026-09-28
+
+### Added
+- More Markdown extensions are recognized everywhere (file associations, Open dialog, file
+  browser, folder search and links): `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.markdn`, `.mdtxt`.
+- The Microsoft Store build shows a "Rate on the Store" card in the help dialog (`F1`).
+  The GitHub build is unchanged.
+
 ## [1.8.2] - 2026-09-14
 
 ### Added

@@ -97,7 +97,9 @@ pub fn run() {
             commands::parent_dir,
             commands::watch_file,
             commands::resolve_path,
-            commands::show_window
+            commands::show_window,
+            commands::is_store_install,
+            commands::open_store_review
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

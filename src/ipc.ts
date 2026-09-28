@@ -41,6 +41,8 @@ export const parentDir = (path: string) => invoke<string | null>("parent_dir", {
 export const watchFile = (path: string) => invoke<void>("watch_file", { path });
 export const resolvePath = (dir: string, rel: string) => invoke<string>("resolve_path", { dir, rel });
 export const showWindow = () => invoke<void>("show_window");
+export const isStoreInstall = () => invoke<boolean>("is_store_install");
+export const openStoreReview = () => invoke<void>("open_store_review");
 
 export const onOpenFile = (cb: (path: string) => void): Promise<UnlistenFn> =>
   listen<string>("open-file", (e) => cb(e.payload));

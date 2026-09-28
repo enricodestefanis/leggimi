@@ -29,6 +29,14 @@ pub struct TreeNode {
     pub children: Vec<TreeNode>,
 }
 
+/// Extensions treated as Markdown; keep in sync with `MD_EXTENSIONS` in src/main.ts,
+/// the MSIX manifest and the NSIS file associations.
+const MD_EXTS: &[&str] = &["md", "markdown", "mdown", "mkd", "mkdn", "mdwn", "markdn", "mdtxt"];
+
+fn is_markdown_ext(ext: &str) -> bool {
+    MD_EXTS.contains(&ext)
+}
+
 const SKIP_DIRS: &[&str] = &[
     "node_modules",
     "target",
@@ -176,7 +184,7 @@ fn build_node(path: &Path, depth: usize, count: &mut usize) -> Option<TreeNode> 
             return None;
         }
         let ext = path.extension()?.to_string_lossy().to_lowercase();
-        if ext != "md" && ext != "markdown" {
+        if !is_markdown_ext(&ext) {
             return None;
         }
         *count += 1;
@@ -230,7 +238,7 @@ pub fn search_in_tree(dir: String, query: String) -> Result<Vec<SearchHit>, Stri
             .extension()
             .map(|e| e.to_string_lossy().to_lowercase())
             .unwrap_or_default();
-        if ext != "md" && ext != "markdown" {
+        if !is_markdown_ext(&ext) {
             continue;
         }
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -371,4 +379,28 @@ pub fn show_window(app: AppHandle) {
         let _ = win.show();
         let _ = win.set_focus();
     }
+}
+
+/// True when running from the Microsoft Store (MSIX) package, where the app has a
+/// package identity; the NSIS build from GitHub has none.
+#[tauri::command]
+pub fn is_store_install() -> bool {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
+        use windows_sys::Win32::Storage::Packaging::Appx::GetCurrentPackageFullName;
+        let mut len = 0u32;
+        // unpackaged processes get APPMODEL_ERROR_NO_PACKAGE instead
+        let rc = unsafe { GetCurrentPackageFullName(&mut len, std::ptr::null_mut()) };
+        rc == ERROR_INSUFFICIENT_BUFFER
+    }
+    #[cfg(not(windows))]
+    false
+}
+
+const STORE_REVIEW_URL: &str = "ms-windows-store://review/?ProductId=9PG51TBZ2CB1";
+
+#[tauri::command]
+pub fn open_store_review() -> Result<(), String> {
+    tauri_plugin_opener::open_url(STORE_REVIEW_URL, None::<&str>).map_err(|e| e.to_string())
 }
