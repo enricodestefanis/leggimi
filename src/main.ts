@@ -154,11 +154,23 @@ async function toggleEditMode(): Promise<void> {
 
 async function enterEditMode(): Promise<void> {
   if (editing || !currentDoc) return;
-  editorMod ??= await import("./editor");
+  try {
+    editorMod ??= await import("./editor");
+  } catch (err) {
+    // the editor chunk loads on first use; say so instead of silently doing nothing
+    showNotice(`The editor could not be loaded: ${err}`);
+    return;
+  }
   editorMod.mount(editorPane, {
     onDocChanged: schedulePreview,
     onDirtyChanged: () => updateTitles(),
-    onScroll: scheduleSyncPreview,
+    onScroll: () => scheduleSyncPreview(),
+    onCaretMoved: () => {
+      // moving the caret is a request to see that spot: reveal it now, and
+      // through the editor scroll the move may cause right after
+      revealUntil = Math.max(revealUntil, performance.now() + 300);
+      scheduleSyncPreview(true);
+    },
     requestSave: () => {
       saveFile();
     },
@@ -243,6 +255,7 @@ const confirmDiscard = (): Promise<boolean> =>
 /* ---- live preview ---- */
 
 function schedulePreview(): void {
+  revealUntil = performance.now() + 1000;
   clearTimeout(previewTimer);
   previewTimer = window.setTimeout(() => {
     if (editorMod) updatePreview(editorMod.currentText());
@@ -281,7 +294,7 @@ async function updatePreview(content: string): Promise<void> {
     }
     collectPreviewAnchors();
     if (anchor) restoreScrollAnchor(contentPane, article, anchor);
-    else syncPreviewToEditor();
+    else syncPreviewToEditor(true);
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
@@ -291,7 +304,7 @@ async function updatePreview(content: string): Promise<void> {
       .then(() => {
         // freshly rendered diagrams change heights: re-anchor and re-align
         collectPreviewAnchors();
-        scheduleSyncPreview();
+        scheduleSyncPreview(true);
       })
       .catch((err) => showNotice(`Diagram rendering failed: ${err}`));
   } catch (err) {
@@ -319,20 +332,36 @@ function collectPreviewAnchors(): void {
   }
 }
 
-function scheduleSyncPreview(): void {
+// `reveal` (after an edit or a caret move) also keeps the caret's block in
+// view in the preview. The editor scrolls that follow them (typing at the
+// bottom, arrowing past the edge) keep revealing until `revealUntil`.
+let syncReveal = false;
+let revealUntil = 0;
+function scheduleSyncPreview(reveal = false): void {
+  syncReveal ||= reveal || performance.now() < revealUntil;
   if (!syncRaf) {
     syncRaf = requestAnimationFrame(() => {
       syncRaf = 0;
-      syncPreviewToEditor();
+      const r = syncReveal;
+      syncReveal = false;
+      syncPreviewToEditor(r);
     });
   }
 }
 
-function syncPreviewToEditor(retry = true): void {
-  if (!editing || !editorMod || previewAnchors.length === 0) return;
-  if (performance.now() < syncSuppressedUntil) return;
-  const line = editorMod.topVisibleLine();
+// The anchors around a 0-based source line, as preview y (content
+// coordinates): the block holding the line spans [y1, y2). null: an anchor
+// was detached.
+interface AnchorSpan {
+  l1: number;
+  y1: number;
+  l2: number;
+  y2: number;
+  /** the anchor element opening the span, when there is one */
+  el: HTMLElement | null;
+}
 
+function anchorSpan(line: number): AnchorSpan | null {
   // binary search: lo = last anchor with .line <= line
   let lo = -1;
   let hi = previewAnchors.length;
@@ -343,25 +372,72 @@ function syncPreviewToEditor(retry = true): void {
   }
   const a1 = lo >= 0 ? previewAnchors[lo] : null;
   const a2 = hi < previewAnchors.length ? previewAnchors[hi] : null;
-  if ((a1 && !a1.el.isConnected) || (a2 && !a2.el.isConnected)) {
+  if ((a1 && !a1.el.isConnected) || (a2 && !a2.el.isConnected)) return null;
+
+  const paneTop = contentPane.getBoundingClientRect().top;
+  const yOf = (el: HTMLElement) => el.getBoundingClientRect().top - paneTop + contentPane.scrollTop;
+  return {
+    l1: a1 ? a1.line : 0,
+    y1: a1 ? yOf(a1.el) : yOf(article),
+    l2: a2 ? a2.line : editorMod!.lineCount(),
+    y2: a2 ? yOf(a2.el) : article.getBoundingClientRect().bottom - paneTop + contentPane.scrollTop,
+    el: a1 ? a1.el : null,
+  };
+}
+
+// Preview y of a fractional source line, interpolated inside its block.
+function yInSpan(span: AnchorSpan, line: number): number {
+  const t = span.l2 > span.l1 ? Math.min(1, Math.max(0, (line - span.l1) / (span.l2 - span.l1))) : 0;
+  return span.y1 + t * (span.y2 - span.y1);
+}
+
+function syncPreviewToEditor(reveal = false, retry = true): void {
+  if (!editing || !editorMod || previewAnchors.length === 0) return;
+  if (performance.now() < syncSuppressedUntil) return;
+
+  const topLine = editorMod.topVisibleLine();
+  const topSpan = anchorSpan(topLine);
+  const caret = reveal ? editorMod.visibleCaretLine() : null;
+  const caretSpan = caret === null ? null : anchorSpan(caret);
+  if (!topSpan || (caret !== null && !caretSpan)) {
     // the mermaid pass detached an anchor mid-flight; recollect once
     if (retry) {
       collectPreviewAnchors();
-      syncPreviewToEditor(false);
+      syncPreviewToEditor(reveal, false);
     }
     return;
   }
 
-  const paneTop = contentPane.getBoundingClientRect().top;
-  const yOf = (el: HTMLElement) => el.getBoundingClientRect().top - paneTop + contentPane.scrollTop;
-  const l1 = a1 ? a1.line : 0;
-  const y1 = a1 ? yOf(a1.el) : yOf(article);
-  const l2 = a2 ? a2.line : editorMod.lineCount();
-  const y2 = a2
-    ? yOf(a2.el)
-    : article.getBoundingClientRect().bottom - paneTop + contentPane.scrollTop;
-  const t = l2 > l1 ? (line - l1) / (l2 - l1) : 0;
-  contentPane.scrollTop = Math.max(0, y1 + t * (y2 - y1) - SYNC_MARGIN);
+  const view = contentPane.clientHeight;
+  const max = contentPane.scrollHeight - view;
+  // The editor scrolls past its end, so its top line can reach the last one
+  // and the preview's end stays reachable through the plain line mapping.
+  // An editor at its very top shows the preview from its very top too.
+  let target = editorMod.isAtTop() ? 0 : yInSpan(topSpan, topLine) - SYNC_MARGIN;
+  // After an edit or a caret move, what holds the caret must be in view: the
+  // whole top-level block when it fits (a table, a formula, a short list),
+  // else the innermost anchored part (a row, a list item), else the caret's
+  // estimated line inside it.
+  if (caret !== null && caretSpan) {
+    const pad = SYNC_MARGIN * 3;
+    const room = view - pad - SYNC_MARGIN;
+    let caretTop = yInSpan(caretSpan, caret);
+    let caretBottom = yInSpan(caretSpan, caret + 1);
+    let outer = caretSpan.el;
+    while (outer && outer.parentElement && outer.parentElement !== article) outer = outer.parentElement;
+    const outerRect = outer?.parentElement === article ? outer.getBoundingClientRect() : null;
+    const paneTop = contentPane.getBoundingClientRect().top - contentPane.scrollTop;
+    if (outerRect && outerRect.height <= room) {
+      caretTop = outerRect.top - paneTop;
+      caretBottom = outerRect.bottom - paneTop;
+    } else if (caretSpan.y2 - caretSpan.y1 <= room) {
+      caretTop = caretSpan.y1;
+      caretBottom = caretSpan.y2;
+    }
+    if (caretBottom > target + view - pad) target = caretBottom - view + pad;
+    if (caretTop < target + SYNC_MARGIN) target = caretTop - SYNC_MARGIN;
+  }
+  contentPane.scrollTop = Math.max(0, Math.min(max, target));
 }
 
 /* ---- saving ---- */
@@ -811,6 +887,8 @@ function wireUi(): void {
       return;
     }
     if (helpDialog.open) return; // Esc is handled natively by <dialog>
+    // the editor already handled it (Ctrl+B/I format there, Ctrl+S saved once)
+    if (e.defaultPrevented) return;
     if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden)) {
       shareMenu.hidden = true;
       readingMenu.hidden = true;

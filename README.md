@@ -51,6 +51,10 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
   (CRLF/LF) are preserved on save
 - If a preview render fails mid-edit, the last good preview stays on screen and a dismissable
   notice appears — the pane never goes blank
+- **Formatting help in edit mode**: a format bar (headings, bold, italic, strikethrough, code,
+  links, lists, task lists, quotes), the usual shortcuts, and a **`/` menu** at the start of a
+  line that inserts tables, Mermaid diagrams, KaTeX formulas, code blocks and callouts. The file
+  stays plain Markdown — every command just edits the text
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
@@ -90,8 +94,12 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 | `Ctrl+F` | Find in document |
 | `Ctrl+Shift+F` | Search across the folder |
 | `Enter` / `Shift+Enter` | Next / previous match |
-| `Ctrl+B` | Toggle the file browser |
-| `Ctrl+I` | Toggle the outline |
+| `Ctrl+B` | Toggle the file browser (bold while editing) |
+| `Ctrl+I` | Toggle the outline (italic while editing) |
+| `Ctrl+Shift+X` / `Ctrl+Shift+M` | Strikethrough / inline code (editing) |
+| `Ctrl+K` | Insert a link (editing) |
+| `Ctrl+1` … `Ctrl+3` | Heading 1 to 3 (editing) |
+| `/` | Block menu at the start of a line (editing) |
 | `Ctrl+P` | Print or save as PDF |
 | `Ctrl+Shift+C` | Copy the document as rich text |
 | `Ctrl+Shift+E` | Open the Share menu |
@@ -156,6 +164,11 @@ npm run tauri build      # produces the NSIS installer in src-tauri\target\relea
 Note: in dev mode Vite does not apply the CSP configured in `tauri.conf.json` — test images and
 Mermaid in a production build too.
 
+To exercise the UI in a plain browser, run `npm run dev` and open
+`http://localhost:1420/dev/harness.html`: it loads the real app with the Tauri backend mocked
+and files kept in memory (`?doc=/samples/test-features.md` opens a sample instead of the
+generated document).
+
 ## Project layout
 
 - `src/` — TypeScript + Vite frontend (markdown-it, highlight.js, DOMPurify, mermaid,
@@ -163,6 +176,7 @@ Mermaid in a production build too.
 - `src-tauri/` — Rust backend: file read/write and tree commands, debounced file watcher
   (notify), single instance, `.md` file association
 - `samples/` — test documents; `test-features.md` exercises every feature
+- `dev/harness.html` — browser test harness for the frontend (not part of the build)
 
 A `private/` folder, if you create one, is excluded from git: use it for personal documents you
 want to open in the app without risking committing them.

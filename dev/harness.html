@@ -1,0 +1,122 @@
+<!doctype html>
+<!--
+  Runs the real app (index.html + src/main.ts) in a plain browser with the
+  Tauri backend mocked, for end-to-end checks of UI behaviour.
+
+    npm run dev  →  http://localhost:1420/dev/harness.html[?doc=/samples/test-features.md]
+
+  Files live in memory (window.__harness.files); saves land there too, and
+  window.__harness.load(markdown) swaps the open document. Not part
+  of the production build: vite only bundles index.html.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leggimi harness</title>
+  </head>
+  <body>
+    <script type="module">
+      import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+      import { emit } from "@tauri-apps/api/event";
+
+      // Automation tabs flip to visibilityState "hidden", where rAF callbacks
+      // stall (even ones requested while visible) and scroll sync would freeze.
+      // Every frame request also arms a timer; whichever fires first wins.
+      const nativeRaf = window.requestAnimationFrame.bind(window);
+      const nativeCaf = window.cancelAnimationFrame.bind(window);
+      const frames = new Map();
+      let nextFrame = 1;
+      window.requestAnimationFrame = (cb) => {
+        const id = nextFrame++;
+        const run = (t) => {
+          const f = frames.get(id);
+          if (!f) return;
+          frames.delete(id);
+          nativeCaf(f.raf);
+          clearTimeout(f.timer);
+          cb(t);
+        };
+        frames.set(id, { raf: nativeRaf(run), timer: setTimeout(() => run(performance.now()), 50) });
+        return id;
+      };
+      window.cancelAnimationFrame = (id) => {
+        const f = frames.get(id);
+        if (!f) return;
+        frames.delete(id);
+        nativeCaf(f.raf);
+        clearTimeout(f.timer);
+      };
+
+      const DIR = "C:\\harness";
+      const PATH = DIR + "\\test.md";
+      const src = new URLSearchParams(location.search).get("doc");
+      const content = src ? await (await fetch(src)).text() : defaultDoc();
+
+      const harness = (window.__harness = {
+        files: new Map([[PATH, content]]),
+        calls: [],
+        /** replace the open document, as if the file had been reopened */
+        async load(text) {
+          harness.files.set(PATH, text);
+          await emit("open-file", PATH);
+        },
+      });
+
+      mockWindows("main");
+      mockIPC(
+        (cmd, args) => {
+          harness.calls.push({ cmd, args });
+          switch (cmd) {
+            case "get_initial_file":
+              return PATH;
+            case "read_markdown":
+              return { path: args.path, dir: DIR, content: harness.files.get(args.path) ?? "" };
+            case "write_markdown":
+              harness.files.set(args.path, args.content);
+              return null;
+            case "parent_dir":
+              return DIR;
+            case "list_tree":
+              return { name: "harness", path: DIR, isDir: true, children: [{ name: "test.md", path: PATH, isDir: false, children: [] }] };
+            case "search_in_tree":
+              return [];
+            case "resolve_path":
+              return `${DIR}\\${args.rel}`;
+            case "is_store_install":
+              return false;
+            case "plugin:app|version":
+              return "harness";
+            case "plugin:dialog|ask":
+            case "plugin:dialog|confirm":
+              // a native confirm() would block browser automation: always "yes"
+              return true;
+            default:
+              return null;
+          }
+        },
+        { shouldMockEvents: true },
+      );
+
+      // the app's own markup, without its entry script, then the entry itself
+      const html = await (await fetch("/index.html")).text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      doc.querySelectorAll("script").forEach((s) => s.remove());
+      document.body.replaceChildren(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
+      await import("/src/main.ts");
+
+      function defaultDoc() {
+        const parts = ["# Harness document", ""];
+        for (let i = 1; i <= 12; i++) {
+          parts.push(`## Section ${i}`, "");
+          parts.push(`Paragraph ${i} with **bold**, *italic* and \`code\`. `.repeat(4).trim(), "");
+          if (i % 4 === 0) parts.push("| A | B | C |", "| --- | --- | --- |", "| 1 | 2 | 3 |", "| 4 | 5 | 6 |", "");
+          if (i % 5 === 0) parts.push("$$", "\\int_0^1 x^2\\,dx = \\tfrac13", "$$", "");
+          parts.push("- item one", "- item two", "");
+        }
+        parts.push("Last paragraph of the file.", "");
+        return parts.join("\n");
+      }
+    </script>
+  </body>
+</html>

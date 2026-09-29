@@ -156,18 +156,17 @@
   background: var(--accent-soft);
 }
 
-.markdown-body ul.contains-task-list {
-  list-style: none;
-  padding-left: 0.4em;
-}
-
+/* Only the task items lose their bullet: a list can mix tasks and plain
+   items. The checkbox hangs in the bullet's place: its width plus margins
+   add up to minus the space the plugin puts after it, so the first word and
+   the wrapped lines start at the same x, like any bullet. */
 .markdown-body .task-list-item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5em;
+  list-style: none;
 }
 
 .markdown-body .task-list-item-checkbox {
+  width: 1em;
+  margin: 0 0.2em 0 -1.45em;
   accent-color: var(--accent);
   transform: translateY(2px);
 }

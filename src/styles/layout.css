@@ -62,7 +62,13 @@
 }
 
 #app.editing #editor-pane {
-  display: block;
+  display: flex;
+  flex-direction: column;
+}
+
+#editor-host {
+  flex: 1;
+  min-height: 0;
 }
 
 #app.editing #shell {

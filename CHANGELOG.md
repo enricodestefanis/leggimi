@@ -7,6 +7,38 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.9.0] - Unreleased
+
+### Added
+- A format bar above the editor: text style (normal, heading 1–3), bold, italic,
+  strikethrough, inline code, link, bulleted, numbered and task lists, quote, and an
+  Insert menu. Buttons light up for the formats under the cursor.
+- A `/` menu at the start of a line inserts blocks by name: table, Mermaid diagram,
+  KaTeX formula, code block, note/tip/warning callouts, divider, headings and lists.
+- Editing shortcuts: `Ctrl+B` bold, `Ctrl+I` italic, `Ctrl+Shift+X` strikethrough,
+  `Ctrl+Shift+M` inline code, `Ctrl+K` link, `Ctrl+1`–`3` headings. Every format toggles,
+  and with no selection it applies to the word under the cursor.
+
+### Changed
+- `Ctrl+B` and `Ctrl+I` format text while the cursor is in the editor; elsewhere they
+  still toggle the file browser and the outline.
+- The editor can scroll past the last line, so the preview can follow it all the way to
+  the end of the document.
+
+### Fixed
+- The live preview keeps what you are editing in view while you type or move the cursor
+  (click, arrow keys, selection): the whole table, formula, diagram or list when it fits,
+  otherwise the part holding the cursor. Before, text near the end of a file could stay
+  hidden below the preview's bottom edge.
+- Scroll sync now knows where display formulas (`$$` blocks and ```` ```math ```` fences)
+  and raw HTML blocks sit in the preview; before, it could only guess.
+- With the editor scrolled to the very top, the preview now starts at the very top too.
+- A selection inside the current line was invisible in the editor: the highlight of the
+  active line covered it.
+- Task lists: a plain item in the same list as a checklist lost its bullet, and a long
+  checklist item wrapped back to the page edge instead of lining up with its text.
+- `Ctrl+S` in the editor no longer triggers the save twice.
+
 ## [1.8.3] - 2026-09-28
 
 ### Added

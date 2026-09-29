@@ -38,7 +38,7 @@ const md: MarkdownIt = MarkdownIt({
   .use(githubAlerts);
 
 // Tag every rendered block with its source line for editor→preview scroll sync.
-// Fence attrs land on the <code> element; html_block drops attrs (no anchor there).
+// Fence attrs land on the <code> element; blocks that drop attrs are stamped below.
 md.core.ruler.push("source_line_map", (state) => {
   for (const token of state.tokens) {
     if (token.map && token.nesting !== -1) {
@@ -46,6 +46,21 @@ md.core.ruler.push("source_line_map", (state) => {
     }
   }
 });
+
+// Some renderers write their own markup and ignore token attrs: KaTeX's
+// display math ($$ blocks and ```math fences) and raw HTML blocks. Without an
+// anchor, scroll sync can only guess where they sit in the preview, so stamp
+// the line on their first tag.
+for (const rule of ["math_block", "fence", "html_block"] as const) {
+  const original = md.renderer.rules[rule];
+  if (!original) continue;
+  md.renderer.rules[rule] = (tokens, idx, options, env, self) => {
+    const html = original(tokens, idx, options, env, self);
+    const map = tokens[idx].map;
+    if (!map || html.includes("data-source-line")) return html;
+    return html.replace(/^(\s*<[a-zA-Z][\w-]*)/, `$1 data-source-line="${map[0]}"`);
+  };
+}
 
 // All fallible work (markdown-it, DOMPurify, image IPC) happens here, before
 // anything touches the live DOM — callers can keep the previous content on error.

@@ -186,8 +186,8 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find in document</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Search across the folder</td></tr>
             <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Next / previous match</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Toggle the file browser</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Toggle the outline</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Toggle the file browser (bold while editing)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Toggle the outline (italic while editing)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Print or save as PDF</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>Copy the document as rich text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>Open the Share menu</td></tr>
@@ -206,6 +206,22 @@
           opening another document with unsaved changes asks for confirmation first. If the file
           changes on disk while you have unsaved edits, a warning appears instead of overwriting your work.
         </p>
+        <p>
+          <strong>Formatting:</strong> the bar above the editor formats the selection — or the word
+          under the cursor — and inserts tables, Mermaid diagrams, formulas and callouts. Type
+          <kbd>/</kbd> at the start of a line to pick a block by name. Pasting a link over selected
+          text turns it into a Markdown link.
+        </p>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Bold / italic</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd></td><td>Strikethrough</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd></td><td>Inline code</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Insert a link</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd></td><td>Heading 1 to 3 (again to remove)</td></tr>
+            <tr><td><kbd>/</kbd></td><td>Block menu, at the start of a line</td></tr>
+          </tbody>
+        </table>
         <p>
           <strong>Images:</strong> paste a screenshot (<kbd>Ctrl</kbd>+<kbd>V</kbd>) or drop an image file
           into the editor — it is saved to an <code>assets</code> folder next to the document and linked
