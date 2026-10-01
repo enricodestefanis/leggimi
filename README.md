@@ -22,6 +22,10 @@ explicitly.
   <img alt="Leggimi — edit mode with live preview, KaTeX and callouts" src="docs/screenshot-editor.png" width="49%" />
 </p>
 
+<p align="center">
+  <img alt="Editing in Leggimi: the format bar makes a word bold, the / menu inserts a table and a Mermaid diagram, and the live preview follows" src="docs/edit-assist.gif" width="98%" />
+</p>
+
 ## Install
 
 <p align="center">
