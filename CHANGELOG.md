@@ -7,7 +7,7 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
-## [1.9.0] - Unreleased
+## [1.9.0] - 2026-10-01
 
 ### Added
 - A format bar above the editor: text style (normal, heading 1–3), bold, italic,
