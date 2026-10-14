@@ -1,24 +1,29 @@
 // Reader preferences behind the Aa popover: text size, font family, line
-// spacing and column width. Follows theme.ts's idiom — the absence of the
-// localStorage key means "defaults", which reproduce the classic look.
+// spacing, column width and the side panels' text size. Follows theme.ts's
+// idiom — the absence of the localStorage key means "defaults", which
+// reproduce the classic look.
 
 export type ReaderFont = "sans" | "serif";
 export type LineHeight = "compact" | "normal" | "relaxed";
 export type ColumnWidth = "narrow" | "normal" | "wide" | "full";
+export type SideSize = "small" | "normal" | "large";
 
 export interface ReaderPrefs {
   size: number;
   font: ReaderFont;
   lineHeight: LineHeight;
   width: ColumnWidth;
+  sideSize: SideSize;
 }
 
 export const SIZE_STEPS = [13, 14, 15, 16, 17, 18, 20, 22];
+export const SIDE_STEPS: readonly SideSize[] = ["small", "normal", "large"];
 export const DEFAULTS: ReaderPrefs = {
   size: 16,
   font: "sans",
   lineHeight: "normal",
   width: "normal",
+  sideSize: "normal",
 };
 
 const KEY = "reader-prefs";
@@ -49,6 +54,7 @@ export function get(): ReaderPrefs {
       ? o.lineHeight
       : DEFAULTS.lineHeight,
     width: isOneOf(o.width, ["narrow", "normal", "wide", "full"]) ? o.width : DEFAULTS.width,
+    sideSize: isOneOf(o.sideSize, SIDE_STEPS) ? o.sideSize : DEFAULTS.sideSize,
   };
 }
 
@@ -65,6 +71,11 @@ export function set(patch: Partial<ReaderPrefs>): void {
 export function bumpSize(dir: 1 | -1): void {
   const i = SIZE_STEPS.indexOf(get().size);
   set({ size: SIZE_STEPS[Math.max(0, Math.min(SIZE_STEPS.length - 1, i + dir))] });
+}
+
+export function bumpSideSize(dir: 1 | -1): void {
+  const i = SIDE_STEPS.indexOf(get().sideSize);
+  set({ sideSize: SIDE_STEPS[Math.max(0, Math.min(SIDE_STEPS.length - 1, i + dir))] });
 }
 
 export function reset(): void {
@@ -85,5 +96,6 @@ function apply(p: ReaderPrefs): void {
   root.dataset.readerFont = p.font;
   root.dataset.readerLh = p.lineHeight;
   root.dataset.readerWidth = p.width;
+  root.dataset.sideSize = p.sideSize;
   for (const cb of listeners) cb(p);
 }

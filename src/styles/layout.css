@@ -23,24 +23,58 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   min-height: 0;
+  /* containing block for the resize handles, which stay out of the grid flow */
+  position: relative;
 }
 
 /* Explicit column assignments: hiding a pane must collapse its own track,
    not shift the remaining panes into the wrong ones. */
 #tree-pane {
   grid-column: 1;
-  width: 260px;
+  width: var(--tree-width);
+  min-width: 260px;
   overflow-y: auto;
   padding: 14px 8px 24px;
   border-right: 1px solid var(--border);
+  font-size: var(--side-font-size);
 }
 
 #toc-pane {
   grid-column: 3;
-  width: 240px;
+  width: var(--toc-width);
+  min-width: 240px;
   overflow-y: auto;
   padding: 14px 10px 24px;
   border-left: 1px solid var(--border);
+  font-size: var(--side-font-size);
+}
+
+/* Resize handles. They sit inside the pane, over its padding and border, so
+   the content pane's scrollbar stays fully grabbable next to the outline. */
+.pane-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+#tree-resizer {
+  left: calc(var(--tree-width) - 6px);
+}
+
+#toc-resizer {
+  right: calc(var(--toc-width) - 6px);
+}
+
+/* display (not visibility) so a hidden handle also leaves the tab order */
+#app.tree-hidden #tree-resizer,
+#app.toc-hidden #toc-resizer,
+#app.no-headings #toc-resizer,
+#app.editing .pane-resizer {
+  display: none;
 }
 
 #app.tree-hidden #tree-pane {

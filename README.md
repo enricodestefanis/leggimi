@@ -64,11 +64,17 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
+- **Full-window preview** for diagrams and images: click one to open it, zoom with `+` / `−` or
+  the scroll wheel around the pointer, drag to pan, `0` to fit, `Esc` to close — and a button to
+  copy it as an image. Diagrams fill the window and stay sharp at any zoom
 - **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences for display blocks
 - **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - Clickable **outline** with scroll-spy
 - **File browser** for the Markdown files in the folder you opened; collapsed folders are
   remembered across navigation and restarts
+- **Resizable side panels**: drag the inner edge of the file browser or the outline to widen it
+  (double-click to restore the default), and size their text independently of the document with
+  **Panels** in the reading settings
 - **Search across the folder** (`Ctrl+Shift+F`): full-text and file-name matches with
   snippets; opening a result highlights the term in the document
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
@@ -80,7 +86,7 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 - **Reading settings** (the `Aa` button): text size (`Ctrl+=` / `Ctrl+−` / `Ctrl+0` /
   `Ctrl`+scroll), sans or serif font, line spacing, column width and the **light / dark /
   follow Windows** theme — all remembered across restarts, never affecting print or export;
-  the editor text scales along with the size
+  the editor text scales along with the size, and **Panels** sizes the side panels
 - Find in document (`Ctrl+F`), relative images
 - Opened files land in Windows' **Recent items and the taskbar jump list**
 - Double-click any `.md` file in File Explorer — the installer registers the association
@@ -110,7 +116,7 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 | `Ctrl+=` / `Ctrl+−` | Larger / smaller text |
 | `Ctrl+0` | Reset the text size |
 | `F1` | Show help |
-| `Esc` | Close the find bar or help |
+| `Esc` | Close the preview, the find bar or help |
 
 ## File browser
 
@@ -154,6 +160,11 @@ The package lands in `src-tauri\target\msix\`. The manifest is `src-tauri\msix\P
 its identity values come from Partner Center and its version is stamped from `package.json` at
 packaging time. To install a dev-signed package locally, trust the generated certificate once from an
 elevated prompt with `winapp cert install src-tauri\msix\devcert.pfx`, then double-click the `.msix`.
+
+The icons in `src-tauri\msix\Assets\` are generated from `src-tauri\icons\icon.png` and committed.
+Re-run `npm run gen:icons` after changing the app icon. The `targetsize-*_altform-unplated` variants
+are the ones Windows uses for the taskbar, Start and Alt+Tab; without them the shell plates the icon
+on the manifest `BackgroundColor`, and on `transparent` that means the system accent colour.
 
 ## Development
 

@@ -7,6 +7,29 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.10.0] - 2026-10-14
+
+### Added
+- Click a diagram or an image to open it full-window: `+` / `-` or the scroll wheel zoom
+  around the pointer, dragging pans, `0` fits it to the window and `Esc` closes. Diagrams
+  scale to fill the window and stay sharp at any zoom, and a button copies what you are
+  looking at as an image. Reachable from the keyboard too: `Tab` to a diagram, `Enter` to
+  open it.
+- Both side panels can be widened by dragging their inner edge — the current widths are
+  the minimum. Double-click an edge to restore the default; the arrow keys resize it from
+  the keyboard. The widths are remembered, and are reduced only while the window is too
+  narrow to honour them.
+- A **Panels** setting in the reading popover sizes the text of the file browser and the
+  outline, independently of the document text. `Ctrl`+scroll wheel over a panel changes
+  that panel instead of the document.
+
+### Fixed
+- The Store build showed the app icon on a blue square in the taskbar: the package had no
+  unplated icon variants, so Windows plated the logo on the system accent colour. The
+  qualified `targetsize` / `altform-unplated` assets are now generated and shipped, which
+  also sharpens the Start, Alt+Tab and Explorer file icons.
+- An image whose file is missing is now shown as such instead of as an invisible gap.
+
 ## [1.9.0] - 2026-10-01
 
 ### Added

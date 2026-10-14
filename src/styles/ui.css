@@ -96,8 +96,10 @@
   padding: 0 4px 4px 8px;
 }
 
+/* every size inside a pane is relative to --side-font-size (13px by default),
+   so the Panels control in the Aa popover scales the whole panel at once */
 .pane-title {
-  font-size: 11px;
+  font-size: 0.85em;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -133,7 +135,7 @@
   outline: none;
   background: none;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 0.96em;
   color: var(--text);
   padding: 5px 0;
 }
@@ -148,7 +150,7 @@
   gap: 6px;
   width: 100%;
   padding: 5px 8px 2px;
-  font-size: 12px;
+  font-size: 0.92em;
   font-weight: 600;
   color: var(--text-muted);
   text-align: left;
@@ -169,7 +171,7 @@
   width: 100%;
   padding: 3px 8px 3px 24px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 0.96em;
   color: var(--text-muted);
   text-align: left;
   white-space: nowrap;
@@ -192,12 +194,12 @@
 
 .search-empty {
   padding: 10px 8px;
-  font-size: 12.5px;
+  font-size: 0.96em;
   color: var(--text-muted);
 }
 
 .tree-rootname {
-  font-size: 12px;
+  font-size: 0.92em;
   font-weight: 600;
   color: var(--text-muted);
   padding: 2px 8px 6px;
@@ -218,7 +220,7 @@
   width: 100%;
   padding: 4px 8px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 1em;
   color: var(--text);
   text-align: left;
   transition:
@@ -229,6 +231,14 @@
 .tree-row svg {
   flex: none;
   color: var(--text-muted);
+}
+
+/* the width/height attributes in tree.ts are fixed px: keep the glyphs in
+   proportion when the panel text size changes */
+.tree-row svg,
+.search-file svg {
+  width: 1.08em;
+  height: 1.08em;
 }
 
 .tree-row span {
@@ -278,6 +288,42 @@
 .tree-dir.collapsed > .tree-children {
   height: 0;
   visibility: hidden;
+}
+
+/* pane resize handles: at rest only the pane border shows, and the accent bar
+   appears on hover, on focus and while dragging */
+.pane-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color 0.12s var(--ease);
+}
+
+#toc-resizer::after {
+  right: auto;
+  left: 0;
+}
+
+.pane-resizer:hover::after,
+.pane-resizer:focus-visible::after,
+.pane-resizer.dragging::after {
+  background: var(--accent);
+}
+
+/* the bar is the focus ring: a 2px outline would land on the pane border */
+.pane-resizer:focus-visible {
+  outline: none;
+}
+
+/* without this, dragging leftwards selects the article text */
+body.resizing,
+body.resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 
 /* dropdown menu (export) */
@@ -447,7 +493,7 @@
   padding: 3px 8px;
   border-left: 2px solid transparent;
   border-radius: 0 6px 6px 0;
-  font-size: 12.5px;
+  font-size: 0.96em;
   color: var(--text-muted);
   text-align: left;
   white-space: nowrap;
@@ -470,9 +516,10 @@
   font-weight: 600;
 }
 
-.toc-item.lvl-2 { padding-left: 18px; }
-.toc-item.lvl-3 { padding-left: 30px; }
-.toc-item.lvl-4 { padding-left: 42px; }
+/* em, so the indent hierarchy survives a change of panel text size */
+.toc-item.lvl-2 { padding-left: 1.4em; }
+.toc-item.lvl-3 { padding-left: 2.3em; }
+.toc-item.lvl-4 { padding-left: 3.2em; }
 
 /* find bar */
 #find-bar {

@@ -121,6 +121,27 @@
   border-radius: 6px;
 }
 
+/* an image whose path did not resolve: never zoomable, and now visible */
+.markdown-body img.img-missing {
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 0.88em;
+  font-style: italic;
+}
+
+/* opens the full-window preview (lightbox.ts) */
+.markdown-body img[data-zoomable],
+.mermaid-diagram[data-zoomable] {
+  cursor: zoom-in;
+}
+
+.markdown-body img[data-zoomable]:focus-visible,
+.mermaid-diagram[data-zoomable]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .markdown-body .table-scroll {
   overflow-x: auto;
   margin: 0 0 1em;

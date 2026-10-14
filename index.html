@@ -55,6 +55,10 @@
           <div id="tree-root"></div>
           <div id="search-results" hidden></div>
         </aside>
+        <div id="tree-resizer" class="pane-resizer" role="separator" tabindex="0"
+             aria-orientation="vertical" aria-controls="tree-pane" aria-label="Resize the file browser"
+             aria-valuemin="260" aria-valuemax="560" aria-valuenow="260"
+             title="Drag to widen (double-click to reset)"></div>
         <div id="editor-pane"></div>
         <main id="content-pane">
           <div id="find-bar" hidden>
@@ -89,6 +93,10 @@
             </div>
           </div>
         </main>
+        <div id="toc-resizer" class="pane-resizer" role="separator" tabindex="0"
+             aria-orientation="vertical" aria-controls="toc-pane" aria-label="Resize the outline"
+             aria-valuemin="240" aria-valuemax="520" aria-valuenow="240"
+             title="Drag to widen (double-click to reset)"></div>
         <aside id="toc-pane">
           <div class="pane-head"><span class="pane-title">Outline</span></div>
           <nav id="toc-list"></nav>
@@ -147,6 +155,14 @@
           <button class="rs-opt" type="button" data-value="full" aria-pressed="false">Full</button>
         </div>
       </div>
+      <div class="rs-group">
+        <span class="rs-label">Panels</span>
+        <div class="rs-seg" data-pref="sideSize" role="group" aria-label="Panel text size">
+          <button class="rs-opt" type="button" data-value="small" aria-pressed="false">Small</button>
+          <button class="rs-opt" type="button" data-value="normal" aria-pressed="false">Normal</button>
+          <button class="rs-opt" type="button" data-value="large" aria-pressed="false">Large</button>
+        </div>
+      </div>
       <button id="rs-reset" class="rs-reset" type="button">Reset text settings</button>
       <div class="menu-sep"></div>
       <div class="rs-group">
@@ -194,7 +210,7 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Larger / smaller text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Reset the text size</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
-            <tr><td><kbd>Esc</kbd></td><td>Close the find bar or this help</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close the find bar, the preview or this help</td></tr>
           </tbody>
         </table>
 
@@ -238,6 +254,11 @@
         </p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
         <p>
+          Both side panels can be widened by dragging their inner edge — double-click the edge to
+          restore the default width. Their text size follows <strong>Panels</strong> in the reading
+          settings.
+        </p>
+        <p>
           The search box above the tree (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) finds text in every
           Markdown file of the folder — matches show the file and a snippet, and opening one highlights the
           term in the document. <kbd>Esc</kbd> clears the search and brings the tree back.
@@ -254,6 +275,7 @@
           <li>GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks.</li>
           <li>Code blocks are syntax-highlighted and have a copy button on hover.</li>
           <li><code>mermaid</code> code fences render as diagrams; invalid syntax falls back to the code block with an error note.</li>
+          <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans, <kbd>0</kbd> fits it to the window and <kbd>Esc</kbd> closes. The button in the toolbar copies it as an image.</li>
           <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence for display blocks.</li>
           <li>GitHub-style callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>.</li>
           <li>Images with relative paths resolve against the document's folder.</li>
@@ -274,7 +296,9 @@
           spacing, column width and the <strong>light</strong> / <strong>dark</strong> /
           <strong>auto</strong> (follow Windows) theme. Text size is also available anywhere with
           <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd>, <kbd>Ctrl</kbd>+scroll wheel, and
-          <kbd>Ctrl</kbd>+<kbd>0</kbd> to reset; the editor text scales along with it. Every choice is
+          <kbd>Ctrl</kbd>+<kbd>0</kbd> to reset; the editor text scales along with it.
+          <strong>Panels</strong> sets the text size of the file browser and the outline on its own —
+          <kbd>Ctrl</kbd>+scroll wheel over a panel changes that one instead. Every choice is
           remembered across restarts.
         </p>
         <h3>Windows integration</h3>
@@ -292,6 +316,38 @@
           <a href="https://github.com/enricodestefanis/leggimi/blob/main/LICENSE">MIT License</a>.
           Source code and releases: <a href="https://github.com/enricodestefanis/leggimi">github.com/enricodestefanis/leggimi</a>
         </p>
+      </div>
+    </dialog>
+
+    <!-- pointer-only shortcut onto the preview: the diagram itself is the
+         button for keyboard and screen-reader users, so this stays hidden -->
+    <button id="zoom-hint" type="button" hidden tabindex="-1" aria-hidden="true" title="Open preview">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+    </button>
+
+    <dialog id="zoom-dialog" aria-label="Preview">
+      <div id="zoom-viewport" tabindex="0" role="group"
+           aria-label="Zoomable preview. Plus and minus zoom, arrow keys pan, Escape closes.">
+        <div id="zoom-stage" role="img"></div>
+      </div>
+      <div id="zoom-bar">
+        <span id="zoom-caption"></span>
+        <span class="zoom-sep"></span>
+        <button id="zoom-out" class="icon-btn" type="button" title="Zoom out (−)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <span id="zoom-level" aria-live="polite">100%</span>
+        <button id="zoom-in" class="icon-btn" type="button" title="Zoom in (+)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button id="zoom-fit" class="zoom-text-btn" type="button" title="Fit to window (0)">Fit</button>
+        <span class="zoom-sep"></span>
+        <button id="zoom-copy" class="icon-btn" type="button" title="Copy as image">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button id="zoom-close" class="icon-btn" type="button" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </dialog>
 

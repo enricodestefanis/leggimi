@@ -27,6 +27,10 @@
   --reader-max-width: 760px;
   --reader-font: var(--sans);
   --editor-font-size: calc(var(--reader-font-size) * 0.875);
+  /* side panels: the widths are also their minimums (panes.ts widens them) */
+  --tree-width: 260px;
+  --toc-width: 240px;
+  --side-font-size: 13px;
 }
 
 :root[data-theme="dark"] {
@@ -69,6 +73,14 @@
 
 :root[data-reader-width="full"] {
   --reader-max-width: none;
+}
+
+:root[data-side-size="small"] {
+  --side-font-size: 12px;
+}
+
+:root[data-side-size="large"] {
+  --side-font-size: 14.5px;
 }
 
 * {

@@ -1,0 +1,179 @@
+/* Diagram and image preview: a top-layer <dialog> plus the hover affordance
+   that opens it. The hint lives outside #app so no transformed ancestor can
+   become its containing block. */
+
+#zoom-hint {
+  position: fixed;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(3px);
+  color: var(--text-muted);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  animation: menu-enter 0.12s var(--ease);
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+
+#zoom-hint[hidden] {
+  display: none;
+}
+
+#zoom-hint:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+#zoom-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  /* Mermaid SVGs are transparent, so the preview needs a surface of its own:
+     a frosted sheet over the document rather than a translucent scrim. */
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(1.1);
+  color: var(--text);
+  overflow: hidden;
+  animation: backdrop-in 0.18s var(--ease);
+}
+
+#zoom-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.3);
+  animation: backdrop-in 0.18s var(--ease);
+}
+
+#zoom-dialog[open] #zoom-viewport {
+  animation: zoom-enter 0.18s var(--ease);
+}
+
+@keyframes zoom-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+#zoom-viewport {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  /* the pan surface is not a control, and a focus ring here would draw a
+     rectangle around the whole window; the toolbar buttons keep theirs */
+  outline: none;
+  /* the pan is driven by pointer events, and nothing here should rubber-band */
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+#zoom-viewport.panning {
+  cursor: grabbing;
+}
+
+/* nothing to pan: the whole thing already fits */
+#zoom-viewport.fitted {
+  cursor: default;
+}
+
+#zoom-stage {
+  will-change: transform;
+}
+
+#zoom-stage > svg,
+#zoom-stage > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* an image is opaque and benefits from reading as an object on the sheet;
+   a diagram is transparent, where the same shadow would outline empty space */
+#zoom-stage > img {
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+#zoom-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100vw - 32px);
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+#zoom-caption {
+  max-width: 240px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#zoom-caption:empty {
+  display: none;
+}
+
+#zoom-caption:empty + .zoom-sep {
+  display: none;
+}
+
+#zoom-level {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom-sep {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.zoom-text-btn {
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+
+.zoom-text-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+#zoom-copy.done {
+  color: var(--accent);
+}

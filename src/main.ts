@@ -3,6 +3,7 @@ import "./styles/layout.css";
 import "./styles/markdown.css";
 import "./styles/code.css";
 import "./styles/ui.css";
+import "./styles/lightbox.css";
 import "./styles/print.css";
 import "katex/dist/katex.min.css";
 
@@ -18,6 +19,8 @@ import { renderMermaidIn, rerenderForTheme } from "./mermaid";
 import * as toc from "./toc";
 import * as tree from "./tree";
 import * as search from "./search";
+import * as lightbox from "./lightbox";
+import * as panes from "./panes";
 import * as theme from "./theme";
 import * as prefs from "./prefs";
 import { captureScrollAnchor, restoreScrollAnchor } from "./state";
@@ -27,7 +30,10 @@ import { buildDocxBase64, buildStandaloneHtml, copyAsRichText } from "./share";
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
 const app = $("#app");
+const shell = $("#shell");
 const contentPane = $("#content-pane");
+const treePane = $("#tree-pane");
+const tocPane = $("#toc-pane");
 const article = $("#article");
 const emptyState = $("#empty-state");
 const treeRoot = $("#tree-root");
@@ -40,6 +46,8 @@ const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
 const dirtyDot = $("#dirty-dot");
 const helpDialog = $<HTMLDialogElement>("#help-dialog");
+const zoomDialog = $<HTMLDialogElement>("#zoom-dialog");
+const zoomHint = $<HTMLButtonElement>("#zoom-hint");
 const editorPane = $("#editor-pane");
 const btnEdit = $<HTMLButtonElement>("#btn-edit");
 const btnSave = $<HTMLButtonElement>("#btn-save");
@@ -90,6 +98,7 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
     if (editing && prevPath !== null && !samePath(prevPath, doc.path)) exitEditMode();
 
     await render(doc, article);
+    lightbox.markAll(article);
     emptyState.hidden = true;
     article.hidden = false;
     if (!opts.preserveScroll) {
@@ -101,11 +110,14 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
+    panes.refresh();
 
     if (anchor) restoreScrollAnchor(contentPane, article, anchor);
     else contentPane.scrollTop = 0;
 
-    renderMermaidIn(article, theme.current() === "dark").catch(() => {});
+    renderMermaidIn(article, theme.current() === "dark")
+      .then(() => lightbox.markAll(article))
+      .catch(() => {});
     search.onContentChanged();
 
     const rootChanged = !browseRoot || !isInside(browseRoot, doc.dir);
@@ -293,16 +305,19 @@ async function updatePreview(content: string): Promise<void> {
       (code.parentElement as HTMLPreElement).replaceWith(holder);
     }
     collectPreviewAnchors();
+    lightbox.markAll(article);
     if (anchor) restoreScrollAnchor(contentPane, article, anchor);
     else syncPreviewToEditor(true);
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
+    panes.refresh();
     search.onContentChanged();
     hideNotice();
     renderMermaidIn(article, theme.current() === "dark")
       .then(() => {
         // freshly rendered diagrams change heights: re-anchor and re-align
+        lightbox.markAll(article);
         collectPreviewAnchors();
         scheduleSyncPreview(true);
       })
@@ -536,6 +551,7 @@ function syncReadingMenu(): void {
     font: p.font,
     lineHeight: p.lineHeight,
     width: p.width,
+    sideSize: p.sideSize,
     theme: theme.currentPref(),
   };
   for (const seg of readingMenu.querySelectorAll<HTMLElement>(".rs-seg")) {
@@ -778,11 +794,25 @@ async function chooseFile(): Promise<void> {
 function toggleSidebar(cls: "tree-hidden" | "toc-hidden"): void {
   app.classList.toggle(cls);
   localStorage.setItem(cls, app.classList.contains(cls) ? "1" : "0");
+  panes.refresh(); // the other pane may now have room to reach its stored width
 }
 
 function wireUi(): void {
   if (localStorage.getItem("tree-hidden") === "1") app.classList.add("tree-hidden");
   if (localStorage.getItem("toc-hidden") === "1") app.classList.add("toc-hidden");
+
+  panes.init({
+    shell,
+    panes: { tree: treePane, toc: tocPane },
+    handles: { tree: $("#tree-resizer"), toc: $("#toc-resizer") },
+  });
+  lightbox.init({
+    article,
+    pane: contentPane,
+    hint: zoomHint,
+    dialog: zoomDialog,
+    bars: [$("#find-bar"), noticeBar],
+  });
 
   $("#btn-tree").addEventListener("click", () => toggleSidebar("tree-hidden"));
   $("#btn-toc").addEventListener("click", () => toggleSidebar("toc-hidden"));
@@ -828,7 +858,7 @@ function wireUi(): void {
     seg.addEventListener("click", (e) => {
       const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
       if (!opt) return;
-      const key = seg.dataset.pref as "font" | "lineHeight" | "width";
+      const key = seg.dataset.pref as "font" | "lineHeight" | "width" | "sideSize";
       const value = opt.dataset.value ?? "";
       withReadingAnchor(() => prefs.set({ [key]: value } as Partial<prefs.ReaderPrefs>));
     });
@@ -880,6 +910,9 @@ function wireUi(): void {
   });
 
   document.addEventListener("keydown", (e) => {
+    // Esc closes it natively and +/-/0/arrows are handled inside it; F1 too,
+    // so a help dialog cannot stack on top of a modal preview
+    if (lightbox.isOpen()) return;
     if (e.key === "F1") {
       e.preventDefault();
       if (helpDialog.open) helpDialog.close();
@@ -898,6 +931,7 @@ function wireUi(): void {
       e.preventDefault();
       app.classList.remove("tree-hidden");
       localStorage.setItem("tree-hidden", "0");
+      panes.refresh();
       treeSearch.focus();
       treeSearch.select();
     } else if (e.ctrlKey && e.key.toLowerCase() === "f") {
@@ -951,12 +985,17 @@ function wireUi(): void {
     (e) => {
       if (!e.ctrlKey) return;
       e.preventDefault(); // block the native page zoom everywhere, not just over text
+      if (lightbox.isOpen()) return; // the preview zooms itself
       const t = e.target as Node;
-      if (!contentPane.contains(t) && !editorPane.contains(t)) return;
+      const overReader = contentPane.contains(t) || editorPane.contains(t);
+      const overPane = treePane.contains(t) || tocPane.contains(t);
+      if (!overReader && !overPane) return;
       const now = performance.now();
       if (now - lastWheelBump < 80) return; // trackpad pinches arrive in bursts
       lastWheelBump = now;
-      bumpReaderSize(e.deltaY < 0 ? 1 : -1);
+      // zoom whatever is under the cursor
+      if (overReader) bumpReaderSize(e.deltaY < 0 ? 1 : -1);
+      else prefs.bumpSideSize(e.deltaY < 0 ? 1 : -1);
     },
     { passive: false },
   );
@@ -1001,6 +1040,15 @@ function wireUi(): void {
         .then((p) => openFile(p))
         .catch(() => {});
     }
+  });
+
+  // diagrams and images open the full-window preview
+  article.addEventListener("click", (e) => {
+    if (e.button !== 0 || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+    if (e.defaultPrevented) return; // a link already took it
+    if (!(window.getSelection()?.isCollapsed ?? true)) return; // text being selected
+    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-zoomable]");
+    if (el) void lightbox.openFor(el);
   });
 }
 

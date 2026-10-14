@@ -33,7 +33,10 @@
   #find-bar,
   #notice-bar,
   #empty-state,
-  #drop-overlay {
+  #drop-overlay,
+  /* a top-layer <dialog> does print, and would cover the whole document */
+  #zoom-dialog,
+  #zoom-hint {
     display: none !important;
   }
 

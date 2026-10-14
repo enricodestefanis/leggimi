@@ -59,6 +59,12 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
   for (const el of clone.querySelectorAll(".code-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-source-line]")) el.removeAttribute("data-source-line");
   for (const el of clone.querySelectorAll("[data-mmd-source]")) el.removeAttribute("data-mmd-source");
+  for (const el of clone.querySelectorAll("[data-zoomable]")) {
+    el.removeAttribute("data-zoomable");
+    el.removeAttribute("tabindex");
+    el.removeAttribute("role");
+    el.removeAttribute("aria-label");
+  }
   absolutizeLinks(clone, docDir);
   return clone;
 }
@@ -467,7 +473,7 @@ export async function buildDocxBase64(
 }
 
 // drawn from the live, laid-out SVG: a detached clone has no geometry
-function rasterizeSvg(svg: SVGSVGElement): Promise<{ dataUrl: string; width: number; height: number }> {
+export function rasterizeSvg(svg: SVGSVGElement): Promise<{ dataUrl: string; width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const rect = svg.getBoundingClientRect();
     const xml = new XMLSerializer().serializeToString(svg);

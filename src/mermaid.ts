@@ -14,10 +14,24 @@ async function load(dark: boolean): Promise<MermaidModule> {
   return mermaid;
 }
 
+// The single render entry point, so the id counter stays single-sourced: two
+// SVGs sharing an id would make their url(#marker) references collide.
+export async function renderMermaidSvg(source: string, dark: boolean): Promise<string> {
+  const m = await load(dark);
+  const id = `mmd-${++seq}`;
+  try {
+    const { svg } = await m.render(id, source);
+    return svg;
+  } catch (err) {
+    // mermaid can leave a stray error node in <body>
+    document.getElementById(`d${id}`)?.remove();
+    throw err;
+  }
+}
+
 export async function renderMermaidIn(article: HTMLElement, dark: boolean): Promise<void> {
   const codes = [...article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")];
   if (codes.length === 0) return;
-  const m = await load(dark);
   for (const code of codes) {
     const pre = code.parentElement as HTMLPreElement;
     const source = code.textContent ?? "";
@@ -27,14 +41,10 @@ export async function renderMermaidIn(article: HTMLElement, dark: boolean): Prom
     if (code.dataset.sourceLine) holder.dataset.sourceLine = code.dataset.sourceLine;
     pre.replaceWith(holder);
 
-    const id = `mmd-${++seq}`;
     try {
-      const { svg } = await m.render(id, source);
-      holder.innerHTML = svg;
+      holder.innerHTML = await renderMermaidSvg(source, dark);
       holder.dataset.mmdSource = source;
     } catch (err) {
-      // mermaid can leave a stray error node in <body>
-      document.getElementById(`d${id}`)?.remove();
       const banner = document.createElement("div");
       banner.className = "mermaid-error";
       banner.textContent = `Invalid Mermaid diagram: ${err instanceof Error ? err.message : String(err)}`;
@@ -50,14 +60,11 @@ export async function renderMermaidIn(article: HTMLElement, dark: boolean): Prom
 export async function rerenderForTheme(article: HTMLElement, dark: boolean): Promise<void> {
   const holders = [...article.querySelectorAll<HTMLElement>(".mermaid-diagram[data-mmd-source]")];
   if (holders.length === 0) return;
-  const m = await load(dark);
   for (const holder of holders) {
-    const id = `mmd-${++seq}`;
     try {
-      const { svg } = await m.render(id, holder.dataset.mmdSource ?? "");
-      holder.innerHTML = svg;
+      holder.innerHTML = await renderMermaidSvg(holder.dataset.mmdSource ?? "", dark);
     } catch {
-      document.getElementById(`d${id}`)?.remove();
+      /* keep the diagram that is already on screen */
     }
   }
 }

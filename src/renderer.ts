@@ -8,6 +8,7 @@ import DOMPurify from "dompurify";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { resolvePath, type MarkdownDoc } from "./ipc";
+import { unmark as unmarkZoomable } from "./lightbox";
 
 // @vscode/markdown-it-katex is CJS-only; not every loader unwraps its default
 const katex = ((katexModule as { default?: unknown }).default ?? katexModule) as typeof katexModule;
@@ -84,16 +85,35 @@ async function rewriteImages(root: HTMLElement, dir: string): Promise<void> {
   await Promise.all(
     imgs.map(async (img) => {
       const src = img.getAttribute("src") ?? "";
-      if (!src || /^(https?:|data:|blob:|asset:)/i.test(src)) return;
-      try {
-        const abs = await resolvePath(dir, decodeURIComponent(src));
-        img.src = convertFileSrc(abs);
-      } catch {
-        img.classList.add("img-missing");
-        if (!img.alt) img.alt = src;
+      if (src && !/^(https?:|data:|blob:|asset:)/i.test(src)) {
+        try {
+          const abs = await resolvePath(dir, decodeURIComponent(src));
+          img.src = convertFileSrc(abs);
+        } catch {
+          markMissing(img);
+          if (!img.alt) img.alt = src;
+          return;
+        }
       }
+      watchForLoadFailure(img);
     }),
   );
+}
+
+// A path can resolve and still have no file behind it, which only shows up as a
+// load error. The listener goes on *after* the rewrite: the original relative
+// src always 404s against tauri.localhost, and that error is not the one we mean.
+function watchForLoadFailure(img: HTMLImageElement): void {
+  if (img.complete) {
+    if (!img.naturalWidth) markMissing(img);
+    return;
+  }
+  img.addEventListener("error", () => markMissing(img), { once: true });
+}
+
+function markMissing(img: HTMLImageElement): void {
+  img.classList.add("img-missing");
+  unmarkZoomable(img); // nothing to preview
 }
 
 function wrapCodeBlocks(root: HTMLElement): void {
