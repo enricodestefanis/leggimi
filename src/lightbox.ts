@@ -77,6 +77,9 @@ export function init(opts: LightboxOpts): void {
   wireHint();
 
   opts.dialog.addEventListener("close", () => {
+    // the event is queued, not synchronous: reopening on another diagram before
+    // it lands would otherwise empty the stage that was just rebuilt
+    if (opts.dialog.open) return;
     stage.replaceChildren();
     source = "";
   });
@@ -223,24 +226,41 @@ async function build(): Promise<boolean> {
   }
   stage.style.width = `${natW}px`;
   stage.style.height = `${natH}px`;
+  // revealed by the first applyNow, which is what places and scales it
+  stage.style.visibility = "hidden";
   stage.setAttribute("aria-label", caption.textContent ?? "Preview");
   return true;
 }
 
 /* ---- zoom and pan ---- */
 
-function avail(): { w: number; h: number } {
-  return {
-    w: Math.max(80, window.innerWidth - MARGIN * 2),
-    h: Math.max(80, window.innerHeight - MARGIN * 2 - BAR_SPACE),
-  };
+// The box the content is fitted into and centred in, in viewport coordinates:
+// the viewport less a margin, and less the toolbar that floats over its bottom
+// edge. Centring is arithmetic here rather than CSS alignment because the
+// stage keeps the content's full natural size — often thousands of pixels —
+// and an oversized grid item gets clamped to the start edge instead of being
+// centred, which pushed part of a large diagram out of reach of any pan.
+//
+// clientWidth/Height rather than a client rect: the open animation scales the
+// viewport, and a rect measured mid-animation would bake that scale into the fit.
+function area(): { x: number; y: number; w: number; h: number } {
+  const vw = viewport.clientWidth || window.innerWidth;
+  const vh = viewport.clientHeight || window.innerHeight;
+  const w = Math.max(80, vw - MARGIN * 2);
+  const h = Math.max(80, vh - MARGIN * 2 - BAR_SPACE);
+  return { x: (vw - w) / 2, y: Math.max(0, (vh - BAR_SPACE - h) / 2), w, h };
 }
+
+const centre = (a: { x: number; y: number; w: number; h: number }): { x: number; y: number } => ({
+  x: a.x + a.w / 2,
+  y: a.y + a.h / 2,
+});
 
 // A diagram is a vector, so filling the window costs nothing and is the whole
 // point of opening it; a raster image is capped at 1:1, where upscaling only
 // adds blur.
 function computeFit(): number {
-  const a = avail();
+  const a = area();
   return Math.min(a.w / natW, a.h / natH, kind === "mermaid" ? 4 : 1);
 }
 
@@ -249,25 +269,35 @@ function resetFit(): void {
   scale = fit;
   tx = 0;
   ty = 0;
-  schedule();
+  // synchronously: the stage carries its own centring in the transform, so
+  // until that lands it would flash at full size in the top-left corner
+  if (raf) {
+    cancelAnimationFrame(raf);
+    raf = 0;
+  }
+  applyNow();
 }
 
 const scaleMin = (): number => Math.min(fit, SCALE_FLOOR);
 
-// keeps the content point under px,py fixed while the scale changes
+// keeps the content point under px,py (client coordinates) fixed while the
+// scale changes. tx,ty are offsets from the centre of the area, so the anchor
+// has to be measured from that same centre.
 function zoomAt(k: number, px: number, py: number): void {
   const next = clamp(scale * k, scaleMin(), SCALE_MAX);
   const r = viewport.getBoundingClientRect();
+  const c = centre(area());
   const factor = next / scale;
-  tx = (1 - factor) * (px - (r.left + r.width / 2)) + factor * tx;
-  ty = (1 - factor) * (py - (r.top + r.height / 2)) + factor * ty;
+  tx = (1 - factor) * (px - r.left - c.x) + factor * tx;
+  ty = (1 - factor) * (py - r.top - c.y) + factor * ty;
   scale = next;
   schedule();
 }
 
 function zoomBy(k: number): void {
   const r = viewport.getBoundingClientRect();
-  zoomAt(k, r.left + r.width / 2, r.top + r.height / 2);
+  const c = centre(area());
+  zoomAt(k, r.left + c.x, r.top + c.y);
 }
 
 function schedule(): void {
@@ -279,13 +309,18 @@ function schedule(): void {
 }
 
 function applyNow(): void {
-  const a = avail();
+  const a = area();
   const w = scale * natW;
   const h = scale * natH;
-  // an axis that already fits has nothing to pan: lock it centred
+  // an axis that already fits has nothing to pan: lock it centred. Panning the
+  // other one stops when that edge of the content meets that edge of the area,
+  // which is reachable precisely because the content is centred at tx,ty = 0.
   tx = w <= a.w ? 0 : clamp(tx, -(w - a.w) / 2, (w - a.w) / 2);
   ty = h <= a.h ? 0 : clamp(ty, -(h - a.h) / 2, (h - a.h) / 2);
-  stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  const x = a.x + (a.w - w) / 2 + tx;
+  const y = a.y + (a.h - h) / 2 + ty;
+  stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  stage.style.visibility = "visible";
   levelOut.textContent = `${Math.round(scale * 100)}%`;
   viewport.classList.toggle("fitted", w <= a.w + 0.5 && h <= a.h + 0.5);
   btnOut.disabled = scale <= scaleMin() + 1e-6;

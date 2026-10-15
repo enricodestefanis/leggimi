@@ -69,9 +69,11 @@
 #zoom-viewport {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
   cursor: grab;
+  /* a pan must never turn into a text selection, and the diagram's labels are
+     right under the cursor the whole time */
+  user-select: none;
+  -webkit-user-select: none;
   /* the pan surface is not a control, and a focus ring here would draw a
      rectangle around the whole window; the toolbar buttons keep theirs */
   outline: none;
@@ -89,7 +91,13 @@
   cursor: default;
 }
 
+/* The stage keeps the content's natural size and is placed entirely by the
+   transform: see area() in lightbox.ts for why the centring is not CSS. */
 #zoom-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
   will-change: transform;
 }
 
@@ -98,6 +106,9 @@
   display: block;
   width: 100%;
   height: 100%;
+  /* every gesture belongs to the viewport: this also keeps a drag that starts
+     on the content from becoming a native image drag */
+  pointer-events: none;
 }
 
 /* an image is opaque and benefits from reading as an object on the sheet;
