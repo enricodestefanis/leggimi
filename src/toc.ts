@@ -9,6 +9,13 @@ const BASE_LINE = 90;
 // one left over from a previous user scroll can arrive right after the click.)
 const SETTLE_IDLE_MS = 250;
 
+// the current outline, for the filter box and the reading keys
+let heads: HTMLElement[] = [];
+let items: HTMLButtonElement[] = [];
+let cursor = -1; // index into items, the keyboard-highlighted filter result
+// the reading keys' "next / previous heading", bound to the spy's state by build()
+let stepImpl: ((dir: 1 | -1) => boolean) | null = null;
+
 // Where the activation line sits, measured from the pane's top edge. Far from the
 // bottom it is a fixed BASE_LINE; within the last viewport of scroll it slides down
 // to the pane's bottom edge, so at max scroll the last heading is always active.
@@ -25,9 +32,11 @@ function activationLine(pane: HTMLElement): number {
 export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLElement): number {
   spyCleanup?.();
   spyCleanup = null;
+  stepImpl = null;
 
-  const heads = [...article.querySelectorAll<HTMLElement>(":is(h1,h2,h3,h4)[id]")];
-  const items: HTMLButtonElement[] = [];
+  heads = [...article.querySelectorAll<HTMLElement>(":is(h1,h2,h3,h4)[id]")];
+  items = [];
+  cursor = -1;
   list.replaceChildren();
 
   let current = -1;
@@ -108,7 +117,80 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
       if (raf) cancelAnimationFrame(raf);
     };
     update();
+
+    // "." / ",": a click on the neighbouring outline entry. While a click or a
+    // previous key still pins the highlight, the next entry is simply the
+    // neighbour of the pinned one, so the keys keep stepping through the
+    // headings near the end of the document, where none of them can reach
+    // the top edge and the scroll position alone could not tell them apart.
+    // After a manual scroll the start is read off the page: the first heading
+    // below the top edge, or the last one above it. (32: past the 24px
+    // scroll-margin a just-reached heading sits at.)
+    stepImpl = (dir) => {
+      let i: number;
+      if (pinned) {
+        i = current + dir;
+      } else {
+        const paneTop = scrollPane.getBoundingClientRect().top;
+        const tops = heads.map((h) => h.getBoundingClientRect().top - paneTop);
+        i = -1;
+        if (dir === 1) i = tops.findIndex((t) => t > 32);
+        else for (let k = tops.length - 1; k >= 0; k--) if (tops[k] < -4) { i = k; break; }
+      }
+      if (i < 0 || i >= items.length) return false;
+      items[i].click();
+      return true;
+    };
   }
 
   return heads.length;
+}
+
+/* ---- filter box ---- */
+
+// Hides the entries that don't contain `query` (case-insensitive) and puts
+// the keyboard cursor on the first one left. Returns how many are visible.
+export function setFilter(query: string): number {
+  const q = query.trim().toLowerCase();
+  let visible = 0;
+  items.forEach((it) => {
+    const show = !q || (it.textContent ?? "").toLowerCase().includes(q);
+    it.hidden = !show;
+    if (show) visible++;
+  });
+  setCursor(q ? firstVisible(0, 1) : -1);
+  return visible;
+}
+
+const firstVisible = (from: number, dir: 1 | -1): number => {
+  for (let i = from; i >= 0 && i < items.length; i += dir) if (!items[i].hidden) return i;
+  return -1;
+};
+
+function setCursor(index: number): void {
+  cursor = index;
+  items.forEach((it, i) => it.classList.toggle("cursor", i === index));
+  if (index >= 0) items[index].scrollIntoView({ block: "nearest" });
+}
+
+export function moveCursor(dir: 1 | -1): void {
+  const start = cursor < 0 ? (dir === 1 ? 0 : items.length - 1) : cursor + dir;
+  const next = firstVisible(start, dir);
+  if (next >= 0) setCursor(next);
+}
+
+// Enter in the filter box: jump to the highlighted entry (or the first visible)
+export function activateCursor(): boolean {
+  const i = cursor >= 0 ? cursor : firstVisible(0, 1);
+  if (i < 0) return false;
+  items[i].click();
+  return true;
+}
+
+/* ---- reading keys: previous / next heading ---- */
+
+// Jumps to the heading after (dir 1) or before (dir -1) the one being read,
+// highlighting it in the outline; false when there is none.
+export function step(dir: 1 | -1): boolean {
+  return stepImpl?.(dir) ?? false;
 }

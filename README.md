@@ -5,7 +5,7 @@
 # Leggimi
 
 <p align="center">
-  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1?cid=github-badge"><img alt="Microsoft Store" src="https://img.shields.io/badge/Microsoft_Store-Leggimi-0078D4?logo=windows&logoColor=white" /></a>
+  <a href="https://apps.microsoft.com/detail/9PG51TBZ2CB1?cid=github-badge&mode=direct"><img alt="Microsoft Store" src="https://img.shields.io/badge/Microsoft_Store-Leggimi-0078D4?logo=windows&logoColor=white" /></a>
   <a href="https://github.com/enricodestefanis/leggimi/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/enricodestefanis/leggimi?label=release&color=2ea44f" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   <img alt="Windows 10 / 11" src="https://img.shields.io/badge/platform-Windows_10%2F11-lightgrey" />
@@ -34,7 +34,7 @@ explicitly.
   </a>
 </p>
 
-- **Microsoft Store** (recommended): install from the [Store page](https://apps.microsoft.com/detail/9PG51TBZ2CB1?cid=github-readme);
+- **Microsoft Store** (recommended): install from the [Store page](https://apps.microsoft.com/detail/9PG51TBZ2CB1?cid=github-readme&mode=direct);
   updates arrive automatically.
 - **winget**: the same Store package from the command line:
 
@@ -61,7 +61,9 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
   stays plain Markdown — every command just edits the text
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
-- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks
+- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks, **footnotes**
+- **YAML front matter** folded into a block at the top of the document: click it to see the
+  fields as a table, instead of reading them as stray text
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
 - **Full-window preview** for diagrams and images: click one to open it, zoom with `+` / `−` or
@@ -69,7 +71,14 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
   copy it as an image. Diagrams fill the window and stay sharp at any zoom
 - **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences for display blocks
 - **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
-- Clickable **outline** with scroll-spy
+- Clickable **outline** with scroll-spy, and a **filter box** on long documents (type, then
+  `↑` / `↓` and `Enter` to jump)
+- **Picks up where you left off**: every document remembers its reading position, and the
+  empty screen lists your **recent files**
+- **Reading keys**: `j` / `k` scroll, `.` / `,` jump between headings, `g g` / `G` go to the
+  top and the end, `n` / `N` step through find matches, `?` shows the quick reference. A
+  hairline along the top of the document shows the progress and the toolbar the estimated
+  reading time
 - **File browser** for the Markdown files in the folder you opened; collapsed folders are
   remembered across navigation and restarts
 - **Resizable side panels**: drag the inner edge of the file browser or the outline to widen it
@@ -78,14 +87,16 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 - **Search across the folder** (`Ctrl+Shift+F`): full-text and file-name matches with
   snippets; opening a result highlights the term in the document
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
-  edits it warns instead of overwriting your buffer
+  edits it warns instead of overwriting your buffer, and saving over a file that changed since
+  you opened it asks first
 - **Share menu** (`Ctrl+Shift+E`) collecting everything that leaves the app: **copy as rich
   text** (`Ctrl+Shift+C`) to paste with formatting into Outlook, Word or Teams; **print / save
   as PDF** (`Ctrl+P`) with a paper-oriented layout; **export to self-contained HTML or DOCX** —
   in Word, math becomes native equations and Mermaid diagrams become images
 - **Reading settings** (the `Aa` button): text size (`Ctrl+=` / `Ctrl+−` / `Ctrl+0` /
-  `Ctrl`+scroll), sans or serif font, line spacing, column width and the **light / dark /
-  follow Windows** theme — all remembered across restarts, never affecting print or export;
+  `Ctrl`+scroll), sans or serif font, line spacing, column width and the **light / sepia /
+  dark / black / follow Windows** theme — all remembered across restarts, never affecting
+  print or export;
   the editor text scales along with the size, and **Panels** sizes the side panels
 - Find in document (`Ctrl+F`), relative images
 - Opened files land in Windows' **Recent items and the taskbar jump list**
@@ -115,6 +126,11 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 | `Ctrl+Shift+E` | Open the Share menu |
 | `Ctrl+=` / `Ctrl+−` | Larger / smaller text |
 | `Ctrl+0` | Reset the text size |
+| `j` / `k` | Scroll down / up (reading) |
+| `.` / `,` | Next / previous heading (reading) |
+| `g g` / `G` | Top / end of the document (reading) |
+| `n` / `N` | Next / previous find match (reading) |
+| `?` | Quick reference of the keys |
 | `F1` | Show help |
 | `Esc` | Close the preview, the find bar or help |
 

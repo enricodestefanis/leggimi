@@ -106,8 +106,9 @@
   color: var(--text-muted);
 }
 
-/* folder-wide search */
-#tree-search-wrap {
+/* search boxes in the side panels (folder search, outline filter) */
+#tree-search-wrap,
+.pane-search {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -120,15 +121,22 @@
   transition: border-color 0.12s var(--ease);
 }
 
-#tree-search-wrap:focus-within {
+#tree-search-wrap:focus-within,
+.pane-search:focus-within {
   border-color: var(--accent);
 }
 
-#tree-search-wrap svg {
+#tree-search-wrap svg,
+.pane-search > svg {
   flex: none;
 }
 
-#tree-search {
+.pane-search[hidden] {
+  display: none;
+}
+
+#tree-search,
+.pane-search input {
   flex: 1;
   min-width: 0;
   border: none;
@@ -140,7 +148,8 @@
   padding: 5px 0;
 }
 
-#tree-search::placeholder {
+#tree-search::placeholder,
+.pane-search input::placeholder {
   color: var(--text-muted);
 }
 
@@ -378,7 +387,7 @@ body.resizing * {
 
 /* reading settings (the Aa popover) */
 .reading-menu {
-  min-width: 264px;
+  min-width: 300px;
   padding: 10px;
 }
 
@@ -514,6 +523,16 @@ body.resizing * {
   color: var(--accent);
   border-left-color: var(--accent);
   font-weight: 600;
+}
+
+/* the keyboard cursor of the filter box */
+.toc-item.cursor {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.toc-item[hidden] {
+  display: none;
 }
 
 /* em, so the indent hierarchy survives a change of panel text size */
@@ -816,12 +835,13 @@ body.resizing * {
   font-weight: 400;
 }
 
-/* empty state */
+/* empty state: the "home" with the recent files */
 #empty-state {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
 }
 
 /* the id rule above outranks [hidden]'s display:none, so restate it */
@@ -830,15 +850,22 @@ body.resizing * {
 }
 
 .empty-card {
+  width: min(440px, 100%);
   text-align: center;
   color: var(--text-muted);
+  animation: doc-enter 0.2s var(--ease);
+}
+
+.empty-icon {
+  color: var(--text-muted);
+  opacity: 0.8;
 }
 
 .empty-card h2 {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
-  margin: 14px 0 4px;
+  margin: 12px 0 4px;
 }
 
 .empty-card p {
@@ -864,6 +891,344 @@ body.resizing * {
 
 .primary-btn:active {
   transform: scale(0.97);
+}
+
+.recent-section {
+  margin: 28px 0 0;
+  text-align: left;
+}
+
+.recent-section[hidden] {
+  display: none;
+}
+
+.recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 6px;
+  font-size: 13px;
+}
+
+.recent-clear {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+
+.recent-clear:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.recent-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon name time"
+    "icon dir time";
+  column-gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--text);
+  transition:
+    background-color 0.12s var(--ease),
+    transform 0.06s var(--ease);
+}
+
+.recent-row:hover,
+.recent-row:focus-visible {
+  background: var(--surface-2);
+}
+
+.recent-row:active {
+  transform: scale(0.995);
+}
+
+.recent-row > svg {
+  grid-area: icon;
+  color: var(--text-muted);
+  width: 18px;
+  height: 18px;
+}
+
+.recent-row:hover > svg {
+  color: var(--accent);
+}
+
+.recent-name {
+  grid-area: name;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-dir {
+  grid-area: dir;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl; /* keep the end of a long path, where the folder name is */
+  text-align: left;
+}
+
+.recent-time {
+  grid-area: time;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-tips {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--text-muted);
+}
+
+.empty-tips code,
+.empty-tips kbd,
+.empty-version kbd {
+  font-size: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.empty-tips code {
+  font-family: var(--mono);
+}
+
+/* reading progress: a hairline along the top of the document pane */
+#read-progress {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  height: 2px;
+  margin-bottom: -2px;
+  width: 0;
+  background: var(--accent);
+  border-radius: 0 1px 1px 0;
+  transition: width 80ms linear;
+  pointer-events: none;
+}
+
+#read-progress[hidden] {
+  display: none;
+}
+
+/* reading time next to the file name */
+.doc-meta {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-meta::before {
+  content: "\00B7";
+  margin: 0 6px;
+  opacity: 0.6;
+}
+
+.doc-meta[hidden],
+#app.editing .doc-meta {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .doc-meta {
+    display: none;
+  }
+}
+
+/* rate-on-the-Store card: sticks to the bottom of the document pane */
+.rate-toast {
+  position: sticky;
+  bottom: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 0 16px 0 auto;
+  padding: 10px 12px 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  animation: toast-in 0.2s var(--ease);
+}
+
+.rate-toast[hidden] {
+  display: none;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.rate-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rate-toast-text strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.rate-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+}
+
+.rate-toast-btn {
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+
+.rate-toast-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.rate-toast .help-rate-btn {
+  margin-right: 4px;
+}
+
+/* keys overlay: the "?" quick reference */
+#keys-dialog {
+  width: min(640px, calc(100vw - 64px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+#keys-dialog[open] {
+  animation: dialog-in 0.18s var(--ease);
+}
+
+#keys-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+  animation: backdrop-in 0.18s var(--ease);
+}
+
+.keys-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.keys-title {
+  font-size: 1.02rem;
+  font-weight: 650;
+}
+
+.keys-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.keys-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 28px;
+  padding: 14px 20px 18px;
+}
+
+.keys-grid h3 {
+  font-size: 11.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.keys-grid dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.keys-grid dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.keys-grid dt {
+  white-space: nowrap;
+}
+
+.keys-grid dd {
+  margin: 0;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+#keys-dialog kbd,
+.keys-hint kbd {
+  font-family: var(--sans);
+  font-size: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .keys-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* help dialog */

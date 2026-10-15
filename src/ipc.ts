@@ -5,7 +5,12 @@ export interface MarkdownDoc {
   path: string;
   dir: string;
   content: string;
+  /** last modification time, ms since the epoch; 0 when unknown */
+  modified: number;
 }
+
+/** error string from write_markdown when the file changed on disk since it was read */
+export const WRITE_CONFLICT = "conflict";
 
 export interface TreeNode {
   name: string;
@@ -24,8 +29,11 @@ export interface SearchHit {
 
 export const getInitialFile = () => invoke<string | null>("get_initial_file");
 export const readMarkdown = (path: string) => invoke<MarkdownDoc>("read_markdown", { path });
-export const writeMarkdown = (path: string, content: string) =>
-  invoke<void>("write_markdown", { path, content });
+// resolves to the file's new modification time; rejects with WRITE_CONFLICT
+// when `expectedModified` (> 0) no longer matches the file on disk
+export const writeMarkdown = (path: string, content: string, expectedModified: number | null) =>
+  invoke<number>("write_markdown", { path, content, expectedModified });
+export const existingPaths = (paths: string[]) => invoke<string[]>("existing_paths", { paths });
 export const exportFile = (path: string, content: string) =>
   invoke<void>("export_file", { path, content });
 export const exportBinary = (path: string, data: string) =>

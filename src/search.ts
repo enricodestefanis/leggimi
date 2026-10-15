@@ -62,7 +62,12 @@ function refresh(): void {
   scrollToCurrent();
 }
 
-function step(dir: 1 | -1): void {
+export function hasMatches(): boolean {
+  return ranges.length > 0;
+}
+
+// n / N from the document step through the matches of the open find bar
+export function step(dir: 1 | -1): void {
   if (ranges.length === 0) return;
   idx = (idx + dir + ranges.length) % ranges.length;
   paint();

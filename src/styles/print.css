@@ -36,7 +36,13 @@
   #drop-overlay,
   /* a top-layer <dialog> does print, and would cover the whole document */
   #zoom-dialog,
-  #zoom-hint {
+  #keys-dialog,
+  #help-dialog,
+  #zoom-hint,
+  #read-progress,
+  #rate-toast,
+  /* metadata for the screen, not for paper */
+  .front-matter {
     display: none !important;
   }
 

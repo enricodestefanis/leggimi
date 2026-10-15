@@ -23,7 +23,10 @@ import * as lightbox from "./lightbox";
 import * as panes from "./panes";
 import * as theme from "./theme";
 import * as prefs from "./prefs";
-import { captureScrollAnchor, restoreScrollAnchor } from "./state";
+import * as positions from "./positions";
+import * as recents from "./recents";
+import * as rating from "./rating";
+import { captureScrollAnchor, restoreScrollAnchor, type ScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
 import { buildDocxBase64, buildStandaloneHtml, copyAsRichText } from "./share";
 
@@ -44,8 +47,17 @@ const searchResults = $("#search-results");
 const btnUp = $<HTMLButtonElement>("#btn-up");
 const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
+const docMeta = $("#doc-meta");
 const dirtyDot = $("#dirty-dot");
+const readProgress = $("#read-progress");
 const helpDialog = $<HTMLDialogElement>("#help-dialog");
+const keysDialog = $<HTMLDialogElement>("#keys-dialog");
+const tocFilterWrap = $("#toc-filter-wrap");
+const tocFilter = $<HTMLInputElement>("#toc-filter");
+const tocFilterClear = $<HTMLButtonElement>("#toc-filter-clear");
+const recentSection = $("#recent-section");
+const recentList = $("#recent-list");
+const rateToast = $("#rate-toast");
 const zoomDialog = $<HTMLDialogElement>("#zoom-dialog");
 const zoomHint = $<HTMLButtonElement>("#zoom-hint");
 const editorPane = $("#editor-pane");
@@ -69,6 +81,7 @@ let browseRoot: string | null = null;
 let opening = false;
 
 let editing = false;
+let storeInstall = false;
 let editorMod: typeof import("./editor") | null = null;
 let previewGen = 0;
 let previewTimer: number | undefined;
@@ -91,8 +104,18 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
       if (!(await confirmDiscard())) return;
     }
     const doc = await ipc.readMarkdown(path);
-    const anchor = opts.preserveScroll && currentDoc ? captureScrollAnchor(contentPane, article) : null;
     const prevPath = currentDoc?.path ?? null;
+    const sameDoc = prevPath !== null && samePath(prevPath, doc.path);
+    // reopening the document already on screen (a reload, or the same file
+    // double-clicked again) keeps the place being read
+    const anchor =
+      (opts.preserveScroll || sameDoc) && currentDoc && !article.hidden
+        ? captureScrollAnchor(contentPane, article)
+        : null;
+    // leaving a document: keep its reading position before it goes
+    if (currentDoc && !sameDoc && !editing && !article.hidden) {
+      positions.remember(currentDoc.path, captureScrollAnchor(contentPane, article));
+    }
     currentDoc = doc;
 
     if (editing && prevPath !== null && !samePath(prevPath, doc.path)) exitEditMode();
@@ -110,13 +133,23 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
+    setupTocFilter(headings, sameDoc);
     panes.refresh();
+    updateDocMeta();
 
-    if (anchor) restoreScrollAnchor(contentPane, article, anchor);
-    else contentPane.scrollTop = 0;
+    const target = anchor ?? (sameDoc ? null : positions.recall(doc.path));
+    if (!restoreRemembered(target)) contentPane.scrollTop = 0;
+    updateProgress();
+    const applied = contentPane.scrollTop;
 
-    renderMermaidIn(article, theme.current() === "dark")
-      .then(() => lightbox.markAll(article))
+    renderMermaidIn(article, theme.isDark())
+      .then(() => {
+        lightbox.markAll(article);
+        // diagrams change the heights above the anchor: re-apply it, unless
+        // the reader has already moved on
+        if (target && currentDoc === doc && contentPane.scrollTop === applied) restoreRemembered(target);
+        updateProgress();
+      })
       .catch(() => {});
     search.onContentChanged();
 
@@ -125,10 +158,15 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
     // Same-root selection just moves the highlight: a rebuild would discard the
     // user's collapsed folders and flicker. Same-document reopens (watcher
     // reloads) still rebuild so files added or removed on disk get picked up.
-    const sameDoc = prevPath !== null && samePath(prevPath, doc.path);
     if (rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path)) refreshTree();
     ipc.watchFile(doc.path).catch(() => {});
+    if (!sameDoc) {
+      recents.push(doc);
+      rating.noteOpen();
+      scheduleRatePrompt();
+    }
   } catch (err) {
+    recents.remove(path); // a vanished file must not keep its place on the home
     showError(String(err));
   } finally {
     opening = false;
@@ -196,6 +234,8 @@ async function enterEditMode(): Promise<void> {
   app.classList.add("editing");
   btnEdit.setAttribute("aria-pressed", "true");
   updateTitles();
+  updateProgress();
+  hideRateToast();
   editorMod.focus();
 
   // open the editor at the section being read: first anchor visible in the preview
@@ -213,6 +253,7 @@ function exitEditMode(): void {
   // reset the buffer to the saved document: clears dirty state and undo history
   if (currentDoc) editorMod?.setContent(currentDoc.content);
   updateTitles();
+  updateProgress();
 }
 
 /* ---- images into the editor ---- */
@@ -311,10 +352,12 @@ async function updatePreview(content: string): Promise<void> {
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
+    setupTocFilter(headings, true);
     panes.refresh();
+    updateDocMeta();
     search.onContentChanged();
     hideNotice();
-    renderMermaidIn(article, theme.current() === "dark")
+    renderMermaidIn(article, theme.isDark())
       .then(() => {
         // freshly rendered diagrams change heights: re-anchor and re-align
         lightbox.markAll(article);
@@ -460,10 +503,25 @@ function syncPreviewToEditor(reveal = false, retry = true): void {
 async function saveFile(): Promise<void> {
   if (!editing || !currentDoc || !editorMod?.isDirty()) return;
   const content = editorMod.getContent();
+  const doc = currentDoc;
   suppressReloadUntil = Date.now() + 1500;
   try {
-    await ipc.writeMarkdown(currentDoc.path, content);
-    currentDoc = { ...currentDoc, content };
+    let modified: number;
+    try {
+      modified = await ipc.writeMarkdown(doc.path, content, doc.modified);
+    } catch (err) {
+      if (String(err) !== ipc.WRITE_CONFLICT) throw err;
+      // someone else wrote the file since it was read: overwrite only on request
+      const overwrite = await ask(
+        "The file changed on disk since you opened it. Overwrite it with your version?",
+        { title: "File changed on disk", kind: "warning", okLabel: "Overwrite", cancelLabel: "Keep theirs" },
+      ).catch(() => false);
+      if (!overwrite) return;
+      suppressReloadUntil = Date.now() + 1500;
+      modified = await ipc.writeMarkdown(doc.path, content, null);
+    }
+    if (currentDoc !== doc) return; // another document took over meanwhile
+    currentDoc = { ...doc, content, modified };
     editorMod.markSaved();
     hideNotice(true);
   } catch (err) {
@@ -768,6 +826,219 @@ async function goUp(): Promise<void> {
   }
 }
 
+/* ---- reading position, progress bar, reading time ---- */
+
+// A remembered anchor is only honoured while its heading still exists: a
+// rewritten document should open at the top, not at a stray offset.
+function restoreRemembered(saved: ScrollAnchor | null): boolean {
+  if (!saved) return false;
+  if (!saved.id) {
+    if (saved.offset <= 0) return false;
+    restoreScrollAnchor(contentPane, article, saved);
+    return true;
+  }
+  if (saved.id && !article.querySelector(`[id="${CSS.escape(saved.id)}"]`)) return false;
+  restoreScrollAnchor(contentPane, article, saved);
+  return true;
+}
+
+let progressRaf = 0;
+function updateProgress(): void {
+  if (progressRaf) return;
+  progressRaf = requestAnimationFrame(() => {
+    progressRaf = 0;
+    const max = contentPane.scrollHeight - contentPane.clientHeight;
+    const show = !editing && currentDoc !== null && !article.hidden && max > 24;
+    readProgress.hidden = !show;
+    if (show) readProgress.style.width = `${Math.min(100, (contentPane.scrollTop / max) * 100)}%`;
+  });
+}
+
+let rememberTimer: number | undefined;
+function onContentScroll(): void {
+  updateProgress();
+  if (editing || !currentDoc || article.hidden) return;
+  clearTimeout(rememberTimer);
+  const doc = currentDoc;
+  rememberTimer = window.setTimeout(() => {
+    if (currentDoc === doc && !editing) positions.remember(doc.path, captureScrollAnchor(contentPane, article));
+  }, 300);
+}
+
+const WORDS_PER_MIN = 220;
+const CJK_PER_MIN = 500;
+const WORD_RE = /[\p{L}\p{N}_'\u2019-]+/gu;
+const CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
+
+function updateDocMeta(): void {
+  if (!currentDoc || article.hidden) {
+    docMeta.hidden = true;
+    return;
+  }
+  const text = article.textContent ?? "";
+  const cjk = (text.match(CJK_RE) ?? []).length;
+  const words = (text.replace(CJK_RE, " ").match(WORD_RE) ?? []).length;
+  const minutes = Math.max(1, Math.ceil(words / WORDS_PER_MIN + cjk / CJK_PER_MIN));
+  docMeta.textContent = `${minutes} min read`;
+  docMeta.title = `${(words + cjk).toLocaleString("en-US")} words`;
+  docMeta.hidden = false;
+}
+
+/* ---- outline filter ---- */
+
+const TOC_FILTER_MIN = 8;
+
+// `keep`: a refresh of the same document keeps the query; a new one starts clean
+function setupTocFilter(headings: number, keep: boolean): void {
+  const show = headings >= TOC_FILTER_MIN;
+  tocFilterWrap.hidden = !show;
+  if (!show || !keep) tocFilter.value = "";
+  toc.setFilter(tocFilter.value);
+  tocFilterClear.hidden = tocFilter.value.length === 0;
+}
+
+function clearTocFilter(): void {
+  tocFilter.value = "";
+  tocFilterClear.hidden = true;
+  toc.setFilter("");
+}
+
+/* ---- reading keys (single keys while reading) ---- */
+
+const isTypingTarget = (el: Element | null): boolean =>
+  !!el &&
+  (el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement ||
+    (el as HTMLElement).isContentEditable ||
+    el.closest(".cm-editor") !== null);
+
+const readingKeysActive = (): boolean =>
+  !editing && currentDoc !== null && !article.hidden && !isTypingTarget(document.activeElement);
+
+const KEY_SCROLL = 80;
+let lastG = 0;
+// j/k presses in quick succession add up from the previous target, not from
+// wherever the smooth scroll animation happens to be
+let keyScrollTarget = -1;
+let keyScrollAt = 0;
+
+function scrollByKey(delta: number, repeat: boolean): void {
+  const now = performance.now();
+  const max = contentPane.scrollHeight - contentPane.clientHeight;
+  const from = keyScrollTarget >= 0 && now - keyScrollAt < 400 ? keyScrollTarget : contentPane.scrollTop;
+  keyScrollTarget = Math.max(0, Math.min(max, from + delta));
+  keyScrollAt = now;
+  contentPane.scrollTo({ top: keyScrollTarget, behavior: repeat ? "instant" : "smooth" });
+}
+
+// returns true when the key was a reading key
+function handleReadingKey(e: KeyboardEvent): boolean {
+  // some senders report Shift+g as "g" + shiftKey rather than "G"
+  const key = e.shiftKey && e.key.length === 1 ? e.key.toUpperCase() : e.key;
+  switch (key) {
+    case "j":
+      scrollByKey(KEY_SCROLL, e.repeat);
+      return true;
+    case "k":
+      scrollByKey(-KEY_SCROLL, e.repeat);
+      return true;
+    case ".":
+    case ",":
+      toc.step(key === "." ? 1 : -1);
+      return true;
+    case "G":
+      contentPane.scrollTo({ top: contentPane.scrollHeight, behavior: "smooth" });
+      return true;
+    case "g": {
+      const now = performance.now();
+      if (now - lastG < 500) {
+        lastG = 0;
+        contentPane.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        lastG = now;
+      }
+      return true;
+    }
+    case "n":
+    case "N":
+      if (search.hasMatches()) search.step(key === "n" ? 1 : -1);
+      return true;
+    default:
+      return false;
+  }
+}
+
+function toggleKeysDialog(): void {
+  if (keysDialog.open) keysDialog.close();
+  else keysDialog.showModal();
+}
+
+/* ---- "rate on the Store" card ---- */
+
+let rateTimer: number | undefined;
+
+function scheduleRatePrompt(): void {
+  clearTimeout(rateTimer);
+  if (!storeInstall || !rating.due()) return;
+  rateTimer = window.setTimeout(() => {
+    if (editing || !currentDoc || article.hidden || !rateToast.hidden) return;
+    rateToast.hidden = false;
+    rating.shown();
+  }, 2000);
+}
+
+function hideRateToast(): void {
+  clearTimeout(rateTimer);
+  rateToast.hidden = true;
+}
+
+/* ---- the home: recent files on the empty screen ---- */
+
+const RECENT_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+let recentsGen = 0;
+
+async function renderRecents(): Promise<void> {
+  const gen = ++recentsGen;
+  const all = recents.list();
+  let items = all;
+  if (all.length > 0) {
+    // files deleted or moved since are dropped silently
+    const alive = new Set(
+      (await ipc.existingPaths(all.map((r) => r.path)).catch(() => all.map((r) => r.path))).map((p) =>
+        p.toLowerCase(),
+      ),
+    );
+    items = all.filter((r) => alive.has(r.path.toLowerCase()));
+    for (const r of all) if (!alive.has(r.path.toLowerCase())) recents.remove(r.path);
+  }
+  if (gen !== recentsGen) return;
+  recentList.replaceChildren();
+  recentSection.hidden = items.length === 0;
+  const now = Date.now();
+  for (const r of items) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "recent-row";
+    row.title = r.path;
+    row.innerHTML = RECENT_ICON;
+    const name = document.createElement("span");
+    name.className = "recent-name";
+    name.textContent = r.name;
+    const dir = document.createElement("span");
+    dir.className = "recent-dir";
+    dir.textContent = r.dir;
+    const time = document.createElement("span");
+    time.className = "recent-time";
+    time.textContent = recents.relativeTime(r.openedAt, now);
+    row.append(name, dir, time);
+    row.addEventListener("click", () => openFile(r.path));
+    recentList.append(row);
+  }
+}
+
 function showError(message: string): void {
   emptyState.hidden = true;
   article.hidden = false;
@@ -781,6 +1052,9 @@ function showError(message: string): void {
 function showEmpty(): void {
   article.hidden = true;
   emptyState.hidden = false;
+  docMeta.hidden = true;
+  readProgress.hidden = true;
+  renderRecents().catch(() => {});
 }
 
 async function chooseFile(): Promise<void> {
@@ -818,6 +1092,50 @@ function wireUi(): void {
   $("#btn-toc").addEventListener("click", () => toggleSidebar("toc-hidden"));
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
+  $("#recent-clear").addEventListener("click", () => {
+    recents.clear();
+    renderRecents().catch(() => {});
+  });
+  contentPane.addEventListener("scroll", onContentScroll, { passive: true });
+  window.addEventListener("resize", updateProgress);
+
+  // outline filter
+  tocFilter.addEventListener("input", () => {
+    toc.setFilter(tocFilter.value);
+    tocFilterClear.hidden = tocFilter.value.length === 0;
+  });
+  tocFilter.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      toc.moveCursor(e.key === "ArrowDown" ? 1 : -1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      toc.activateCursor();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      clearTocFilter();
+      tocFilter.blur();
+    }
+  });
+  tocFilterClear.addEventListener("click", () => {
+    clearTocFilter();
+    tocFilter.focus();
+  });
+
+  // rate card
+  $("#rate-now").addEventListener("click", () => {
+    rating.done();
+    hideRateToast();
+    ipc.openStoreReview().catch(() => {});
+  });
+  $("#rate-later").addEventListener("click", () => {
+    rating.later();
+    hideRateToast();
+  });
+  $("#rate-never").addEventListener("click", () => {
+    rating.done();
+    hideRateToast();
+  });
   btnEdit.addEventListener("click", () => toggleEditMode());
   btnSave.addEventListener("click", () => saveFile());
   btnShare.addEventListener("click", (e) => {
@@ -870,6 +1188,7 @@ function wireUi(): void {
   prefs.onChange(() => {
     syncReadingMenu();
     editorMod?.refresh();
+    updateProgress();
   });
   theme.onChange(() => syncReadingMenu());
   $("#btn-help").addEventListener("click", () => helpDialog.showModal());
@@ -897,6 +1216,9 @@ function wireUi(): void {
   helpDialog.addEventListener("click", (e) => {
     if (e.target === helpDialog) helpDialog.close();
   });
+  keysDialog.addEventListener("click", (e) => {
+    if (e.target === keysDialog) keysDialog.close();
+  });
 
   search.init({
     root: article,
@@ -920,12 +1242,36 @@ function wireUi(): void {
       return;
     }
     if (helpDialog.open) return; // Esc is handled natively by <dialog>
+    if (keysDialog.open) {
+      if (e.key === "?") {
+        e.preventDefault();
+        keysDialog.close();
+      }
+      return;
+    }
     // the editor already handled it (Ctrl+B/I format there, Ctrl+S saved once)
     if (e.defaultPrevented) return;
     if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden)) {
       shareMenu.hidden = true;
       readingMenu.hidden = true;
       return;
+    }
+    if (e.key === "Escape" && !rateToast.hidden) {
+      rating.later();
+      hideRateToast();
+      return;
+    }
+    // single-key reading commands, only while the document itself has the keys
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && !isTypingTarget(document.activeElement)) {
+      if (e.key === "?") {
+        e.preventDefault();
+        toggleKeysDialog();
+        return;
+      }
+      if (readingKeysActive() && handleReadingKey(e)) {
+        e.preventDefault();
+        return;
+      }
     }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
       e.preventDefault();
@@ -1002,13 +1348,18 @@ function wireUi(): void {
 
   // diagrams and code keep their on-screen palette in the DOM, but the page
   // chrome must print light: flip the theme around the native print dialog
-  let printThemeRestore: string | undefined;
+  let printThemeRestore: [string, string] | undefined;
   window.addEventListener("beforeprint", () => {
-    printThemeRestore = document.documentElement.dataset.theme;
-    document.documentElement.dataset.theme = "light";
+    const ds = document.documentElement.dataset;
+    printThemeRestore = [ds.theme ?? "light", ds.scheme ?? "light"];
+    ds.theme = "light";
+    ds.scheme = "light";
   });
   window.addEventListener("afterprint", () => {
-    if (printThemeRestore) document.documentElement.dataset.theme = printThemeRestore;
+    if (printThemeRestore) {
+      const ds = document.documentElement.dataset;
+      [ds.theme, ds.scheme] = printThemeRestore;
+    }
     printThemeRestore = undefined;
   });
 
@@ -1059,7 +1410,8 @@ async function showVersion(): Promise<void> {
 
 // the rating prompt only makes sense for the Microsoft Store build
 async function showStoreRating(): Promise<void> {
-  if (await ipc.isStoreInstall().catch(() => false)) $("#help-rate-card").hidden = false;
+  storeInstall = await ipc.isStoreInstall().catch(() => false);
+  if (storeInstall) $("#help-rate-card").hidden = false;
 }
 
 async function boot(): Promise<void> {
@@ -1067,7 +1419,7 @@ async function boot(): Promise<void> {
   prefs.init();
   showVersion().catch(() => {});
   showStoreRating().catch(() => {});
-  theme.onChange((t) => rerenderForTheme(article, t === "dark").catch(() => {}));
+  theme.onChange((t) => rerenderForTheme(article, theme.schemeOf(t) === "dark").catch(() => {}));
   wireUi();
 
   // registering this handler makes JS responsible for closing the window,

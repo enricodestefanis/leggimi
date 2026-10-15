@@ -13,6 +13,7 @@
         </button>
         <span id="doc-title" class="doc-title"></span>
         <span id="dirty-dot" hidden></span>
+        <span id="doc-meta" class="doc-meta" hidden></span>
         <span class="spacer"></span>
         <button id="btn-open" class="icon-btn" title="Open file… (Ctrl+O)">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
@@ -61,6 +62,7 @@
              title="Drag to widen (double-click to reset)"></div>
         <div id="editor-pane"></div>
         <main id="content-pane">
+          <div id="read-progress" aria-hidden="true" hidden></div>
           <div id="find-bar" hidden>
             <input id="find-input" type="text" placeholder="Find in document…" spellcheck="false" />
             <span id="find-count">0/0</span>
@@ -85,11 +87,35 @@
           <article id="article" class="markdown-body" hidden></article>
           <div id="empty-state" hidden>
             <div class="empty-card">
-              <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg class="empty-icon" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <h2>No document open</h2>
-              <p>Drop a Markdown file here, or</p>
+              <p class="empty-lead">Drop a Markdown file here, or</p>
               <button id="btn-open-empty" class="primary-btn">Open a file…</button>
-              <p class="empty-version">Leggimi <span id="empty-version"></span> · press <kbd>F1</kbd> for help</p>
+              <section id="recent-section" class="recent-section" hidden>
+                <div class="recent-head">
+                  <span class="pane-title">Recent</span>
+                  <button id="recent-clear" class="recent-clear" type="button">Clear</button>
+                </div>
+                <div id="recent-list" class="recent-list"></div>
+              </section>
+              <ul class="empty-tips">
+                <li>Double-click any <code>.md</code> file in File Explorer</li>
+                <li>Drag a file onto this window</li>
+                <li>Press <kbd>Ctrl</kbd>+<kbd>O</kbd> to browse for one</li>
+              </ul>
+              <p class="empty-version">Leggimi <span id="empty-version"></span> · press <kbd>F1</kbd> for help, <kbd>?</kbd> for the keys</p>
+            </div>
+          </div>
+          <div id="rate-toast" class="rate-toast" role="status" hidden>
+            <svg class="help-rate-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.5 15 8.6 21.7 9.6 16.8 14.3 18 21 12 17.8 6 21 7.2 14.3 2.3 9.6 9 8.6 12 2.5"/></svg>
+            <div class="rate-toast-text">
+              <strong>Enjoying Leggimi?</strong>
+              <span>A rating on the Microsoft Store helps other people find it.</span>
+            </div>
+            <div class="rate-toast-actions">
+              <button id="rate-now" class="help-rate-btn" type="button">Rate</button>
+              <button id="rate-later" class="rate-toast-btn" type="button">Later</button>
+              <button id="rate-never" class="rate-toast-btn" type="button">No thanks</button>
             </div>
           </div>
         </main>
@@ -99,6 +125,13 @@
              title="Drag to widen (double-click to reset)"></div>
         <aside id="toc-pane">
           <div class="pane-head"><span class="pane-title">Outline</span></div>
+          <div id="toc-filter-wrap" class="pane-search" hidden>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="toc-filter" type="text" placeholder="Filter headings…" spellcheck="false" autocomplete="off" />
+            <button id="toc-filter-clear" class="icon-btn small" title="Clear (Esc)" hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
           <nav id="toc-list"></nav>
         </aside>
       </div>
@@ -169,11 +202,47 @@
         <span class="rs-label">Theme</span>
         <div class="rs-seg" id="rs-theme" role="group" aria-label="Theme">
           <button class="rs-opt" type="button" data-value="light" aria-pressed="false">Light</button>
+          <button class="rs-opt" type="button" data-value="sepia" aria-pressed="false">Sepia</button>
           <button class="rs-opt" type="button" data-value="dark" aria-pressed="false">Dark</button>
+          <button class="rs-opt" type="button" data-value="black" aria-pressed="false">Black</button>
           <button class="rs-opt" type="button" data-value="system" aria-pressed="false">Auto</button>
         </div>
       </div>
     </div>
+
+    <dialog id="keys-dialog" aria-label="Keyboard shortcuts">
+      <div class="keys-head">
+        <span class="keys-title">Keys</span>
+        <span class="keys-hint">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close · <kbd>F1</kbd> for the full help</span>
+      </div>
+      <div class="keys-grid">
+        <section>
+          <h3>Reading</h3>
+          <dl>
+            <div><dt><kbd>j</kbd> / <kbd>k</kbd></dt><dd>Scroll down / up</dd></div>
+            <div><dt><kbd>Space</kbd> / <kbd>Shift</kbd>+<kbd>Space</kbd></dt><dd>Page down / up</dd></div>
+            <div><dt><kbd>.</kbd> / <kbd>,</kbd></dt><dd>Next / previous heading</dd></div>
+            <div><dt><kbd>g</kbd> <kbd>g</kbd> / <kbd>G</kbd></dt><dd>Top / end of the document</dd></div>
+            <div><dt><kbd>n</kbd> / <kbd>N</kbd></dt><dd>Next / previous find match</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>F</kbd></dt><dd>Find in document</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>−</kbd> / <kbd>0</kbd></dt><dd>Text size</dd></div>
+          </dl>
+        </section>
+        <section>
+          <h3>App</h3>
+          <dl>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>O</kbd></dt><dd>Open a file</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>E</kbd></dt><dd>Edit / back to reading</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Save</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></dt><dd>File browser / outline</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></dt><dd>Search the folder</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></dt><dd>Share menu</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></dt><dd>Copy as rich text</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>P</kbd></dt><dd>Print / PDF</dd></div>
+          </dl>
+        </section>
+      </div>
+    </dialog>
 
     <dialog id="help-dialog">
       <div class="help-head">
@@ -192,6 +261,25 @@
           <li>Press <kbd>Ctrl</kbd>+<kbd>O</kbd> or use the folder button in the toolbar.</li>
         </ul>
         <p>Opening a second file while the app is running reuses the same window.</p>
+        <p>
+          With no document open, the window lists the files you opened recently: click one to
+          reopen it. Every document also <strong>remembers where you stopped reading</strong> and
+          scrolls back there when you open it again.
+        </p>
+
+        <h3>Reading keys</h3>
+        <p>While reading, single keys move through the document (they do nothing while typing in a box or editing):</p>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>Scroll down / up a little</td></tr>
+            <tr><td><kbd>Space</kbd> / <kbd>Shift</kbd>+<kbd>Space</kbd></td><td>Page down / up</td></tr>
+            <tr><td><kbd>.</kbd> / <kbd>,</kbd></td><td>Next / previous heading</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>g</kbd> / <kbd>G</kbd></td><td>Top / end of the document</td></tr>
+            <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>Next / previous match of the find bar</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Show or hide the quick reference of the keys</td></tr>
+          </tbody>
+        </table>
+        <p>A thin bar along the top of the document shows how far you are, and the toolbar shows the estimated reading time.</p>
 
         <h3>Keyboard shortcuts</h3>
         <table class="help-keys">
@@ -209,6 +297,7 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>Open the Share menu</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Larger / smaller text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Reset the text size</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Quick reference of the keys</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Close the find bar, the preview or this help</td></tr>
           </tbody>
@@ -220,7 +309,8 @@
           editor appears on the left, with a live preview on the right. An orange dot next to the file
           name marks unsaved changes — save with <kbd>Ctrl</kbd>+<kbd>S</kbd>. Leaving edit mode or
           opening another document with unsaved changes asks for confirmation first. If the file
-          changes on disk while you have unsaved edits, a warning appears instead of overwriting your work.
+          changes on disk while you have unsaved edits, a warning appears instead of overwriting your
+          work, and saving over a file that changed since you opened it asks before overwriting it.
         </p>
         <p>
           <strong>Formatting:</strong> the bar above the editor formats the selection — or the word
@@ -265,7 +355,12 @@
         </p>
 
         <h3>Outline</h3>
-        <p>The right panel lists the document headings and highlights the one you are reading. Click any entry to jump to it.</p>
+        <p>
+          The right panel lists the document headings and highlights the one you are reading. Click
+          any entry to jump to it. On long documents a filter box appears above the list: type to
+          narrow the headings, then <kbd>↑</kbd> / <kbd>↓</kbd> and <kbd>Enter</kbd> jump to one;
+          <kbd>Esc</kbd> clears it.
+        </p>
 
         <h3>Live reload</h3>
         <p>The open file is watched on disk. When it changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
@@ -278,6 +373,8 @@
           <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans, <kbd>0</kbd> fits it to the window and <kbd>Esc</kbd> closes. The button in the toolbar copies it as an image.</li>
           <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence for display blocks.</li>
           <li>GitHub-style callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>.</li>
+          <li>Footnotes: <code>[^1]</code> in the text and <code>[^1]: …</code> anywhere; the notes are collected at the end, with links there and back.</li>
+          <li>YAML front matter between <code>---</code> lines is folded into a <em>Front matter</em> block at the top: click it to see the fields as a table.</li>
           <li>Images with relative paths resolve against the document's folder.</li>
           <li>Links to web pages open in your default browser; links to other Markdown files open in the viewer.</li>
         </ul>
@@ -293,8 +390,9 @@
         <h3>Reading settings</h3>
         <p>
           The <strong>Aa</strong> button opens the reading settings: text size, sans or serif font, line
-          spacing, column width and the <strong>light</strong> / <strong>dark</strong> /
-          <strong>auto</strong> (follow Windows) theme. Text size is also available anywhere with
+          spacing, column width and the theme: <strong>light</strong>, <strong>sepia</strong> (warm
+          paper), <strong>dark</strong>, <strong>black</strong> (for OLED screens) or
+          <strong>auto</strong> (light or dark following Windows). Text size is also available anywhere with
           <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd>, <kbd>Ctrl</kbd>+scroll wheel, and
           <kbd>Ctrl</kbd>+<kbd>0</kbd> to reset; the editor text scales along with it.
           <strong>Panels</strong> sets the text size of the file browser and the outline on its own —

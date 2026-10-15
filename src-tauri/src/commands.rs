@@ -18,6 +18,18 @@ pub struct MarkdownDoc {
     pub path: String,
     pub dir: String,
     pub content: String,
+    /// last modification time, ms since the Unix epoch (0 when unknown); the
+    /// save guard compares it with the file's current one
+    pub modified: u64,
+}
+
+fn modified_ms(path: &Path) -> u64 {
+    fs::metadata(path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 #[derive(Serialize)]
@@ -77,13 +89,38 @@ pub fn read_markdown(app: AppHandle, path: String) -> Result<MarkdownDoc, String
         path: canon.to_string_lossy().into_owned(),
         dir: dir.to_string_lossy().into_owned(),
         content,
+        modified: modified_ms(&canon),
     })
 }
 
+/// Error returned by `write_markdown` when the file on disk is newer than
+/// the copy the editor started from; the UI asks before overwriting.
+pub const CONFLICT: &str = "conflict";
+
+/// Writes the file and returns its new modification time. With
+/// `expected_modified`, refuses (Err(CONFLICT)) when the file changed on disk
+/// since it was read — unless it is 0/None, which means "overwrite anyway".
 #[tauri::command]
-pub fn write_markdown(path: String, content: String) -> Result<(), String> {
+pub fn write_markdown(
+    path: String,
+    content: String,
+    expected_modified: Option<u64>,
+) -> Result<u64, String> {
     let canon = dunce::canonicalize(&path).map_err(|e| format!("Cannot save {path}: {e}"))?;
-    fs::write(&canon, content).map_err(|e| format!("Cannot save {}: {e}", canon.display()))
+    if let Some(expected) = expected_modified.filter(|&m| m > 0) {
+        let now = modified_ms(&canon);
+        if now > 0 && now != expected {
+            return Err(CONFLICT.to_owned());
+        }
+    }
+    fs::write(&canon, content).map_err(|e| format!("Cannot save {}: {e}", canon.display()))?;
+    Ok(modified_ms(&canon))
+}
+
+/// The subset of `paths` that still exist as files (the recent-files list).
+#[tauri::command]
+pub fn existing_paths(paths: Vec<String>) -> Vec<String> {
+    paths.into_iter().filter(|p| Path::new(p).is_file()).collect()
 }
 
 // unlike write_markdown, the target may not exist yet: canonicalize the parent

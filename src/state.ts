@@ -20,8 +20,10 @@ export function restoreScrollAnchor(pane: HTMLElement, article: HTMLElement, anc
   if (anchor.id) {
     const h = article.querySelector<HTMLElement>(`[id="${CSS.escape(anchor.id)}"]`);
     if (h) {
+      // offset is how far ABOVE the pane's top edge the heading sat (-delta at
+      // capture): put it back there, i.e. scroll until top - paneTop == -offset
       const paneTop = pane.getBoundingClientRect().top;
-      pane.scrollTop += h.getBoundingClientRect().top - paneTop - anchor.offset;
+      pane.scrollTop += h.getBoundingClientRect().top - paneTop + anchor.offset;
       return;
     }
   }

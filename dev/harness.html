@@ -50,12 +50,21 @@
 
       const DIR = "C:\\harness";
       const PATH = DIR + "\\test.md";
-      const src = new URLSearchParams(location.search).get("doc");
-      const content = src ? await (await fetch(src)).text() : defaultDoc();
+      const params = new URLSearchParams(location.search);
+      const src = params.get("doc");
+      // ?doc=none starts on the empty screen (the home with the recent files)
+      const content = src && src !== "none" ? await (await fetch(src)).text() : defaultDoc();
 
       const harness = (window.__harness = {
-        files: new Map([[PATH, content]]),
+        files: new Map([
+          [PATH, content],
+          [DIR + "\\notes.md", "# Notes\n\nA second file for the recent list.\n"],
+        ]),
         calls: [],
+        /** mtime reported by read_markdown; bumped by each write */
+        modified: 1_700_000_000_000,
+        /** set to true to make the next guarded write report a conflict */
+        conflict: false,
         /** replace the open document, as if the file had been reopened */
         async load(text) {
           harness.files.set(PATH, text);
@@ -69,12 +78,21 @@
           harness.calls.push({ cmd, args });
           switch (cmd) {
             case "get_initial_file":
-              return PATH;
+              return src === "none" ? null : PATH;
             case "read_markdown":
-              return { path: args.path, dir: DIR, content: harness.files.get(args.path) ?? "" };
+              if (!harness.files.has(args.path)) throw `Cannot open ${args.path}: not found`;
+              return { path: args.path, dir: DIR, content: harness.files.get(args.path) ?? "", modified: harness.modified };
             case "write_markdown":
+              // simulates the save guard: harness.conflict makes the next write refuse once
+              if (harness.conflict && args.expectedModified) {
+                harness.conflict = false;
+                throw "conflict";
+              }
               harness.files.set(args.path, args.content);
-              return null;
+              harness.modified += 1000;
+              return harness.modified;
+            case "existing_paths":
+              return args.paths.filter((p) => harness.files.has(p));
             case "parent_dir":
               return DIR;
             case "list_tree":
@@ -84,13 +102,14 @@
             case "resolve_path":
               return `${DIR}\\${args.rel}`;
             case "is_store_install":
-              return false;
+              return params.has("store"); // ?store=1 behaves like the Store build
             case "plugin:app|version":
               return "harness";
-            case "plugin:dialog|ask":
-            case "plugin:dialog|confirm":
-              // a native confirm() would block browser automation: always "yes"
-              return true;
+            case "plugin:dialog|message":
+              // ask() and confirm() both go through it and compare the clicked
+              // button's label; a native dialog would block the automation,
+              // so always answer with the OK button
+              return args.buttons && args.buttons.OkCancelCustom ? args.buttons.OkCancelCustom[0] : "Yes";
             default:
               return null;
           }

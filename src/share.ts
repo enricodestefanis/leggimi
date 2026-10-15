@@ -131,6 +131,8 @@ async function preparePortableClone(article: HTMLElement, docDir: string): Promi
   const clone = cleanedClone(article, docDir);
   await inlineImages(clone);
   for (const el of clone.querySelectorAll(".katex-html")) el.remove();
+  // Word has no <details>: the folded front matter would paste as loose text
+  for (const el of clone.querySelectorAll(".front-matter")) el.remove();
   await replaceMermaidWithPng(article, clone);
   return clone;
 }
@@ -141,7 +143,7 @@ async function preparePortableClone(article: HTMLElement, docDir: string): Promi
 async function replaceMermaidWithPng(article: HTMLElement, clone: HTMLElement): Promise<void> {
   const cloneDiagrams = clone.querySelectorAll<HTMLElement>(".mermaid-diagram");
   if (cloneDiagrams.length === 0) return;
-  const dark = document.documentElement.dataset.theme === "dark";
+  const dark = document.documentElement.dataset.scheme === "dark";
   if (dark) await rerenderForTheme(article, false);
   try {
     const liveDiagrams = article.querySelectorAll<HTMLElement>(".mermaid-diagram");

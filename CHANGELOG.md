@@ -7,6 +7,50 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.11.0] - 2026-10-15
+
+The reading release: everything here shortens the "open, read, close" loop.
+
+### Added
+- **Reading position remembered per file**: a document opens where you stopped reading
+  the last time, anchored to the nearest heading so it survives edits above it. Scrolling
+  back to the top forgets the position.
+- **Recent files on the empty screen**: with no document open, the window lists the files
+  you opened recently (name, folder, when) and three tips; click one to reopen it. Files
+  that no longer exist are dropped, and **Clear** empties the list.
+- **Reading keys** while a document is open and nothing else has the keyboard: `j` / `k`
+  scroll, `.` / `,` jump to the next / previous heading, `g g` and `G` go to the top and
+  the end, `n` / `N` step through the find bar's matches, and `?` opens a quick reference
+  of all the keys (`F1` keeps the full help).
+- **Outline filter**: on documents with eight or more headings a box above the outline
+  narrows it as you type; `↑` / `↓` and `Enter` jump to an entry, `Esc` clears it.
+- A **reading progress** hairline along the top of the document and the **estimated
+  reading time** next to the file name (word count in its tooltip).
+- **Footnotes** (`[^1]` in the text, `[^1]: …` anywhere), collected at the end of the
+  document with links there and back.
+- **YAML front matter** is folded into a *Front matter* block at the top instead of being
+  rendered as text; click it to see the fields as a table (lists become chips). It is
+  left out of printouts, rich-text copies and DOCX exports.
+- Two more themes in the reading settings: **Sepia** (warm paper) and **Black** (true black
+  for OLED screens). Code, callouts and diagrams follow the light or dark side of the
+  theme in use.
+- The Store build asks once for a rating, politely: a small card at the bottom of the
+  document after a few days and a handful of documents, with *Later* (asks again in a
+  month) and *No thanks* (never again).
+
+### Changed
+- Saving over a file that changed on disk since it was opened now asks before
+  overwriting it, instead of silently replacing the other program's changes. The check
+  is on the file's modification time, so it also covers changes the watcher missed.
+- Opening the same file again (a second double-click in File Explorer) keeps the place
+  being read instead of jumping to the top.
+
+### Fixed
+- The reading position kept across a live reload or a text-size change was restored on
+  the wrong side of the window: the nearest heading above the top edge came back the same
+  distance *below* it, so the document jumped by twice that distance. Found while testing
+  the remembered position, which uses the same anchor.
+
 ## [1.10.0] - 2026-10-14
 
 ### Added

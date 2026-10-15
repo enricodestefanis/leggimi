@@ -1,10 +1,17 @@
+---
+title: Test document
+author: Jane Doe
+date: 2026-10-15
+tags: [leggimi, markdown, test]
+status: draft
+---
 # Test document — Leggimi
 
 This document exercises every feature of the viewer.
 
 ## Basic formatting
 
-Text in **bold**, *italic*, ~~strikethrough~~, `inline code` and an [external link](https://www.anthropic.com). Quotes like "these" and dashes -- are converted by the typographer.
+Text in **bold**, *italic*, ~~strikethrough~~, `inline code` and an [external link](https://www.anthropic.com).[^1] A second note follows the first.[^note] Quotes like "these" and dashes -- are converted by the typographer.
 
 > A blockquote with an accent border.
 > Spanning several lines, to check the rendering.
@@ -109,3 +116,10 @@ $$
 ## Final section
 
 Last section, to test the outline scroll-spy. Press `Ctrl+F` and search for "Akeneo" to try the find bar.
+
+## Footnotes
+
+Footnotes are declared anywhere and collected at the end of the document.
+
+[^1]: The first footnote, with *emphasis* and a [link](https://commonmark.org).
+[^note]: Named footnotes work too.

@@ -199,7 +199,7 @@ async function build(): Promise<boolean> {
   if (kind === "mermaid") {
     let markup: string;
     try {
-      markup = await renderMermaidSvg(source, theme.current() === "dark");
+      markup = await renderMermaidSvg(source, theme.isDark());
     } catch {
       return false;
     }

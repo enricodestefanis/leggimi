@@ -88,6 +88,7 @@ pub fn run() {
             commands::get_initial_file,
             commands::read_markdown,
             commands::write_markdown,
+            commands::existing_paths,
             commands::export_file,
             commands::export_binary,
             commands::save_clipboard_image,

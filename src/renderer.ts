@@ -3,12 +3,15 @@ import anchor from "markdown-it-anchor";
 import taskLists from "markdown-it-task-lists";
 import katexModule from "@vscode/markdown-it-katex";
 import githubAlerts from "markdown-it-github-alerts";
+import footnote from "markdown-it-footnote";
+import frontMatter from "markdown-it-front-matter";
 import hljs from "highlight.js/lib/common";
 import DOMPurify from "dompurify";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { resolvePath, type MarkdownDoc } from "./ipc";
 import { unmark as unmarkZoomable } from "./lightbox";
+import * as fm from "./frontmatter";
 
 // @vscode/markdown-it-katex is CJS-only; not every loader unwraps its default
 const katex = ((katexModule as { default?: unknown }).default ?? katexModule) as typeof katexModule;
@@ -36,7 +39,15 @@ const md: MarkdownIt = MarkdownIt({
   .use(anchor, { tabIndex: false })
   .use(taskLists, { label: true })
   .use(katex, { enableFencedBlocks: true })
-  .use(githubAlerts);
+  .use(githubAlerts)
+  .use(footnote)
+  // the plugin reports the YAML through a callback; md.render is synchronous,
+  // so the value belongs to the render in flight
+  .use(frontMatter, (yaml: string) => {
+    pendingFrontMatter = yaml;
+  });
+
+let pendingFrontMatter: string | null = null;
 
 // Tag every rendered block with its source line for editor→preview scroll sync.
 // Fence attrs land on the <code> element; blocks that drop attrs are stamped below.
@@ -66,9 +77,13 @@ for (const rule of ["math_block", "fence", "html_block"] as const) {
 // All fallible work (markdown-it, DOMPurify, image IPC) happens here, before
 // anything touches the live DOM — callers can keep the previous content on error.
 export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {
+  pendingFrontMatter = null;
   const clean = DOMPurify.sanitize(md.render(doc.content));
+  const yaml = pendingFrontMatter;
+  pendingFrontMatter = null;
   const staging = document.createElement("div");
   staging.innerHTML = clean;
+  if (yaml !== null) staging.prepend(fm.build(yaml));
   await rewriteImages(staging, doc.dir);
   wrapCodeBlocks(staging);
   wrapTables(staging);

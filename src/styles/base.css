@@ -50,6 +50,42 @@
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
+/* Sepia: a warm paper, in the light scheme (hljs, alerts, mermaid stay light) */
+:root[data-theme="sepia"] {
+  color-scheme: light;
+  --bg: #f3e9d6;
+  --surface: #faf3e4;
+  --surface-2: #ebdfc8;
+  --text: #3b2f22;
+  --text-muted: #7d6a55;
+  --border: #dccdb2;
+  --accent: #b2552f;
+  --accent-soft: rgba(178, 85, 47, 0.12);
+  --code-bg: #eee3cd;
+  --link: #9a4322;
+  --code-chip-bg: #e6d9bf;
+  --code-chip-border: #cfbf9f;
+  --shadow: 0 4px 24px rgba(59, 47, 34, 0.14);
+}
+
+/* Black: true black for OLED panels, in the dark scheme */
+:root[data-theme="black"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #121212;
+  --surface-2: #1a1a1a;
+  --text: #e6e6e3;
+  --text-muted: #9c9a93;
+  --border: #262626;
+  --accent: #d97757;
+  --accent-soft: rgba(217, 119, 87, 0.16);
+  --code-bg: #0c0c0c;
+  --link: #df8768;
+  --code-chip-bg: #1f1f1f;
+  --code-chip-border: #333333;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
 /* non-default reading preferences, set as data attributes by prefs.ts */
 :root[data-reader-font="serif"] {
   --reader-font: var(--serif);
