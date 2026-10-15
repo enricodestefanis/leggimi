@@ -29,6 +29,9 @@
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
         <button id="btn-reading" class="icon-btn" title="Reading settings"><span class="aa-glyph">Aa</span></button>
+        <button id="btn-pin" class="icon-btn" title="Keep on top of other windows (Ctrl+Shift+T)" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 7 3 3H7l3-3z"/></svg>
+        </button>
         <span class="toolbar-sep"></span>
         <button id="btn-help" class="icon-btn" title="Help (F1)">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -158,6 +161,19 @@
       </button>
     </div>
 
+    <div id="file-menu" class="menu" role="menu" hidden>
+      <button id="file-reveal" class="menu-item" type="button" role="menuitem">
+        <span class="menu-title">Show in File Explorer</span>
+      </button>
+      <button id="file-copy-path" class="menu-item" type="button" role="menuitem">
+        <span class="menu-title">Copy path</span>
+      </button>
+      <button id="file-copy-link" class="menu-item" type="button" role="menuitem">
+        <span class="menu-title">Copy as Markdown link</span>
+        <span class="menu-hint">Relative to the open document</span>
+      </button>
+    </div>
+
     <div id="reading-menu" class="menu reading-menu" hidden>
       <div class="rs-size">
         <button id="rs-size-dec" class="rs-step" type="button" title="Smaller text (Ctrl+−)">A</button>
@@ -239,6 +255,17 @@
             <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></dt><dd>Share menu</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></dt><dd>Copy as rich text</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>P</kbd></dt><dd>Print / PDF</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></dt><dd>Keep on top</dd></div>
+          </dl>
+        </section>
+        <section>
+          <h3>Editing</h3>
+          <dl>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>I</kbd> / <kbd>K</kbd></dt><dd>Bold / italic / link</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></dt><dd>Find / replace</dd></div>
+            <div><dt><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Move the line</dd></div>
+            <div><dt><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></dt><dd>Duplicate the line</dd></div>
+            <div><dt><kbd>/</kbd></dt><dd>Block menu at a line start</dd></div>
           </dl>
         </section>
       </div>
@@ -280,6 +307,12 @@
           </tbody>
         </table>
         <p>A thin bar along the top of the document shows how far you are, and the toolbar shows the estimated reading time.</p>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>C</kbd> on a selection copies it with its formatting, ready for Word or
+          Outlook, as well as plain text. The document can also be dragged like a sheet of paper:
+          with the middle mouse button anywhere, or with the left button on the empty space beside
+          the text.
+        </p>
 
         <h3>Keyboard shortcuts</h3>
         <table class="help-keys">
@@ -297,6 +330,7 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>Open the Share menu</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Larger / smaller text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Reset the text size</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Keep the window on top</td></tr>
             <tr><td><kbd>?</kbd></td><td>Quick reference of the keys</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Close the find bar, the preview or this help</td></tr>
@@ -326,8 +360,23 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Insert a link</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd></td><td>Heading 1 to 3 (again to remove)</td></tr>
             <tr><td><kbd>/</kbd></td><td>Block menu, at the start of a line</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Find / find and replace in the text</td></tr>
+            <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Next / previous match</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Move the line up / down</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplicate the line</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Delete the line</td></tr>
           </tbody>
         </table>
+        <p>
+          <strong>Tools</strong> (the sliders button at the right of the bar) collects find &amp; replace,
+          the line commands and <strong>Spellcheck</strong>, which underlines misspelled words with the
+          Windows dictionary of your display language.
+        </p>
+        <p>
+          <strong>Recovery:</strong> while you have unsaved changes, a copy of the text is kept aside. If
+          the app is closed without saving (a crash, a forced shutdown), the next time you open that file
+          a notice offers to restore it. The file itself is never touched until you save.
+        </p>
         <p>
           <strong>Images:</strong> paste a screenshot (<kbd>Ctrl</kbd>+<kbd>V</kbd>) or drop an image file
           into the editor — it is saved to an <code>assets</code> folder next to the document and linked
@@ -370,10 +419,13 @@
           <li>GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks.</li>
           <li>Code blocks are syntax-highlighted and have a copy button on hover.</li>
           <li><code>mermaid</code> code fences render as diagrams; invalid syntax falls back to the code block with an error note.</li>
-          <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans, <kbd>0</kbd> fits it to the window and <kbd>Esc</kbd> closes. The button in the toolbar copies it as an image.</li>
+          <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans, <kbd>0</kbd> fits it to the window and <kbd>Esc</kbd> closes. The copy button offers the image as PNG (normal or large), a diagram also as SVG, and both can be saved to a file.</li>
           <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence for display blocks.</li>
           <li>GitHub-style callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>.</li>
           <li>Footnotes: <code>[^1]</code> in the text and <code>[^1]: …</code> anywhere; the notes are collected at the end, with links there and back.</li>
+          <li>Task lists are live: clicking a checkbox updates the <code>[ ]</code> / <code>[x]</code> in the file right away (with an <em>Undo</em> in the notice), or in the editor buffer while you are editing.</li>
+          <li>Tables have a copy button on hover that puts them on the clipboard as tab-separated text, ready for Excel or Google Sheets.</li>
+          <li>Links to other documents work like a wiki: <code>[text](other)</code> finds <code>other.md</code>, <code>[text](folder/)</code> opens the folder's <code>index.md</code> or <code>README.md</code>, and <code>other.md#section</code> jumps to that heading.</li>
           <li>YAML front matter between <code>---</code> lines is folded into a <em>Front matter</em> block at the top: click it to see the fields as a table.</li>
           <li>Images with relative paths resolve against the document's folder.</li>
           <li>Links to web pages open in your default browser; links to other Markdown files open in the viewer.</li>
@@ -401,6 +453,15 @@
         </p>
         <h3>Windows integration</h3>
         <p>Files you open are added to Windows' Recent items and to the app's taskbar jump list. Double-clicking any <code>.md</code> file in File Explorer opens it here once the association is registered by the installer.</p>
+        <p>
+          Right-click a file in the browser panel, or the file name in the toolbar, to <strong>show it in
+          File Explorer</strong>, copy its path, or copy a Markdown link to it relative to the open document.
+          The pin button (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>) keeps the window on top of the others.
+        </p>
+        <p>
+          A <strong>portable</strong> build is available on GitHub as a zip: unpack it anywhere and run it,
+          and it keeps its settings in a <code>data</code> folder next to the program instead of your profile.
+        </p>
         <div id="help-rate-card" class="help-rate" hidden>
           <svg class="help-rate-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.5 15 8.6 21.7 9.6 16.8 14.3 18 21 12 17.8 6 21 7.2 14.3 2.3 9.6 9 8.6 12 2.5"/></svg>
           <div class="help-rate-text">
@@ -440,9 +501,30 @@
         </button>
         <button id="zoom-fit" class="zoom-text-btn" type="button" title="Fit to window (0)">Fit</button>
         <span class="zoom-sep"></span>
-        <button id="zoom-copy" class="icon-btn" type="button" title="Copy as image">
+        <button id="zoom-copy" class="icon-btn" type="button" title="Copy or save…" aria-haspopup="menu">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         </button>
+        <div id="zoom-copy-menu" class="menu" role="menu" hidden>
+          <button class="menu-item" type="button" role="menuitem" data-action="copy-png">
+            <span class="menu-title">Copy as image</span>
+            <span class="menu-hint">PNG, 2× for crisp pasting</span>
+          </button>
+          <button class="menu-item" type="button" role="menuitem" data-action="copy-png-4x">
+            <span class="menu-title">Copy as large image</span>
+            <span class="menu-hint">PNG at 4×, for print or slides</span>
+          </button>
+          <button class="menu-item" type="button" role="menuitem" data-action="copy-svg" data-kind="mermaid">
+            <span class="menu-title">Copy as SVG</span>
+            <span class="menu-hint">Vector markup, pastes into Figma, Inkscape, draw.io</span>
+          </button>
+          <div class="menu-sep"></div>
+          <button class="menu-item" type="button" role="menuitem" data-action="save-png">
+            <span class="menu-title">Save as PNG…</span>
+          </button>
+          <button class="menu-item" type="button" role="menuitem" data-action="save-svg" data-kind="mermaid">
+            <span class="menu-title">Save as SVG…</span>
+          </button>
+        </div>
         <button id="zoom-close" class="icon-btn" type="button" title="Close (Esc)">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>

@@ -5,6 +5,8 @@
 // resolve to the article's copy — and silently break the moment edit mode
 // rebuilds that copy. Re-rendering also answers the theme switch for free.
 
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+import * as ipc from "./ipc";
 import { renderMermaidSvg } from "./mermaid";
 import { rasterizeSvg } from "./share";
 import * as theme from "./theme";
@@ -34,6 +36,7 @@ let caption: HTMLElement;
 let btnIn: HTMLButtonElement;
 let btnOut: HTMLButtonElement;
 let btnCopy: HTMLButtonElement;
+let copyMenu: HTMLElement;
 
 let kind: "mermaid" | "image" = "image";
 let source = "";
@@ -66,12 +69,33 @@ export function init(opts: LightboxOpts): void {
   btnIn = q<HTMLButtonElement>("#zoom-in");
   btnOut = q<HTMLButtonElement>("#zoom-out");
   btnCopy = q<HTMLButtonElement>("#zoom-copy");
+  copyMenu = q("#zoom-copy-menu");
 
   btnIn.addEventListener("click", () => zoomBy(STEP));
   btnOut.addEventListener("click", () => zoomBy(1 / STEP));
   q("#zoom-fit").addEventListener("click", resetFit);
   q("#zoom-close").addEventListener("click", close);
-  btnCopy.addEventListener("click", () => void copyAsImage());
+  btnCopy.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleCopyMenu();
+  });
+  copyMenu.addEventListener("click", (e) => {
+    const action = (e.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
+    if (!action) return;
+    e.stopPropagation();
+    copyMenu.hidden = true;
+    void runCopyAction(action);
+  });
+  opts.dialog.addEventListener("click", () => {
+    if (!copyMenu.hidden) copyMenu.hidden = true;
+  });
+  opts.dialog.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !copyMenu.hidden) {
+      e.preventDefault();
+      e.stopPropagation();
+      copyMenu.hidden = true;
+    }
+  });
 
   wireViewport();
   wireHint();
@@ -380,22 +404,106 @@ function wireViewport(): void {
   });
 }
 
-/* ---- copy as image ---- */
+/* ---- copy / save: PNG, PNG 2x, SVG ---- */
 
-async function copyAsImage(): Promise<void> {
+function toggleCopyMenu(): void {
+  if (!copyMenu.hidden) {
+    copyMenu.hidden = true;
+    return;
+  }
+  // SVG only exists for diagrams
+  for (const el of copyMenu.querySelectorAll<HTMLElement>("[data-kind=mermaid]")) el.hidden = kind !== "mermaid";
+  const r = btnCopy.getBoundingClientRect();
+  copyMenu.style.left = `${Math.max(8, r.right - 250)}px`;
+  copyMenu.style.bottom = `${window.innerHeight - r.top + 8}px`;
+  copyMenu.hidden = false;
+  copyMenu.querySelector<HTMLButtonElement>(".menu-item:not([hidden])")?.focus();
+}
+
+async function runCopyAction(action: string): Promise<void> {
   try {
-    const blob = await toPng();
-    if (!blob) return;
-    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-    btnCopy.classList.add("done");
-    clearTimeout(copyTimer);
-    copyTimer = window.setTimeout(() => btnCopy.classList.remove("done"), 1200);
+    switch (action) {
+      case "copy-png":
+        await copyPng(2);
+        break;
+      case "copy-png-4x":
+        await copyPng(4);
+        break;
+      case "copy-svg": {
+        const text = await toSvgText();
+        if (text) await navigator.clipboard.writeText(text);
+        break;
+      }
+      case "save-png":
+        await savePng();
+        break;
+      case "save-svg":
+        await saveSvg();
+        break;
+    }
+    flashDone();
   } catch {
-    /* clipboard unavailable: nothing useful to say here */
+    /* clipboard or dialog unavailable: nothing useful to say here */
   }
 }
 
-async function toPng(): Promise<Blob | null> {
+function flashDone(): void {
+  btnCopy.classList.add("done");
+  clearTimeout(copyTimer);
+  copyTimer = window.setTimeout(() => btnCopy.classList.remove("done"), 1200);
+}
+
+async function copyPng(scale: number): Promise<void> {
+  const blob = await toPng(scale);
+  if (blob) await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+}
+
+async function savePng(): Promise<void> {
+  const target = await saveDialog({
+    defaultPath: `${(caption.textContent || "image").replace(/[\\/:*?"<>|]+/g, "-")}.png`,
+    filters: [{ name: "PNG image", extensions: ["png"] }],
+  }).catch(() => null);
+  if (typeof target !== "string" || !target) return;
+  const blob = await toPng(2);
+  if (!blob) return;
+  await ipc.exportBinary(target, await blobToBase64(blob));
+}
+
+async function saveSvg(): Promise<void> {
+  const target = await saveDialog({
+    defaultPath: "diagram.svg",
+    filters: [{ name: "SVG image", extensions: ["svg"] }],
+  }).catch(() => null);
+  if (typeof target !== "string" || !target) return;
+  const text = await toSvgText();
+  if (text) await ipc.exportFile(target, text);
+}
+
+// a standalone SVG of the diagram, always in the light palette so it reads
+// on any background, with an intrinsic size
+async function toSvgText(): Promise<string | null> {
+  if (kind !== "mermaid") return null;
+  const holder = document.createElement("div");
+  holder.innerHTML = await renderMermaidSvg(source, false);
+  const svg = holder.querySelector("svg");
+  if (!svg) return null;
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", String(natW));
+  svg.setAttribute("height", String(natH));
+  svg.style.removeProperty("max-width");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(svg)}\n`;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).slice((reader.result as string).indexOf(",") + 1));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function toPng(scale: number): Promise<Blob | null> {
   if (kind === "mermaid") {
     const svg = stage.querySelector("svg");
     if (!svg) return null;
@@ -407,7 +515,7 @@ async function toPng(): Promise<Blob | null> {
     svg.setAttribute("width", String(natW));
     svg.setAttribute("height", String(natH));
     try {
-      return dataUrlToBlob((await rasterizeSvg(svg)).dataUrl);
+      return dataUrlToBlob((await rasterizeSvg(svg, scale)).dataUrl);
     } finally {
       svg.removeAttribute("width");
       svg.removeAttribute("height");

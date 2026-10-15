@@ -169,6 +169,33 @@ pub fn resolve_path(dir: String, rel: String) -> Result<String, String> {
     Ok(canon.to_string_lossy().into_owned())
 }
 
+/// Resolves a document link the way a wiki would: `rel` itself, then
+/// `rel.<md ext>`, then `rel/index.<ext>` and `rel/README.<ext>`. None when
+/// nothing exists. Backs "smart links" between Markdown files.
+#[tauri::command]
+pub fn resolve_doc(dir: String, rel: String) -> Option<String> {
+    let base = Path::new(&dir).join(&rel);
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if base.is_file() {
+        candidates.push(base.clone());
+    }
+    for ext in MD_EXTS {
+        let mut with_ext = base.clone().into_os_string();
+        with_ext.push(format!(".{ext}"));
+        candidates.push(PathBuf::from(with_ext));
+    }
+    for name in ["index", "README", "readme"] {
+        for ext in MD_EXTS {
+            candidates.push(base.join(format!("{name}.{ext}")));
+        }
+    }
+    candidates
+        .into_iter()
+        .find(|p| p.is_file())
+        .and_then(|p| dunce::canonicalize(p).ok())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 pub fn parent_dir(path: String) -> Option<String> {
     let canon = dunce::canonicalize(&path).ok()?;

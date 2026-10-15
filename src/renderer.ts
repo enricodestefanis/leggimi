@@ -37,7 +37,7 @@ const md: MarkdownIt = MarkdownIt({
   },
 })
   .use(anchor, { tabIndex: false })
-  .use(taskLists, { label: true })
+  .use(taskLists, { label: true, enabled: true })
   .use(katex, { enableFencedBlocks: true })
   .use(githubAlerts)
   .use(footnote)
@@ -83,10 +83,11 @@ export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {
   pendingFrontMatter = null;
   const staging = document.createElement("div");
   staging.innerHTML = clean;
-  if (yaml !== null) staging.prepend(fm.build(yaml));
   await rewriteImages(staging, doc.dir);
   wrapCodeBlocks(staging);
   wrapTables(staging);
+  // after the wraps: the front matter's own table is not a document table
+  if (yaml !== null) staging.prepend(fm.build(yaml));
   return staging;
 }
 
@@ -164,11 +165,34 @@ function wrapCodeBlocks(root: HTMLElement): void {
   }
 }
 
+const TABLE_ICON =
+  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>';
+
 function wrapTables(root: HTMLElement): void {
   for (const table of root.querySelectorAll("table")) {
     const scroll = document.createElement("div");
     scroll.className = "table-scroll";
     table.replaceWith(scroll);
     scroll.append(table);
+    // hover button: the table as tab-separated text, which Excel and Sheets
+    // paste straight into cells
+    const btn = document.createElement("button");
+    btn.className = "table-copy icon-btn small";
+    btn.type = "button";
+    btn.title = "Copy table (for Excel)";
+    btn.innerHTML = TABLE_ICON;
+    btn.addEventListener("click", async () => {
+      const rows = [...table.querySelectorAll("tr")].map((tr) =>
+        [...tr.querySelectorAll("th, td")].map((c) => (c.textContent ?? "").trim().replace(/\s+/g, " ")).join("\t"),
+      );
+      try {
+        await navigator.clipboard.writeText(rows.join("\n"));
+        btn.innerHTML = CHECK_ICON;
+        setTimeout(() => (btn.innerHTML = TABLE_ICON), 1200);
+      } catch {
+        /* clipboard unavailable */
+      }
+    });
+    scroll.append(btn);
   }
 }

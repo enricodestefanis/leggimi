@@ -59,11 +59,33 @@ fn ensure_webview2() -> bool {
     false
 }
 
+/// `leggimi-portable.txt` next to the exe switches to portable mode: the
+/// WebView2 profile (localStorage: preferences, recents, positions) lives in
+/// `<exe dir>\data` and the app gets its own identifier, so it never shares
+/// the single-instance mutex or the config folder with an installed copy.
+fn portable_data_dir() -> Option<std::path::PathBuf> {
+    let exe = dunce::canonicalize(std::env::current_exe().ok()?).ok()?;
+    let dir = exe.parent()?;
+    if !dir.join("leggimi-portable.txt").is_file() {
+        return None;
+    }
+    let data = dir.join("data");
+    // a read-only location (zip opened in place): behave like the installed app
+    std::fs::create_dir_all(&data).ok()?;
+    Some(data)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
     if !ensure_webview2() {
         return;
+    }
+    let mut context = tauri::generate_context!();
+    if let Some(data) = portable_data_dir() {
+        // the WebView2 loader takes this variable over the folder Tauri passes
+        std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &data);
+        context.config_mut().identifier = "com.enrico.leggimi.portable".to_owned();
     }
     tauri::Builder::default()
         // single-instance must be the first registered plugin
@@ -89,6 +111,7 @@ pub fn run() {
             commands::read_markdown,
             commands::write_markdown,
             commands::existing_paths,
+            commands::resolve_doc,
             commands::export_file,
             commands::export_binary,
             commands::save_clipboard_image,
@@ -102,6 +125,6 @@ pub fn run() {
             commands::is_store_install,
             commands::open_store_review
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }

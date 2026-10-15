@@ -77,7 +77,8 @@
     break-after: avoid;
   }
 
-  .code-copy {
+  .code-copy,
+  .table-copy {
     display: none;
   }
 

@@ -101,6 +101,17 @@
               return [];
             case "resolve_path":
               return `${DIR}\\${args.rel}`;
+            case "resolve_doc": {
+              // like the Rust command: the path itself, then .md, then index.md / README.md inside it
+              const base = `${DIR}\\${args.rel.replace(/\//g, "\\").replace(/\\$/, "")}`;
+              for (const c of [base, `${base}.md`, `${base}\\index.md`, `${base}\\README.md`]) {
+                if (harness.files.has(c)) return c;
+              }
+              return null;
+            }
+            case "plugin:window|set_always_on_top":
+            case "plugin:opener|reveal_item_in_dir":
+              return null;
             case "is_store_install":
               return params.has("store"); // ?store=1 behaves like the Store build
             case "plugin:app|version":

@@ -7,6 +7,43 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.12.0] - 2026-10-15
+
+The editor release: the things that make the editor safe to live in.
+
+### Added
+- **Find & replace** in the editor (`Ctrl+F` / `Ctrl+H`, `F3` / `Shift+F3` to step, match
+  case, regexp and whole-word options). While reading, `Ctrl+F` still opens the document
+  find bar.
+- **Spellcheck** with the Windows dictionary, on by default; toggle it from the new
+  **Tools** menu of the format bar.
+- Line commands with their shortcuts: move the line up / down (`Alt+↑` / `Alt+↓`),
+  duplicate (`Shift+Alt+↓`) and delete (`Ctrl+Shift+K`), also in the Tools menu.
+- **Recovery draft**: while the buffer has unsaved changes a copy is kept aside; after a
+  crash or a forced close, opening the file again offers to restore it. The file is never
+  written without you.
+- **Live task lists**: clicking a checkbox in the preview updates the `[ ]` / `[x]` in the
+  source. While reading it writes the file at once and the notice offers *Undo*; while
+  editing it changes the buffer, to be saved with `Ctrl+S`.
+- **Copy a table** for Excel or Google Sheets: a button on hover puts it on the clipboard as
+  tab-separated text.
+- The full-window preview's copy button is now a menu: PNG (2×) or large PNG (4×), and
+  for diagrams **SVG**; each can also be **saved to a file**.
+- `Ctrl+C` on a selection copies it with its formatting (the same Word-friendly HTML as the
+  Share copy) together with the plain text.
+- **Smart links** between documents: `[text](other)` finds `other.md`, `[text](folder/)`
+  opens the folder's `index.md` or `README.md`, and `other.md#section` jumps to that
+  heading in the other file. A link that resolves to nothing says so.
+- Right-click a file in the browser panel, or the file name in the toolbar: **Show in File
+  Explorer**, **Copy path**, **Copy as Markdown link** (relative to the open document).
+- **Keep on top**: a pin button in the toolbar (`Ctrl+Shift+T`).
+- **Drag to scroll** like a PDF reader: the middle mouse button anywhere, the left button
+  on the empty space beside the text.
+- **Portable build**: `Leggimi_x.y.z_x64-portable.zip` on GitHub Releases. With the
+  `leggimi-portable.txt` marker next to the exe, settings, recent files and reading
+  positions live in a `data` folder beside it, and the copy never interferes with an
+  installed Leggimi.
+
 ## [1.11.0] - 2026-10-15
 
 The reading release: everything here shortens the "open, read, close" loop.

@@ -58,7 +58,7 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
   const clone = article.cloneNode(true) as HTMLElement;
   for (const el of clone.querySelectorAll(".code-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-source-line]")) el.removeAttribute("data-source-line");
-  for (const el of clone.querySelectorAll("[data-mmd-source]")) el.removeAttribute("data-mmd-source");
+  for (const el of clone.querySelectorAll(".table-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-zoomable]")) {
     el.removeAttribute("data-zoomable");
     el.removeAttribute("tabindex");
@@ -127,13 +127,20 @@ const escapeHtml = (s: string) =>
 
 // Word can't lay out KaTeX's HTML spans or draw inline SVG: hand it MathML
 // (converted to native equations on open) and PNG renderings of diagrams.
-async function preparePortableClone(article: HTMLElement, docDir: string): Promise<HTMLElement> {
-  const clone = cleanedClone(article, docDir);
+// `live` is the laid-out article the diagrams are rasterized from; `source`
+// is what gets copied (the article itself, or a holder with a selection).
+async function preparePortableClone(
+  source: HTMLElement,
+  docDir: string,
+  live: HTMLElement = source,
+): Promise<HTMLElement> {
+  const clone = cleanedClone(source, docDir);
   await inlineImages(clone);
   for (const el of clone.querySelectorAll(".katex-html")) el.remove();
   // Word has no <details>: the folded front matter would paste as loose text
   for (const el of clone.querySelectorAll(".front-matter")) el.remove();
-  await replaceMermaidWithPng(article, clone);
+  await replaceMermaidWithPng(live, clone);
+  for (const el of clone.querySelectorAll("[data-mmd-source]")) el.removeAttribute("data-mmd-source");
   return clone;
 }
 
@@ -146,9 +153,12 @@ async function replaceMermaidWithPng(article: HTMLElement, clone: HTMLElement): 
   const dark = document.documentElement.dataset.scheme === "dark";
   if (dark) await rerenderForTheme(article, false);
   try {
-    const liveDiagrams = article.querySelectorAll<HTMLElement>(".mermaid-diagram");
+    const liveDiagrams = [...article.querySelectorAll<HTMLElement>(".mermaid-diagram")];
     for (let i = 0; i < cloneDiagrams.length; i++) {
-      const svg = liveDiagrams[i]?.querySelector("svg");
+      // a selection copy holds a subset: match the diagram by its source
+      const src = cloneDiagrams[i].dataset.mmdSource;
+      const live = src ? liveDiagrams.find((d) => d.dataset.mmdSource === src) : liveDiagrams[i];
+      const svg = live?.querySelector("svg");
       if (!svg) continue;
       try {
         const png = await rasterizeSvg(svg);
@@ -419,7 +429,29 @@ export async function copyAsRichText(
   docDir: string,
   plainText: string,
 ): Promise<void> {
-  const clone = await preparePortableClone(article, docDir);
+  await writeRichText(article, docDir, plainText, article);
+}
+
+// Ctrl+C on a selection: the same Word-friendly HTML, for the selected part
+export async function copySelectionAsRichText(
+  article: HTMLElement,
+  docDir: string,
+  range: Range,
+): Promise<void> {
+  const holder = document.createElement("div");
+  holder.append(range.cloneContents());
+  // a selection that starts inside a code block loses its wrapper: the
+  // style map still handles <pre>/<code> through the generic entries
+  await writeRichText(holder, docDir, range.toString(), article);
+}
+
+async function writeRichText(
+  source: HTMLElement,
+  docDir: string,
+  plainText: string,
+  live: HTMLElement,
+): Promise<void> {
+  const clone = await preparePortableClone(source, docDir, live);
   unwrapTableScrolls(clone);
   applyInlineStyles(clone, COPY_STYLES);
   wordifyAlerts(clone);
@@ -475,7 +507,10 @@ export async function buildDocxBase64(
 }
 
 // drawn from the live, laid-out SVG: a detached clone has no geometry
-export function rasterizeSvg(svg: SVGSVGElement): Promise<{ dataUrl: string; width: number; height: number }> {
+export function rasterizeSvg(
+  svg: SVGSVGElement,
+  scale = 2,
+): Promise<{ dataUrl: string; width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const rect = svg.getBoundingClientRect();
     const xml = new XMLSerializer().serializeToString(svg);
@@ -483,7 +518,7 @@ export function rasterizeSvg(svg: SVGSVGElement): Promise<{ dataUrl: string; wid
     img.onload = () => {
       const w = Math.round(img.naturalWidth || rect.width || 800);
       const h = Math.round(img.naturalHeight || rect.height || 400);
-      const scale = 2; // crisp on print and hi-dpi
+      // `scale` 2 by default: crisp on print and hi-dpi
       const canvas = document.createElement("canvas");
       canvas.width = w * scale;
       canvas.height = h * scale;

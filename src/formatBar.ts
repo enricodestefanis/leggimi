@@ -18,6 +18,17 @@ const INSERTS: [id: string, hint: string][] = [
   ["warning", "Something to watch out for"],
   ["divider", "Horizontal rule"],
 ];
+// the Tools menu: find & replace, line commands and the spellcheck toggle
+const TOOLS: [id: string, hint: string][] = [
+  ["find", "Search the text, replace one or all"],
+  ["moveLineUp", ""],
+  ["moveLineDown", ""],
+  ["copyLineDown", ""],
+  ["deleteLine", ""],
+  ["spell", "Underline misspelled words (Windows dictionary)"],
+];
+const SLIDERS =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.2" fill="var(--bg)"/><circle cx="15" cy="17" r="2.2" fill="var(--bg)"/></svg>';
 const CHEVRON =
   '<svg class="fb-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
 const PLUS =
@@ -65,9 +76,19 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
       );
       item.type = "button";
       item.dataset.cmd = id;
-      item.setAttribute("role", "menuitem");
+      item.setAttribute("role", c.checked ? "menuitemcheckbox" : "menuitem");
       menu.append(item);
     }
+    // checkable items show their state each time the menu opens
+    const syncChecks = () => {
+      for (const item of menu.querySelectorAll<HTMLElement>("[data-cmd]")) {
+        const c = commandById.get(item.dataset.cmd ?? "");
+        if (!c?.checked) continue;
+        const on = c.checked();
+        item.setAttribute("aria-checked", String(on));
+        item.classList.toggle("is-checked", on);
+      }
+    };
     menu.addEventListener("mousedown", (e) => e.preventDefault()); // keep the editor selection
     menu.addEventListener("click", (e) => {
       const id = (e.target as HTMLElement).closest<HTMLElement>("[data-cmd]")?.dataset.cmd;
@@ -102,6 +123,7 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
       menu.style.top = `${r.bottom + 6}px`;
       menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 280))}px`;
       menu.style.right = "auto";
+      syncChecks();
       menu.hidden = false;
       btn.setAttribute("aria-expanded", "true");
       // keyboard users land in the menu; mouse users keep their caret
@@ -141,6 +163,14 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
   insertBtn.title = "Insert a block — or type / at the start of a line";
   dropdown(insertBtn, INSERTS, "fb-insert-menu");
   bar.append(insertBtn);
+
+  bar.append(el("span", "fb-sep"));
+  const toolsBtn = el("button", "fb-btn fb-tools", `${SLIDERS}${CHEVRON}`);
+  toolsBtn.type = "button";
+  toolsBtn.title = "Tools: find & replace, line commands, spellcheck";
+  toolsBtn.setAttribute("aria-label", "Tools");
+  dropdown(toolsBtn, TOOLS, "fb-tools-menu");
+  bar.append(toolsBtn);
 
   bar.append(el("span", "fb-spacer"));
   bar.append(el("span", "fb-hint", "Type <kbd>/</kbd> for blocks"));

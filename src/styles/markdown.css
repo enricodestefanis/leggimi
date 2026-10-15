@@ -143,10 +143,27 @@
 }
 
 .markdown-body .table-scroll {
+  position: relative;
   overflow-x: auto;
   margin: 0 0 1em;
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+/* hover button: copy the table for Excel */
+.markdown-body .table-copy {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: opacity 0.15s;
+}
+
+.markdown-body .table-scroll:hover .table-copy,
+.markdown-body .table-copy:focus-visible {
+  opacity: 1;
 }
 
 .markdown-body table {
@@ -190,6 +207,11 @@
   margin: 0 0.2em 0 -1.45em;
   accent-color: var(--accent);
   transform: translateY(2px);
+  cursor: pointer;
+}
+
+.markdown-body .task-list-item > label {
+  cursor: pointer;
 }
 
 .markdown-body kbd {

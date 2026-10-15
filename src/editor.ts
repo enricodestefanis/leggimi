@@ -9,6 +9,7 @@ import {
   scrollPastEnd,
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { search, searchKeymap, openSearchPanel } from "@codemirror/search";
 import { syntaxHighlighting, syntaxTree, HighlightStyle } from "@codemirror/language";
 import {
   autocompletion,
@@ -19,7 +20,15 @@ import {
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { tags } from "@lezer/highlight";
-import { COMMANDS, commandById, activeFormats, iconHtml } from "./editCommands";
+import {
+  COMMANDS,
+  commandById,
+  activeFormats,
+  iconHtml,
+  spellCompartment,
+  spellAttrs,
+  spellcheckEnabled,
+} from "./editCommands";
 import { mountFormatBar } from "./formatBar";
 
 export interface EditorCallbacks {
@@ -124,6 +133,62 @@ const appTheme = EditorView.theme({
     fontSize: "11.5px",
     color: "var(--text-muted)",
   },
+  // find & replace panel (@codemirror/search), styled like the app's bars
+  ".cm-panels": { backgroundColor: "var(--surface)", color: "var(--text)", border: "none" },
+  ".cm-panels.cm-panels-top": { borderBottom: "1px solid var(--border)" },
+  ".cm-panel.cm-search": {
+    fontFamily: "var(--sans)",
+    fontSize: "12.5px",
+    padding: "6px 8px",
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: "4px 6px",
+  },
+  ".cm-panel.cm-search br": { display: "none" },
+  ".cm-panel.cm-search .cm-textfield": {
+    font: "inherit",
+    fontSize: "12.5px",
+    minWidth: "180px",
+    padding: "4px 8px",
+    border: "1px solid var(--border)",
+    borderRadius: "6px",
+    backgroundColor: "var(--bg)",
+    color: "var(--text)",
+    outline: "none",
+  },
+  ".cm-panel.cm-search .cm-textfield:focus": { borderColor: "var(--accent)" },
+  ".cm-panel.cm-search .cm-button": {
+    font: "inherit",
+    fontSize: "12px",
+    padding: "4px 8px",
+    border: "1px solid var(--border)",
+    borderRadius: "6px",
+    backgroundImage: "none",
+    backgroundColor: "var(--surface)",
+    color: "var(--text)",
+    cursor: "pointer",
+  },
+  ".cm-panel.cm-search .cm-button:hover": { backgroundColor: "var(--surface-2)" },
+  ".cm-panel.cm-search label": {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    marginLeft: "4px",
+  },
+  ".cm-panel.cm-search input[type=checkbox]": { accentColor: "var(--accent)", margin: "0" },
+  ".cm-panel.cm-search [name=close]": {
+    position: "static",
+    marginLeft: "auto",
+    padding: "0 6px",
+    fontSize: "16px",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+  },
+  ".cm-searchMatch": { backgroundColor: "rgba(250, 204, 21, 0.4)" },
+  ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#f59e0b", color: "#1a1915" },
 });
 
 // Keys as the app displays them ("Ctrl+Shift+X") → CodeMirror ("Mod-Shift-x")
@@ -135,7 +200,7 @@ function cmKey(shortcut: string): string {
 }
 
 const formatKeymap = COMMANDS.filter((c) => c.shortcut).map((c) => ({
-  key: cmKey(c.shortcut!),
+  key: c.key ?? cmKey(c.shortcut!),
   run: c.run,
   preventDefault: true,
 }));
@@ -237,6 +302,8 @@ function makeState(content: string): EditorState {
       scrollPastEnd(),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
       slashMenu,
+      search({ top: true }),
+      spellCompartment.of(spellAttrs(spellcheckEnabled())),
       syntaxHighlighting(mdHighlight),
       appTheme,
       keymap.of([
@@ -247,9 +314,11 @@ function makeState(content: string): EditorState {
             return true;
           },
         },
+        { key: "Mod-h", run: openSearchPanel, preventDefault: true },
         ...formatKeymap,
         indentWithTab,
         ...historyKeymap,
+        ...searchKeymap,
         ...defaultKeymap,
       ]),
       EditorView.updateListener.of((update) => {
@@ -286,6 +355,15 @@ export function setContent(content: string): void {
   // a fresh state also resets the undo history and cursor
   view.setState(makeState(normalized));
   callbacks?.onDirtyChanged(false);
+  formatsListener?.(activeFormats(view.state));
+}
+
+/** Put a recovered draft in the buffer; `lastSaved` (the file) stays, so it is dirty. */
+export function loadDraft(text: string): void {
+  if (!view) return;
+  view.setState(makeState(text));
+  dirty = text !== lastSaved;
+  callbacks?.onDirtyChanged(dirty);
   formatsListener?.(activeFormats(view.state));
 }
 
@@ -332,6 +410,13 @@ export function runCommand(id: string): void {
 export function onActiveFormats(listener: (active: Set<string>) => void): void {
   formatsListener = listener;
   if (view) listener(activeFormats(view.state));
+}
+
+/** Replace one 0-based line of the buffer (the preview's checkbox toggles). */
+export function replaceLine(line: number, text: string): void {
+  if (!view || line < 0 || line >= view.state.doc.lines) return;
+  const l = view.state.doc.line(line + 1);
+  view.dispatch({ changes: { from: l.from, to: l.to, insert: text }, userEvent: "input.format" });
 }
 
 export function insertAtCursor(text: string): void {

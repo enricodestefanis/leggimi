@@ -48,6 +48,8 @@ export const searchInTree = (dir: string, query: string) =>
 export const parentDir = (path: string) => invoke<string | null>("parent_dir", { path });
 export const watchFile = (path: string) => invoke<void>("watch_file", { path });
 export const resolvePath = (dir: string, rel: string) => invoke<string>("resolve_path", { dir, rel });
+// a document link without extension, or to a folder: the file it stands for
+export const resolveDoc = (dir: string, rel: string) => invoke<string | null>("resolve_doc", { dir, rel });
 export const showWindow = () => invoke<void>("show_window");
 export const isStoreInstall = () => invoke<boolean>("is_store_install");
 export const openStoreReview = () => invoke<void>("open_store_review");

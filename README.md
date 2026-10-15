@@ -41,6 +41,9 @@ explicitly.
   ```powershell
   winget install --id 9PG51TBZ2CB1 --source msstore
   ```
+- **Portable**: `Leggimi_x.y.z_x64-portable.zip` on the same releases page — unzip anywhere and
+  run; settings stay in a `data` folder next to the exe (delete `leggimi-portable.txt` to use
+  the per-user location instead). No file association is registered.
 - **Direct download**: the NSIS installer (`Leggimi_x.y.z_x64-setup.exe`) is attached to every
   [GitHub release](https://github.com/enricodestefanis/leggimi/releases/latest). It is not
   code-signed, so SmartScreen may ask you to confirm on first run.
@@ -59,16 +62,22 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
   links, lists, task lists, quotes), the usual shortcuts, and a **`/` menu** at the start of a
   line that inserts tables, Mermaid diagrams, KaTeX formulas, code blocks and callouts. The file
   stays plain Markdown — every command just edits the text
+- **Find & replace** (`Ctrl+F` / `Ctrl+H`), **spellcheck** with the Windows dictionary, line
+  commands (`Alt+↑` / `Alt+↓` move, `Shift+Alt+↓` duplicate, `Ctrl+Shift+K` delete), and a
+  **recovery draft** that offers your unsaved text back after a crash
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
-- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks, **footnotes**
+- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks, **footnotes**;
+  task-list checkboxes are **live** (a click updates the file, with Undo), tables have a
+  **copy for Excel** button, and `Ctrl+C` copies a selection with its formatting
 - **YAML front matter** folded into a block at the top of the document: click it to see the
   fields as a table, instead of reading them as stray text
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
 - **Full-window preview** for diagrams and images: click one to open it, zoom with `+` / `−` or
-  the scroll wheel around the pointer, drag to pan, `0` to fit, `Esc` to close — and a button to
-  copy it as an image. Diagrams fill the window and stay sharp at any zoom
+  the scroll wheel around the pointer, drag to pan, `0` to fit, `Esc` to close — and a menu to
+  copy it as PNG (2× or 4×) or SVG, or save it to a file. Diagrams fill the window and stay
+  sharp at any zoom
 - **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences for display blocks
 - **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - Clickable **outline** with scroll-spy, and a **filter box** on long documents (type, then
@@ -78,7 +87,11 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 - **Reading keys**: `j` / `k` scroll, `.` / `,` jump between headings, `g g` / `G` go to the
   top and the end, `n` / `N` step through find matches, `?` shows the quick reference. A
   hairline along the top of the document shows the progress and the toolbar the estimated
-  reading time
+  reading time; the document can also be dragged like a sheet of paper (middle button)
+- **Smart links**: `[text](other)` finds `other.md`, `[text](folder/)` opens the folder's
+  `index.md` or `README.md`, `other.md#section` jumps to the heading
+- Right-click a file for **Show in File Explorer**, **Copy path** and **Copy as Markdown
+  link**; a **pin** button (`Ctrl+Shift+T`) keeps the window on top
 - **File browser** for the Markdown files in the folder you opened; collapsed folders are
   remembered across navigation and restarts
 - **Resizable side panels**: drag the inner edge of the file browser or the outline to widen it
@@ -120,6 +133,10 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 | `Ctrl+Shift+X` / `Ctrl+Shift+M` | Strikethrough / inline code (editing) |
 | `Ctrl+K` | Insert a link (editing) |
 | `Ctrl+1` … `Ctrl+3` | Heading 1 to 3 (editing) |
+| `Ctrl+F` / `Ctrl+H` | Find / find and replace (editing) |
+| `Alt+↑` / `Alt+↓` | Move the line (editing) |
+| `Shift+Alt+↓` / `Ctrl+Shift+K` | Duplicate / delete the line (editing) |
+| `Ctrl+Shift+T` | Keep the window on top |
 | `/` | Block menu at the start of a line (editing) |
 | `Ctrl+P` | Print or save as PDF |
 | `Ctrl+Shift+C` | Copy the document as rich text |

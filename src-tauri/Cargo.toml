@@ -1,6 +1,6 @@
 [package]
 name = "leggimi"
-version = "1.11.0"
+version = "1.12.0"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
 license = "MIT"

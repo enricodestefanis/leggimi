@@ -1,9 +1,11 @@
 // Markdown editing commands shared by the editor keymap, the format bar and
 // the "/" menu. Each command edits the source text directly: the file on
 // disk stays plain Markdown, there is no hidden rich-text model.
-import { EditorSelection, EditorState, Line, type ChangeSpec } from "@codemirror/state";
-import type { EditorView } from "@codemirror/view";
+import { Compartment, EditorSelection, EditorState, Line, type ChangeSpec } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
+import { copyLineDown, deleteLine, moveLineDown, moveLineUp } from "@codemirror/commands";
+import { openSearchPanel } from "@codemirror/search";
 
 export type EditCommand = (view: EditorView) => boolean;
 
@@ -289,12 +291,35 @@ export interface CommandInfo {
   /** inner SVG markup on a 24×24 stroke grid, or a short text glyph */
   icon: string;
   run: EditCommand;
+  /** as displayed: "Ctrl+Shift+X", "Alt+↑" */
   shortcut?: string;
+  /** CodeMirror key name when it can't be derived from `shortcut` ("Alt-ArrowUp") */
+  key?: string;
   /** extra words the "/" menu matches on */
   keywords?: string;
   /** listed in the "/" menu and the Insert menu */
   block?: boolean;
+  /** a checkable setting: its current state, for the menu's check mark */
+  checked?: () => boolean;
 }
+
+// ------------------------------------------------------------- spellcheck
+// WebView2 uses the Windows spell checker; it only needs the attribute on the
+// editable element. The setting lives in a compartment so a toggle takes
+// effect without rebuilding the editor state (CodeMirror re-applies content
+// attributes on every update, so a bare DOM write would not stick).
+const SPELL_KEY = "editor-spell";
+export const spellCompartment = new Compartment();
+export const spellAttrs = (on: boolean) =>
+  EditorView.contentAttributes.of({ spellcheck: String(on), autocorrect: "off", autocapitalize: "off" });
+export const spellcheckEnabled = (): boolean => localStorage.getItem(SPELL_KEY) !== "0";
+const toggleSpellcheck: EditCommand = (view) => {
+  const on = !spellcheckEnabled();
+  if (on) localStorage.removeItem(SPELL_KEY);
+  else localStorage.setItem(SPELL_KEY, "0");
+  view.dispatch({ effects: spellCompartment.reconfigure(spellAttrs(on)) });
+  return true;
+};
 
 const I = {
   bold: '<path d="M6 4h8a4 4 0 0 1 0 8H6z"/><path d="M6 12h9a4 4 0 0 1 0 8H6z"/>',
@@ -314,6 +339,12 @@ const I = {
   tip: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>',
   warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
   divider: '<line x1="3" y1="12" x2="21" y2="12"/><line x1="8" y1="6" x2="16" y2="6" opacity=".35"/><line x1="8" y1="18" x2="16" y2="18" opacity=".35"/>',
+  find: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  lineUp: '<line x1="12" y1="19" x2="12" y2="9"/><polyline points="7 14 12 9 17 14"/><line x1="5" y1="4" x2="19" y2="4"/>',
+  lineDown: '<line x1="12" y1="5" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><line x1="5" y1="20" x2="19" y2="20"/>',
+  duplicate: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 15V5a1 1 0 0 1 1-1h10"/>',
+  deleteLine: '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="14" y2="17"/><line x1="17" y1="14" x2="22" y2="19"/><line x1="22" y1="14" x2="17" y2="19"/>',
+  spell: '<path d="M4 15 8 5l4 10"/><path d="M5.5 11h5"/><path d="M14 11h3a2 2 0 0 1 0 4h-3V7h2.5a2 2 0 0 1 0 4"/><polyline points="4 20 8 23 13 18"/>',
 };
 
 export const COMMANDS: CommandInfo[] = [
@@ -347,6 +378,13 @@ export const COMMANDS: CommandInfo[] = [
   { id: "tip", label: "Tip callout", icon: I.tip, keywords: "alert hint admonition", block: true, run: insertBlock("> [!TIP]\n> {{A helpful suggestion.}}") },
   { id: "warning", label: "Warning callout", icon: I.warning, keywords: "alert caution important admonition", block: true, run: insertBlock("> [!WARNING]\n> {{Something to watch out for.}}") },
   { id: "divider", label: "Divider", icon: I.divider, keywords: "hr rule separator line", block: true, run: insertBlock("---\n") },
+  // tools: the editor's own commands, exposed with the app's display names
+  { id: "find", label: "Find & replace", icon: I.find, run: openSearchPanel, shortcut: "Ctrl+F", key: "Mod-f" },
+  { id: "moveLineUp", label: "Move line up", icon: I.lineUp, run: moveLineUp, shortcut: "Alt+↑", key: "Alt-ArrowUp" },
+  { id: "moveLineDown", label: "Move line down", icon: I.lineDown, run: moveLineDown, shortcut: "Alt+↓", key: "Alt-ArrowDown" },
+  { id: "copyLineDown", label: "Duplicate line", icon: I.duplicate, run: copyLineDown, shortcut: "Shift+Alt+↓", key: "Shift-Alt-ArrowDown" },
+  { id: "deleteLine", label: "Delete line", icon: I.deleteLine, run: deleteLine, shortcut: "Ctrl+Shift+K", key: "Mod-Shift-k" },
+  { id: "spell", label: "Spellcheck", icon: I.spell, run: toggleSpellcheck, checked: spellcheckEnabled },
 ];
 
 export const commandById = new Map(COMMANDS.map((c) => [c.id, c]));

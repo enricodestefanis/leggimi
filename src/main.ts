@@ -11,7 +11,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import * as ipc from "./ipc";
 import { render, renderFragment } from "./renderer";
@@ -26,9 +26,10 @@ import * as prefs from "./prefs";
 import * as positions from "./positions";
 import * as recents from "./recents";
 import * as rating from "./rating";
+import * as drafts from "./drafts";
 import { captureScrollAnchor, restoreScrollAnchor, type ScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
-import { buildDocxBase64, buildStandaloneHtml, copyAsRichText } from "./share";
+import { buildDocxBase64, buildStandaloneHtml, copyAsRichText, copySelectionAsRichText } from "./share";
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -58,6 +59,8 @@ const tocFilterClear = $<HTMLButtonElement>("#toc-filter-clear");
 const recentSection = $("#recent-section");
 const recentList = $("#recent-list");
 const rateToast = $("#rate-toast");
+const btnPin = $<HTMLButtonElement>("#btn-pin");
+const fileMenu = $("#file-menu");
 const zoomDialog = $<HTMLDialogElement>("#zoom-dialog");
 const zoomHint = $<HTMLButtonElement>("#zoom-hint");
 const editorPane = $("#editor-pane");
@@ -96,7 +99,15 @@ const isMarkdownPath = (p: string) => MD_EXT_RE.test(p);
 const isImagePath = (p: string) => /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(p);
 const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
 
-async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): Promise<void> {
+interface OpenOptions {
+  preserveScroll?: boolean;
+  /** heading id to show at the top (a `file.md#section` link) */
+  anchor?: string;
+  /** 1-based source line to show at the top (`--line N`) */
+  line?: number;
+}
+
+async function openFile(path: string, opts: OpenOptions = {}): Promise<void> {
   if (opening) return;
   opening = true;
   try {
@@ -138,7 +149,10 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
     updateDocMeta();
 
     const target = anchor ?? (sameDoc ? null : positions.recall(doc.path));
-    if (!restoreRemembered(target)) contentPane.scrollTop = 0;
+    // an explicit destination (link anchor, --line) beats the remembered place
+    const jump = (): boolean =>
+      opts.anchor !== undefined ? scrollToId(opts.anchor) : opts.line !== undefined ? scrollToSourceLine(opts.line - 1) : false;
+    if (!jump() && !restoreRemembered(target)) contentPane.scrollTop = 0;
     updateProgress();
     const applied = contentPane.scrollTop;
 
@@ -147,10 +161,11 @@ async function openFile(path: string, opts: { preserveScroll?: boolean } = {}): 
         lightbox.markAll(article);
         // diagrams change the heights above the anchor: re-apply it, unless
         // the reader has already moved on
-        if (target && currentDoc === doc && contentPane.scrollTop === applied) restoreRemembered(target);
+        if (currentDoc === doc && contentPane.scrollTop === applied && !jump() && target) restoreRemembered(target);
         updateProgress();
       })
       .catch(() => {});
+    if (!sameDoc) offerDraft(doc);
     search.onContentChanged();
 
     const rootChanged = !browseRoot || !isInside(browseRoot, doc.dir);
@@ -212,7 +227,10 @@ async function enterEditMode(): Promise<void> {
     return;
   }
   editorMod.mount(editorPane, {
-    onDocChanged: schedulePreview,
+    onDocChanged: () => {
+      schedulePreview();
+      scheduleDraft();
+    },
     onDirtyChanged: () => updateTitles(),
     onScroll: () => scheduleSyncPreview(),
     onCaretMoved: () => {
@@ -299,11 +317,59 @@ async function insertDroppedImage(path: string): Promise<void> {
   }
 }
 
-const confirmDiscard = (): Promise<boolean> =>
-  ask("You have unsaved changes. Discard them?", {
+const confirmDiscard = async (): Promise<boolean> => {
+  const ok = await ask("You have unsaved changes. Discard them?", {
     title: "Unsaved changes",
     kind: "warning",
   }).catch(() => false);
+  // a deliberate discard also drops the recovery draft of that buffer
+  if (ok && currentDoc) drafts.remove(currentDoc.path);
+  return ok;
+};
+
+/* ---- recovery drafts ---- */
+
+let draftTimer: number | undefined;
+
+// while the buffer is dirty its text is parked in localStorage (1 s after the
+// last keystroke); a clean buffer removes the draft
+function scheduleDraft(): void {
+  clearTimeout(draftTimer);
+  draftTimer = window.setTimeout(() => {
+    if (!currentDoc || !editorMod) return;
+    if (editing && editorMod.isDirty()) {
+      drafts.put(currentDoc.path, editorMod.currentText(), currentDoc.content.replace(/\r\n/g, "\n"));
+    } else {
+      drafts.remove(currentDoc.path);
+    }
+  }, 1000);
+}
+
+// a draft left by a crash or a killed process is offered, never applied
+function offerDraft(doc: ipc.MarkdownDoc): void {
+  const draft = drafts.get(doc.path);
+  if (!draft) return;
+  if (draft.text === doc.content.replace(/\r\n/g, "\n")) {
+    drafts.remove(doc.path);
+    return;
+  }
+  showNotice("Unsaved edits from a previous session were recovered.", {
+    sticky: true,
+    action: {
+      label: "Restore",
+      fn: () => {
+        if (currentDoc !== doc) return;
+        hideNotice(true);
+        enterEditMode()
+          .then(() => {
+            if (currentDoc === doc) editorMod?.loadDraft(draft.text);
+          })
+          .catch(() => {});
+      },
+    },
+    onDismiss: () => drafts.remove(doc.path),
+  });
+}
 
 /* ---- live preview ---- */
 
@@ -500,32 +566,94 @@ function syncPreviewToEditor(reveal = false, retry = true): void {
 
 /* ---- saving ---- */
 
+// Writes `content` to the document's file, guarding against a file that
+// changed on disk since it was read. null: the user kept the other version.
+async function writeDocument(doc: ipc.MarkdownDoc, content: string): Promise<number | null> {
+  suppressReloadUntil = Date.now() + 1500;
+  try {
+    return await ipc.writeMarkdown(doc.path, content, doc.modified);
+  } catch (err) {
+    if (String(err) !== ipc.WRITE_CONFLICT) throw err;
+    // someone else wrote the file since it was read: overwrite only on request
+    const overwrite = await ask(
+      "The file changed on disk since you opened it. Overwrite it with your version?",
+      { title: "File changed on disk", kind: "warning", okLabel: "Overwrite", cancelLabel: "Keep theirs" },
+    ).catch(() => false);
+    if (!overwrite) return null;
+    suppressReloadUntil = Date.now() + 1500;
+    return ipc.writeMarkdown(doc.path, content, null);
+  }
+}
+
 async function saveFile(): Promise<void> {
   if (!editing || !currentDoc || !editorMod?.isDirty()) return;
   const content = editorMod.getContent();
   const doc = currentDoc;
-  suppressReloadUntil = Date.now() + 1500;
   try {
-    let modified: number;
-    try {
-      modified = await ipc.writeMarkdown(doc.path, content, doc.modified);
-    } catch (err) {
-      if (String(err) !== ipc.WRITE_CONFLICT) throw err;
-      // someone else wrote the file since it was read: overwrite only on request
-      const overwrite = await ask(
-        "The file changed on disk since you opened it. Overwrite it with your version?",
-        { title: "File changed on disk", kind: "warning", okLabel: "Overwrite", cancelLabel: "Keep theirs" },
-      ).catch(() => false);
-      if (!overwrite) return;
-      suppressReloadUntil = Date.now() + 1500;
-      modified = await ipc.writeMarkdown(doc.path, content, null);
-    }
+    const modified = await writeDocument(doc, content);
+    if (modified === null) return;
     if (currentDoc !== doc) return; // another document took over meanwhile
     currentDoc = { ...doc, content, modified };
     editorMod.markSaved();
+    drafts.remove(doc.path);
     hideNotice(true);
   } catch (err) {
     showNotice(`Save failed: ${err}`);
+  }
+}
+
+/* ---- task-list checkboxes in the preview ---- */
+
+const TASK_MARK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\])/;
+
+// The box already toggled natively; mirror it in the source line. In edit
+// mode that edits the buffer; while reading it writes the file right away,
+// the one deliberate exception to "the file only changes on Ctrl+S".
+async function onTaskToggle(box: HTMLInputElement): Promise<void> {
+  const li = box.closest<HTMLElement>("li[data-source-line]");
+  const line = Number(li?.dataset.sourceLine);
+  if (!currentDoc || !li || !Number.isFinite(line)) return;
+  const doc = currentDoc;
+  const eol = doc.content.includes("\r\n") ? "\r\n" : "\n";
+  const source = editing && editorMod ? editorMod.currentText() : doc.content;
+  const lines = source.split(/\r?\n/);
+  const old = lines[line] ?? "";
+  const next = old.replace(TASK_MARK_RE, (_m, pre: string, _mark: string, post: string) => `${pre}${box.checked ? "x" : " "}${post}`);
+  if (next === old) return;
+  if (editing && editorMod) {
+    editorMod.replaceLine(line, next);
+    return;
+  }
+  lines[line] = next;
+  const content = lines.join(eol);
+  try {
+    const modified = await writeDocument(doc, content);
+    if (modified === null || currentDoc !== doc) {
+      box.checked = !box.checked;
+      return;
+    }
+    currentDoc = { ...doc, content, modified };
+    const before = doc.content;
+    showNotice(box.checked ? "Task checked: the file was updated." : "Task unchecked: the file was updated.", {
+      action: {
+        label: "Undo",
+        fn: () => {
+          if (!currentDoc || !samePath(currentDoc.path, doc.path)) return;
+          const cur = currentDoc;
+          writeDocument(cur, before)
+            .then((m) => {
+              if (m === null || currentDoc !== cur) return;
+              currentDoc = { ...cur, content: before, modified: m };
+              box.checked = !box.checked;
+              hideNotice(true);
+            })
+            .catch((err) => showNotice(`Undo failed: ${err}`));
+        },
+      },
+    });
+  } catch (err) {
+    box.checked = !box.checked;
+    showNotice(`Could not update the file: ${err}`);
   }
 }
 
@@ -672,12 +800,14 @@ async function exportDocAsDocx(): Promise<void> {
 /* ---- notice bar ---- */
 
 let noticeActionFn: (() => void) | null = null;
+let noticeDismissFn: (() => void) | null = null;
 let noticeSticky = false;
 
 function showNotice(
   message: string,
-  opts: { action?: { label: string; fn: () => void }; sticky?: boolean } = {},
+  opts: { action?: { label: string; fn: () => void }; sticky?: boolean; onDismiss?: () => void } = {},
 ): void {
+  noticeDismissFn = opts.onDismiss ?? null;
   noticeMsg.textContent = message;
   noticeMsg.title = message;
   if (opts.action) {
@@ -698,6 +828,112 @@ function hideNotice(force = false): void {
   noticeBar.hidden = true;
   noticeSticky = false;
   noticeActionFn = null;
+  noticeDismissFn = null;
+}
+
+/* ---- jumping to a heading or a source line ---- */
+
+function scrollToId(id: string): boolean {
+  const el = article.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`);
+  if (!el) return false;
+  const paneTop = contentPane.getBoundingClientRect().top;
+  contentPane.scrollTop += el.getBoundingClientRect().top - paneTop - 24;
+  return true;
+}
+
+// 0-based source line: the last rendered block starting at or before it
+function scrollToSourceLine(line: number): boolean {
+  collectPreviewAnchors();
+  let best: HTMLElement | null = null;
+  for (const a of previewAnchors) {
+    if (a.line > line) break;
+    best = a.el;
+  }
+  if (!best) return false;
+  const paneTop = contentPane.getBoundingClientRect().top;
+  contentPane.scrollTop += best.getBoundingClientRect().top - paneTop - 24;
+  if (editing) editorMod?.scrollToLine(line);
+  return true;
+}
+
+/* ---- always on top ---- */
+
+let pinnedOnTop = false;
+
+function togglePin(): void {
+  pinnedOnTop = !pinnedOnTop;
+  btnPin.setAttribute("aria-pressed", String(pinnedOnTop));
+  getCurrentWindow()
+    .setAlwaysOnTop(pinnedOnTop)
+    .catch(() => {
+      pinnedOnTop = !pinnedOnTop;
+      btnPin.setAttribute("aria-pressed", String(pinnedOnTop));
+    });
+}
+
+/* ---- file context menu: reveal, copy path, copy link ---- */
+
+let fileMenuPath = "";
+
+function openFileMenu(path: string, x: number, y: number): void {
+  fileMenuPath = path;
+  shareMenu.hidden = true;
+  readingMenu.hidden = true;
+  fileMenu.style.left = `${Math.min(x, window.innerWidth - 260)}px`;
+  fileMenu.style.top = `${Math.min(y, window.innerHeight - 130)}px`;
+  fileMenu.style.right = "auto";
+  fileMenu.hidden = false;
+  fileMenu.querySelector<HTMLButtonElement>(".menu-item")?.focus();
+}
+
+// `to` relative to `fromDir`, with forward slashes, for a Markdown link
+function relativePath(fromDir: string, to: string): string {
+  const a = fromDir.split(/[\\/]+/).filter(Boolean);
+  const b = to.split(/[\\/]+/).filter(Boolean);
+  let i = 0;
+  while (i < a.length && i < b.length && a[i].toLowerCase() === b[i].toLowerCase()) i++;
+  if (i === 0) return to.replace(/\\/g, "/"); // different drives: absolute
+  return [...Array(a.length - i).fill(".."), ...b.slice(i)].join("/");
+}
+
+/* ---- drag to scroll ---- */
+
+// The middle button drags anywhere, like a PDF reader; the left button only
+// on the pane outside the text column, so selecting text stays untouched.
+function wireDragScroll(): void {
+  let drag: { id: number; y: number; top: number; moved: boolean } | null = null;
+  contentPane.addEventListener("pointerdown", (e) => {
+    const margin = e.button === 0 && e.target === contentPane;
+    if (!(e.button === 1 || margin) || lightbox.isOpen()) return;
+    if (e.button === 1) e.preventDefault(); // no autoscroll icon
+    drag = { id: e.pointerId, y: e.clientY, top: contentPane.scrollTop, moved: false };
+    try {
+      contentPane.setPointerCapture(e.pointerId);
+    } catch {
+      /* synthetic pointer: capture is a nicety */
+    }
+  });
+  contentPane.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dy = e.clientY - drag.y;
+    if (!drag.moved && Math.abs(dy) < 3) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      contentPane.classList.add("dragging");
+    }
+    contentPane.scrollTop = drag.top - dy;
+  });
+  const end = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    contentPane.classList.remove("dragging");
+    drag = null;
+  };
+  contentPane.addEventListener("pointerup", end);
+  contentPane.addEventListener("pointercancel", end);
+  // Chromium's middle-click autoscroll would fight the drag
+  contentPane.addEventListener("auxclick", (e) => {
+    if (e.button === 1) e.preventDefault();
+  });
 }
 
 /* ---- file browser ---- */
@@ -1092,6 +1328,52 @@ function wireUi(): void {
   $("#btn-toc").addEventListener("click", () => toggleSidebar("toc-hidden"));
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
+  btnPin.addEventListener("click", togglePin);
+  wireDragScroll();
+
+  // right-click on a file (tree or title): reveal, copy path, copy link
+  treeRoot.addEventListener("contextmenu", (e) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>(".tree-row");
+    if (!row) return;
+    const path = row.classList.contains("dir") ? row.parentElement?.dataset.path : row.dataset.path;
+    if (!path) return;
+    e.preventDefault();
+    openFileMenu(path, e.clientX, e.clientY);
+  });
+  docTitle.addEventListener("contextmenu", (e) => {
+    if (!currentDoc) return;
+    e.preventDefault();
+    openFileMenu(currentDoc.path, e.clientX, e.clientY);
+  });
+  $("#file-reveal").addEventListener("click", () => {
+    fileMenu.hidden = true;
+    revealItemInDir(fileMenuPath).catch((err) => showNotice(`Could not open File Explorer: ${err}`));
+  });
+  $("#file-copy-path").addEventListener("click", () => {
+    fileMenu.hidden = true;
+    navigator.clipboard.writeText(fileMenuPath).catch(() => {});
+  });
+  $("#file-copy-link").addEventListener("click", () => {
+    fileMenu.hidden = true;
+    const rel = currentDoc ? relativePath(currentDoc.dir, fileMenuPath) : fileMenuPath;
+    const name = fileName(fileMenuPath).replace(MD_EXT_RE, "");
+    navigator.clipboard.writeText(`[${name}](${encodeURI(rel)})`).catch(() => {});
+  });
+
+  // Ctrl+C on a selection: the same Word-friendly HTML as the Share copy,
+  // for the selected part, plus the plain text
+  article.addEventListener("copy", (e) => {
+    if (editing || !currentDoc) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || isTypingTarget(document.activeElement)) return;
+    const range = sel.getRangeAt(0);
+    if (!article.contains(range.commonAncestorContainer)) return;
+    e.preventDefault();
+    const plain = sel.toString();
+    copySelectionAsRichText(article, currentDoc.dir, range).catch(() => {
+      navigator.clipboard.writeText(plain).catch(() => {});
+    });
+  });
   $("#recent-clear").addEventListener("click", () => {
     recents.clear();
     renderRecents().catch(() => {});
@@ -1166,6 +1448,7 @@ function wireUi(): void {
     const t = e.target as Node;
     if (!shareMenu.hidden && !shareMenu.contains(t)) shareMenu.hidden = true;
     if (!readingMenu.hidden && !readingMenu.contains(t)) readingMenu.hidden = true;
+    if (!fileMenu.hidden && !fileMenu.contains(t)) fileMenu.hidden = true;
   });
 
   // reading settings: selections keep the popover open so choices compose
@@ -1210,7 +1493,11 @@ function wireUi(): void {
   });
   treeSearchClear.addEventListener("click", () => closeFolderSearch());
   noticeAction.addEventListener("click", () => noticeActionFn?.());
-  $("#notice-close").addEventListener("click", () => hideNotice(true));
+  $("#notice-close").addEventListener("click", () => {
+    const fn = noticeDismissFn;
+    hideNotice(true);
+    fn?.();
+  });
 
   // click outside the dialog body closes it
   helpDialog.addEventListener("click", (e) => {
@@ -1251,9 +1538,15 @@ function wireUi(): void {
     }
     // the editor already handled it (Ctrl+B/I format there, Ctrl+S saved once)
     if (e.defaultPrevented) return;
-    if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden)) {
+    if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden || !fileMenu.hidden)) {
       shareMenu.hidden = true;
       readingMenu.hidden = true;
+      fileMenu.hidden = true;
+      return;
+    }
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "t") {
+      e.preventDefault();
+      togglePin();
       return;
     }
     if (e.key === "Escape" && !rateToast.hidden) {
@@ -1372,25 +1665,38 @@ function wireUi(): void {
     openUrl(href).catch(() => {});
   });
 
-  // in-article links: hash → in-page scroll, web → default browser, .md → open in viewer
+  // in-article links: hash → in-page scroll, web → default browser, local →
+  // open in the viewer. Local links resolve like a wiki: `doc`, `doc.md`,
+  // `folder/` (its index.md or README.md), with an optional `#heading`.
   article.addEventListener("click", (e) => {
     const a = (e.target as HTMLElement).closest("a");
     if (!a) return;
     const href = a.getAttribute("href") ?? "";
     if (!href) return;
     e.preventDefault();
-    if (href.startsWith("#")) {
-      document
-        .getElementById(decodeURIComponent(href.slice(1)))
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (/^https?:/i.test(href)) {
-      openUrl(href).catch(() => {});
-    } else if (isMarkdownPath(href) && currentDoc) {
+    const hashAt = href.indexOf("#");
+    const target = hashAt >= 0 ? href.slice(0, hashAt) : href;
+    const anchor = hashAt >= 0 ? decodeURIComponent(href.slice(hashAt + 1)) : undefined;
+    if (!target) {
+      if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
+      if (/^https?:/i.test(href)) openUrl(href).catch(() => {});
+    } else if (currentDoc) {
+      const rel = decodeURIComponent(target);
       ipc
-        .resolvePath(currentDoc.dir, decodeURIComponent(href))
-        .then((p) => openFile(p))
-        .catch(() => {});
+        .resolveDoc(currentDoc.dir, rel)
+        .then((p) => {
+          if (p) return openFile(p, { anchor });
+          showNotice(`Not found: ${rel}`);
+        })
+        .catch(() => showNotice(`Not found: ${rel}`));
     }
+  });
+
+  // task-list checkboxes write the change back to the source
+  article.addEventListener("click", (e) => {
+    const box = (e.target as HTMLElement).closest<HTMLInputElement>("input.task-list-item-checkbox");
+    if (box) void onTaskToggle(box);
   });
 
   // diagrams and images open the full-window preview
