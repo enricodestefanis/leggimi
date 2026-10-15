@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+
 type MermaidModule = typeof import("mermaid")["default"];
 
 let mermaid: MermaidModule | null = null;
@@ -47,7 +49,7 @@ export async function renderMermaidIn(article: HTMLElement, dark: boolean): Prom
     } catch (err) {
       const banner = document.createElement("div");
       banner.className = "mermaid-error";
-      banner.textContent = `Invalid Mermaid diagram: ${err instanceof Error ? err.message : String(err)}`;
+      banner.textContent = t("render.invalidMermaid", { err: err instanceof Error ? err.message : String(err) });
       // keep the source readable, styled like every other code block
       const block = document.createElement("div");
       block.className = "code-block";

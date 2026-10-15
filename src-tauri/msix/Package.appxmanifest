@@ -15,8 +15,9 @@
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap rescap">
+  IgnorableNamespaces="uap uap5 rescap">
 
   <Identity
     Name="EnricoDeStefanis.Leggimi"
@@ -69,6 +70,12 @@
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>
+        <!-- the leggimi command from any terminal (Settings > Apps > App execution aliases) -->
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="leggimi.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="leggimi.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
       </Extensions>
     </Application>
   </Applications>

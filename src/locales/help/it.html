@@ -1,0 +1,191 @@
+        <p class="help-lead">Un visualizzatore ed editor veloce per documenti Markdown. I file vengono modificati solo quando salvi con <kbd>Ctrl</kbd>+<kbd>S</kbd>.</p>
+
+        <h3>Aprire i documenti</h3>
+        <ul>
+          <li>Doppio clic su un file <code>.md</code> in Esplora file.</li>
+          <li>Trascina un file sulla finestra.</li>
+          <li>Premi <kbd>Ctrl</kbd>+<kbd>O</kbd> o usa il pulsante con la cartella nella barra degli strumenti.</li>
+        </ul>
+        <p>Aprire un secondo file mentre l'app è in esecuzione riusa la stessa finestra.</p>
+        <p>
+          Senza documenti aperti, la finestra elenca i file aperti di recente: fai clic su uno per
+          riaprirlo. Ogni documento inoltre <strong>ricorda dove avevi smesso di leggere</strong> e
+          torna lì quando lo riapri.
+        </p>
+        <p>
+          Da un terminale, <code>leggimi file.md</code> apre un file e <code>--line 40</code> lo
+          apre a quella riga (<code>leggimi</code> è nel PATH dopo l'installazione).
+        </p>
+
+        <h3>Tasti di lettura</h3>
+        <p>Mentre leggi, tasti singoli ti muovono nel documento (non fanno nulla mentre scrivi in una casella o stai modificando):</p>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>Scorri un po' in giù / in su</td></tr>
+            <tr><td><kbd>Spazio</kbd> / <kbd>Shift</kbd>+<kbd>Spazio</kbd></td><td>Pagina giù / su</td></tr>
+            <tr><td><kbd>.</kbd> / <kbd>,</kbd></td><td>Titolo successivo / precedente</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>g</kbd> / <kbd>G</kbd></td><td>Inizio / fine del documento</td></tr>
+            <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>Risultato successivo / precedente della ricerca</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Mostra o nasconde il promemoria dei tasti</td></tr>
+          </tbody>
+        </table>
+        <p>Una linea sottile in alto nel documento indica a che punto sei e la barra degli strumenti mostra il tempo di lettura stimato.</p>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>C</kbd> su una selezione la copia con la formattazione, pronta per Word o
+          Outlook, oltre che come testo semplice. Il documento si può anche trascinare come un foglio:
+          con il tasto centrale del mouse ovunque, o con il tasto sinistro nello spazio vuoto accanto
+          al testo.
+        </p>
+
+        <h3>Scorciatoie da tastiera</h3>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Apri un file</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Entra o esci dalla modifica</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Salva il file (in modifica)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Trova nel documento</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Cerca in tutta la cartella</td></tr>
+            <tr><td><kbd>Invio</kbd> / <kbd>Shift</kbd>+<kbd>Invio</kbd></td><td>Risultato successivo / precedente</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Mostra o nascondi i file (grassetto in modifica)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Mostra o nascondi l'indice (corsivo in modifica)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Stampa o salva come PDF</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>Copia il documento come testo formattato</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>Apri il menu Condividi</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Testo più grande / più piccolo</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Ripristina la dimensione del testo</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Mantieni la finestra in primo piano</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Promemoria dei tasti</td></tr>
+            <tr><td><kbd>F1</kbd></td><td>Mostra questa guida</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Chiudi la barra di ricerca, l'anteprima o questa guida</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Modifica</h3>
+        <p>
+          Premi <kbd>Ctrl</kbd>+<kbd>E</kbd> o il pulsante con la matita per modificare il documento aperto:
+          l'editor di testo compare a sinistra, con l'anteprima dal vivo a destra. Un punto arancione accanto
+          al nome del file indica modifiche non salvate: salva con <kbd>Ctrl</kbd>+<kbd>S</kbd>. Uscire dalla
+          modifica o aprire un altro documento con modifiche non salvate chiede prima conferma. Se il file
+          cambia sul disco mentre hai modifiche non salvate, compare un avviso invece di sovrascrivere il tuo
+          lavoro, e salvare sopra un file cambiato dopo l'apertura chiede conferma prima di sovrascriverlo.
+        </p>
+        <p>
+          <strong>Formattazione:</strong> la barra sopra l'editor formatta la selezione, o la parola sotto il
+          cursore, e inserisce tabelle, diagrammi Mermaid, formule e riquadri. Digita <kbd>/</kbd> a inizio
+          riga per scegliere un blocco per nome. Incollare un link su un testo selezionato lo trasforma in un
+          link Markdown.
+        </p>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Grassetto / corsivo</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd></td><td>Barrato</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd></td><td>Codice in linea</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Inserisci un link</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd></td><td>Titolo da 1 a 3 (di nuovo per togliere)</td></tr>
+            <tr><td><kbd>/</kbd></td><td>Menu dei blocchi, a inizio riga</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Trova / trova e sostituisci nel testo</td></tr>
+            <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Risultato successivo / precedente</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Sposta la riga in su / in giù</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplica la riga</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Elimina la riga</td></tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>Strumenti</strong> (il pulsante con i cursori a destra della barra) raccoglie trova e
+          sostituisci, i comandi di riga e il <strong>Controllo ortografico</strong>, che sottolinea le parole
+          errate con il dizionario di Windows della tua lingua.
+        </p>
+        <p>
+          <strong>Recupero:</strong> finché hai modifiche non salvate, una copia del testo viene tenuta da
+          parte. Se l'app si chiude senza salvare (un crash, uno spegnimento forzato), alla prossima apertura
+          di quel file un avviso propone di ripristinarla. Il file non viene mai toccato finché non salvi.
+        </p>
+        <p>
+          <strong>Immagini:</strong> incolla uno screenshot (<kbd>Ctrl</kbd>+<kbd>V</kbd>) o trascina un file
+          immagine nell'editor: viene salvato in una cartella <code>assets</code> accanto al documento e
+          collegato con un percorso relativo.
+        </p>
+
+        <h3>Sfogliare i file</h3>
+        <p>
+          Il pannello a sinistra elenca i file Markdown della cartella che hai aperto, fino a quattro livelli
+          di sottocartelle. Aprire un file dal pannello mantiene la stessa cartella radice, così non perdi mai
+          il filo; usa la <strong>freccia in su</strong> accanto a <em>File</em> per spostare la radice alla
+          cartella superiore. Aprire un documento fuori dalla cartella corrente sposta lì il pannello.
+          Le cartelle che chiudi restano chiuse mentre navighi, e anche al riavvio.
+        </p>
+        <p>Le cartelle senza file Markdown sono nascoste, come le cartelle nascoste e di build tipo <code>node_modules</code>.</p>
+        <p>
+          Entrambi i pannelli laterali si allargano trascinando il bordo interno; un doppio clic sul bordo
+          ripristina la larghezza predefinita. La dimensione del loro testo segue <strong>Pannelli</strong>
+          nelle impostazioni di lettura.
+        </p>
+        <p>
+          La casella di ricerca sopra l'elenco (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) trova il testo in
+          ogni file Markdown della cartella: i risultati mostrano il file e un estratto, e aprirne uno evidenzia
+          il termine nel documento. <kbd>Esc</kbd> cancella la ricerca e rimette l'elenco.
+        </p>
+
+        <h3>Indice</h3>
+        <p>
+          Il pannello a destra elenca i titoli del documento ed evidenzia quello che stai leggendo. Fai clic
+          su una voce per saltarci. Nei documenti lunghi sopra l'elenco compare una casella di filtro: digita
+          per restringere i titoli, poi <kbd>↑</kbd> / <kbd>↓</kbd> e <kbd>Invio</kbd> saltano a uno;
+          <kbd>Esc</kbd> la svuota.
+        </p>
+
+        <h3>Ricarica automatica</h3>
+        <p>Il file aperto viene osservato sul disco. Quando cambia, la vista si aggiorna da sola e mantiene la posizione di lettura: utile mentre un documento viene rigenerato. In modifica l'aggiornamento avviene solo finché il tuo buffer non ha modifiche non salvate.</p>
+
+        <h3>Rendering</h3>
+        <ul>
+          <li>Markdown in stile GitHub: tabelle, elenchi di attività, barrato, link automatici.</li>
+          <li>I blocchi di codice sono evidenziati e hanno un pulsante di copia al passaggio del mouse.</li>
+          <li>I blocchi <code>mermaid</code> diventano diagrammi; una sintassi non valida torna al blocco di codice con una nota di errore.</li>
+          <li>Fai clic su un diagramma o un'immagine per aprirlo a tutta finestra: <kbd>+</kbd> / <kbd>−</kbd> o la rotellina ingrandiscono, trascinare sposta, <kbd>0</kbd> adatta alla finestra ed <kbd>Esc</kbd> chiude. Il pulsante di copia offre l'immagine come PNG (normale o grande), un diagramma anche come SVG, ed entrambi si possono salvare su file.</li>
+          <li>Le formule usano KaTeX: <code>$…$</code> in linea, <code>$$…$$</code> o un blocco di codice <code>math</code> per le formule centrate.</li>
+          <li>Riquadri in stile GitHub: una citazione che inizia con <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>.</li>
+          <li>Note a piè di pagina: <code>[^1]</code> nel testo e <code>[^1]: …</code> ovunque; le note vengono raccolte in fondo, con i collegamenti di andata e ritorno.</li>
+          <li>Gli elenchi di attività sono attivi: un clic su una casella aggiorna subito <code>[ ]</code> / <code>[x]</code> nel file (con <em>Annulla</em> nell'avviso), o nel buffer dell'editor mentre stai modificando.</li>
+          <li>Le tabelle hanno un pulsante al passaggio del mouse che le copia negli appunti come testo separato da tabulazioni, pronto per Excel o Fogli Google.</li>
+          <li>I link ad altri documenti funzionano come in un wiki: <code>[testo](altro)</code> trova <code>altro.md</code>, <code>[testo](cartella/)</code> apre <code>index.md</code> o <code>README.md</code> della cartella, e <code>altro.md#sezione</code> salta a quel titolo.</li>
+          <li>Il front matter YAML tra righe <code>---</code> viene ripiegato in un blocco <em>Front matter</em> in cima: fai clic per vedere i campi in tabella.</li>
+          <li>Un paragrafo che contiene solo <code>[TOC]</code> diventa un indice dei titoli che seguono, presente anche in stampa, HTML e DOCX.</li>
+          <li>Le immagini con percorso relativo vengono cercate rispetto alla cartella del documento.</li>
+          <li>I link alle pagine web si aprono nel browser predefinito; i link ad altri file Markdown si aprono nel visualizzatore.</li>
+        </ul>
+
+        <h3>Condivisione ed esportazione</h3>
+        <p>Il pulsante <strong>Condividi</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) raccoglie tutto ciò che esce dall'app:</p>
+        <ul>
+          <li><strong>Copia come testo formattato</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>): mette il documento negli appunti con la formattazione, pronto da incollare in Outlook, Word o Teams. Le immagini locali vengono incorporate.</li>
+          <li><strong>Stampa…</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): stampa solo il documento, impaginato per la carta, sempre su sfondo chiaro, con titolo e data in cima a ogni pagina e "pagina / pagine" in fondo.</li>
+          <li><strong>Salva come PDF</strong>: la stessa impaginazione scritta direttamente in un file PDF, senza altre finestre oltre alla scelta del file. <strong>Nuova pagina a ogni titolo 1</strong> è un'opzione del menu, ricordata, per entrambi.</li>
+          <li><strong>Esporta come HTML / DOCX</strong>: salva il documento come una singola pagina <code>.html</code> autonoma che si apre in qualsiasi browser, o come <code>.docx</code> ottimizzato per Microsoft Word: le formule diventano equazioni native di Word, i diagrammi immagini.</li>
+        </ul>
+        <p>Stampa ed esportazioni usano sempre l'impaginazione standard del testo, qualunque siano le impostazioni di lettura attive.</p>
+        <h3>Impostazioni di lettura</h3>
+        <p>
+          Il pulsante <strong>Aa</strong> apre le impostazioni di lettura: dimensione del testo, carattere con o
+          senza grazie, interlinea, larghezza della colonna, la lingua dell'interfaccia e il tema:
+          <strong>chiaro</strong>, <strong>seppia</strong> (carta calda), <strong>scuro</strong>,
+          <strong>nero</strong> (per schermi OLED) o <strong>auto</strong> (chiaro o scuro seguendo Windows).
+          La dimensione del testo è disponibile ovunque con <kbd>Ctrl</kbd>+<kbd>=</kbd> /
+          <kbd>Ctrl</kbd>+<kbd>−</kbd>, <kbd>Ctrl</kbd>+rotellina e <kbd>Ctrl</kbd>+<kbd>0</kbd> per
+          ripristinare; il testo dell'editor segue. <strong>Pannelli</strong> regola a parte la dimensione del
+          testo dell'elenco file e dell'indice: <kbd>Ctrl</kbd>+rotellina sopra un pannello cambia quello.
+          Ogni scelta viene ricordata al riavvio.
+        </p>
+        <h3>Integrazione con Windows</h3>
+        <p>I file che apri vengono aggiunti agli Elementi recenti di Windows e alla jump list dell'app sulla barra delle applicazioni. Il doppio clic su un file <code>.md</code> in Esplora file lo apre qui una volta registrata l'associazione dall'installer.</p>
+        <p>
+          Tasto destro su un file nel pannello, o sul nome del file nella barra degli strumenti, per
+          <strong>mostrarlo in Esplora file</strong>, copiarne il percorso o copiare un link Markdown relativo al
+          documento aperto. Il pulsante con la puntina (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>) tiene la
+          finestra sopra le altre.
+        </p>
+        <p>
+          Una versione <strong>portable</strong> è disponibile su GitHub come zip: scompattala dove vuoi ed
+          eseguila; tiene le impostazioni in una cartella <code>data</code> accanto al programma invece che nel
+          tuo profilo.
+        </p>

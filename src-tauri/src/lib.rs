@@ -9,12 +9,44 @@ use tauri::{Emitter, Manager};
 
 #[derive(Default)]
 pub struct AppState {
-    pub initial_file: Mutex<Option<String>>,
+    pub initial: Mutex<Option<Launch>>,
     pub watcher: Mutex<Option<Debouncer<RecommendedWatcher, RecommendedCache>>>,
 }
 
-fn file_arg(args: impl Iterator<Item = String>) -> Option<String> {
-    args.skip(1).find(|a| !a.starts_with('-'))
+/// What a command line asks for: `leggimi [file] [--line N]`.
+#[derive(Clone, Default, serde::Serialize)]
+pub struct Launch {
+    pub path: Option<String>,
+    /// 1-based source line to show at the top
+    pub line: Option<u32>,
+}
+
+/// `leggimi file.md`, `leggimi --line 40 file.md`, `leggimi file.md -l 40`,
+/// `--line=40`; `--` ends the options; unknown flags are ignored. A relative
+/// file is resolved against `cwd`, the directory of the shell that ran it.
+pub fn parse_args<I: IntoIterator<Item = String>>(args: I, cwd: Option<&std::path::Path>) -> Launch {
+    let mut it = args.into_iter().skip(1);
+    let mut launch = Launch::default();
+    let mut positional_only = false;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--" if !positional_only => positional_only = true,
+            "--line" | "-l" if !positional_only => launch.line = it.next().and_then(|v| v.parse().ok()),
+            s if !positional_only && s.starts_with("--line=") => launch.line = s[7..].parse().ok(),
+            s if !positional_only && s.starts_with('-') => {}
+            s if launch.path.is_none() => {
+                let p = std::path::PathBuf::from(s);
+                let p = if p.is_relative() {
+                    cwd.map(|c| c.join(&p)).unwrap_or(p)
+                } else {
+                    p
+                };
+                launch.path = Some(p.to_string_lossy().into_owned());
+            }
+            _ => {}
+        }
+    }
+    launch
 }
 
 // The MSIX build cannot bundle the WebView2 bootstrapper, and without the
@@ -89,13 +121,14 @@ pub fn run() {
     }
     tauri::Builder::default()
         // single-instance must be the first registered plugin
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.unminimize();
                 let _ = win.set_focus();
             }
-            if let Some(path) = file_arg(argv.into_iter()) {
-                let _ = app.emit("open-file", path);
+            let launch = parse_args(argv, Some(std::path::Path::new(&cwd)));
+            if launch.path.is_some() {
+                let _ = app.emit("open-file", launch);
             }
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
@@ -103,7 +136,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .setup(|app| {
-            *app.state::<AppState>().initial_file.lock().unwrap() = file_arg(std::env::args());
+            let cwd = std::env::current_dir().ok();
+            *app.state::<AppState>().initial.lock().unwrap() =
+                Some(parse_args(std::env::args(), cwd.as_deref()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

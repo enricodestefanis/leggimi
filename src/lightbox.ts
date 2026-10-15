@@ -10,6 +10,7 @@ import * as ipc from "./ipc";
 import { renderMermaidSvg } from "./mermaid";
 import { rasterizeSvg } from "./share";
 import * as theme from "./theme";
+import { t } from "./i18n";
 
 export interface LightboxOpts {
   article: HTMLElement;
@@ -153,13 +154,13 @@ export function markAll(root: HTMLElement): void {
   for (const el of root.querySelectorAll<HTMLElement>(
     ".mermaid-diagram[data-mmd-source]:not([data-zoomable])",
   )) {
-    mark(el, "Diagram — open preview");
+    mark(el, t("zoom.diagramOpen"));
   }
   for (const img of root.querySelectorAll<HTMLImageElement>(
     "img:not(.img-missing):not([data-zoomable])",
   )) {
     const alt = (img.getAttribute("alt") ?? "").trim();
-    mark(img, `${alt || "Image"} — open preview`);
+    mark(img, t("zoom.imageOpen", { alt: alt || t("zoom.image") }));
   }
 }
 
@@ -195,13 +196,13 @@ export async function openFor(el: HTMLElement): Promise<void> {
     source = el.currentSrc || el.src;
     natW = el.naturalWidth;
     natH = el.naturalHeight;
-    caption.textContent = (el.getAttribute("alt") ?? "").trim() || "Image";
+    caption.textContent = (el.getAttribute("alt") ?? "").trim() || t("zoom.image");
   } else {
     const src = el.dataset.mmdSource;
     if (!src) return;
     kind = "mermaid";
     source = src;
-    caption.textContent = "Diagram";
+    caption.textContent = t("zoom.diagram");
   }
   positionHint(null);
   o.dialog.showModal();
@@ -252,7 +253,7 @@ async function build(): Promise<boolean> {
   stage.style.height = `${natH}px`;
   // revealed by the first applyNow, which is what places and scales it
   stage.style.visibility = "hidden";
-  stage.setAttribute("aria-label", caption.textContent ?? "Preview");
+  stage.setAttribute("aria-label", caption.textContent ?? t("zoom.dialog"));
   return true;
 }
 
@@ -461,7 +462,7 @@ async function copyPng(scale: number): Promise<void> {
 async function savePng(): Promise<void> {
   const target = await saveDialog({
     defaultPath: `${(caption.textContent || "image").replace(/[\\/:*?"<>|]+/g, "-")}.png`,
-    filters: [{ name: "PNG image", extensions: ["png"] }],
+    filters: [{ name: t("filter.png"), extensions: ["png"] }],
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   const blob = await toPng(2);
@@ -472,7 +473,7 @@ async function savePng(): Promise<void> {
 async function saveSvg(): Promise<void> {
   const target = await saveDialog({
     defaultPath: "diagram.svg",
-    filters: [{ name: "SVG image", extensions: ["svg"] }],
+    filters: [{ name: t("filter.svg"), extensions: ["svg"] }],
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   const text = await toSvgText();

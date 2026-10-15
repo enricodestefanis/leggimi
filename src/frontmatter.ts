@@ -3,6 +3,8 @@
 // matter uses are parsed (key: value, key: [a, b], key followed by "- item"
 // lines, quoted strings); anything else is shown verbatim.
 
+import { t } from "./i18n";
+
 export type FrontMatterValue = string | string[];
 export type FrontMatterEntry = [key: string, value: FrontMatterValue];
 
@@ -59,7 +61,7 @@ export function build(yaml: string): HTMLElement {
   const summary = document.createElement("summary");
   const label = document.createElement("span");
   label.className = "front-matter-label";
-  label.textContent = "Front matter";
+  label.textContent = t("render.frontMatter");
   summary.append(label);
   details.append(summary);
 

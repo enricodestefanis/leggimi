@@ -27,7 +27,13 @@ export interface SearchHit {
   preview: string;
 }
 
-export const getInitialFile = () => invoke<string | null>("get_initial_file");
+/** a command line: `leggimi [file] [--line N]` */
+export interface Launch {
+  path: string | null;
+  line: number | null;
+}
+
+export const getInitialFile = () => invoke<Launch | null>("get_initial_file");
 export const readMarkdown = (path: string) => invoke<MarkdownDoc>("read_markdown", { path });
 // resolves to the file's new modification time; rejects with WRITE_CONFLICT
 // when `expectedModified` (> 0) no longer matches the file on disk
@@ -56,8 +62,8 @@ export const printToPdf = (path: string, landscape: boolean) =>
 export const isStoreInstall = () => invoke<boolean>("is_store_install");
 export const openStoreReview = () => invoke<void>("open_store_review");
 
-export const onOpenFile = (cb: (path: string) => void): Promise<UnlistenFn> =>
-  listen<string>("open-file", (e) => cb(e.payload));
+export const onOpenFile = (cb: (launch: Launch) => void): Promise<UnlistenFn> =>
+  listen<Launch>("open-file", (e) => cb(e.payload));
 
 export const onFileChanged = (cb: (path: string) => void): Promise<UnlistenFn> =>
   listen<string>("file-changed", (e) => cb(e.payload));

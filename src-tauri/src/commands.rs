@@ -11,7 +11,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 use walkdir::WalkDir;
 
-use crate::{watcher, AppState};
+use crate::{watcher, AppState, Launch};
 
 #[derive(Serialize)]
 pub struct MarkdownDoc {
@@ -66,11 +66,17 @@ const SKIP_DIRS: &[&str] = &[
 const MAX_ENTRIES: usize = 2000;
 const MAX_DEPTH: usize = 4;
 
+/// The command line this process was started with, once; the path is
+/// canonicalized (None when it does not exist).
 #[tauri::command]
-pub fn get_initial_file(state: State<'_, AppState>) -> Option<String> {
-    let path = state.initial_file.lock().unwrap().take()?;
-    let canon = dunce::canonicalize(&path).ok()?;
-    Some(canon.to_string_lossy().into_owned())
+pub fn get_initial_file(state: State<'_, AppState>) -> Option<Launch> {
+    let mut launch = state.initial.lock().unwrap().take()?;
+    launch.path = launch
+        .path
+        .as_deref()
+        .and_then(|p| dunce::canonicalize(p).ok())
+        .map(|p| p.to_string_lossy().into_owned());
+    Some(launch)
 }
 
 #[tauri::command]

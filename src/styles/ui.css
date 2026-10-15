@@ -513,6 +513,15 @@ body.resizing * {
   font-family: var(--serif);
 }
 
+/* seven languages: two rows, same look */
+.rs-lang {
+  flex-wrap: wrap;
+}
+
+.rs-lang .rs-opt {
+  flex: 1 1 28%;
+}
+
 .rs-reset {
   width: 100%;
   padding: 6px;

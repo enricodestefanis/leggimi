@@ -6,6 +6,10 @@ import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { copyLineDown, deleteLine, moveLineDown, moveLineUp } from "@codemirror/commands";
 import { openSearchPanel } from "@codemirror/search";
+import { t, type Dict } from "./i18n";
+
+// the "/" menu matches English words and the localized ones
+const kw = (id: string, english: string): string => `${english} ${t(`kw.${id}` as keyof Dict)}`;
 
 export type EditCommand = (view: EditorView) => boolean;
 
@@ -348,43 +352,43 @@ const I = {
 };
 
 export const COMMANDS: CommandInfo[] = [
-  { id: "bold", label: "Bold", icon: I.bold, run: toggleWrap("**"), shortcut: "Ctrl+B" },
-  { id: "italic", label: "Italic", icon: I.italic, run: toggleWrap("*"), shortcut: "Ctrl+I" },
-  { id: "strike", label: "Strikethrough", icon: I.strike, run: toggleWrap("~~"), shortcut: "Ctrl+Shift+X" },
-  { id: "code", label: "Inline code", icon: I.code, run: toggleWrap("`"), shortcut: "Ctrl+Shift+M" },
-  { id: "link", label: "Link", icon: I.link, run: insertLink, shortcut: "Ctrl+K" },
-  { id: "h1", label: "Heading 1", icon: "H1", run: setHeading(1), shortcut: "Ctrl+1", keywords: "title h1", block: true },
-  { id: "h2", label: "Heading 2", icon: "H2", run: setHeading(2), shortcut: "Ctrl+2", keywords: "subtitle h2", block: true },
-  { id: "h3", label: "Heading 3", icon: "H3", run: setHeading(3), shortcut: "Ctrl+3", keywords: "h3", block: true },
-  { id: "paragraph", label: "Normal text", icon: "¶", run: setHeading(0), keywords: "paragraph plain" },
-  { id: "bullet", label: "Bulleted list", icon: I.bullet, run: toggleLinePrefix("bullet"), keywords: "unordered ul", block: true },
-  { id: "ordered", label: "Numbered list", icon: I.ordered, run: toggleLinePrefix("ordered"), keywords: "ordered ol", block: true },
-  { id: "task", label: "Task list", icon: I.task, run: toggleLinePrefix("task"), keywords: "todo checkbox checklist", block: true },
-  { id: "quote", label: "Quote", icon: I.quote, run: toggleLinePrefix("quote"), keywords: "blockquote citation", block: true },
+  { id: "bold", label: t("cmd.bold"), icon: I.bold, run: toggleWrap("**"), shortcut: "Ctrl+B" },
+  { id: "italic", label: t("cmd.italic"), icon: I.italic, run: toggleWrap("*"), shortcut: "Ctrl+I" },
+  { id: "strike", label: t("cmd.strike"), icon: I.strike, run: toggleWrap("~~"), shortcut: "Ctrl+Shift+X" },
+  { id: "code", label: t("cmd.code"), icon: I.code, run: toggleWrap("`"), shortcut: "Ctrl+Shift+M" },
+  { id: "link", label: t("cmd.link"), icon: I.link, run: insertLink, shortcut: "Ctrl+K" },
+  { id: "h1", label: t("cmd.h1"), icon: "H1", run: setHeading(1), shortcut: "Ctrl+1", keywords: kw("h1", "title h1"), block: true },
+  { id: "h2", label: t("cmd.h2"), icon: "H2", run: setHeading(2), shortcut: "Ctrl+2", keywords: kw("h2", "subtitle h2"), block: true },
+  { id: "h3", label: t("cmd.h3"), icon: "H3", run: setHeading(3), shortcut: "Ctrl+3", keywords: "h3", block: true },
+  { id: "paragraph", label: t("cmd.paragraph"), icon: "¶", run: setHeading(0), keywords: "paragraph plain" },
+  { id: "bullet", label: t("cmd.bullet"), icon: I.bullet, run: toggleLinePrefix("bullet"), keywords: kw("bullet", "unordered ul"), block: true },
+  { id: "ordered", label: t("cmd.ordered"), icon: I.ordered, run: toggleLinePrefix("ordered"), keywords: kw("ordered", "ordered ol"), block: true },
+  { id: "task", label: t("cmd.task"), icon: I.task, run: toggleLinePrefix("task"), keywords: kw("task", "todo checkbox checklist"), block: true },
+  { id: "quote", label: t("cmd.quote"), icon: I.quote, run: toggleLinePrefix("quote"), keywords: kw("quote", "blockquote citation"), block: true },
   {
-    id: "table", label: "Table", icon: I.table, keywords: "grid columns rows", block: true,
+    id: "table", label: t("cmd.table"), icon: I.table, keywords: kw("table", "grid columns rows"), block: true,
     run: insertBlock("| {{Column}} | Column | Column |\n| --- | --- | --- |\n| Cell | Cell | Cell |\n| Cell | Cell | Cell |"),
   },
   {
-    id: "diagram", label: "Diagram", icon: I.diagram, keywords: "mermaid flowchart chart flow graph", block: true,
+    id: "diagram", label: t("cmd.diagram"), icon: I.diagram, keywords: kw("diagram", "mermaid flowchart chart flow graph"), block: true,
     run: insertBlock("```mermaid\nflowchart LR\n  A[{{Start}}] --> B{Decision}\n  B -->|Yes| C[Do it]\n  B -->|No| D[Skip]\n```"),
   },
   {
-    id: "math", label: "Formula", icon: I.math, keywords: "math katex latex equation", block: true,
+    id: "math", label: t("cmd.math"), icon: I.math, keywords: kw("math", "math katex latex equation"), block: true,
     run: insertBlock("$$\n{{E = mc^2}}\n$$"),
   },
-  { id: "codeblock", label: "Code block", icon: I.codeBlock, keywords: "fence snippet pre", block: true, run: insertBlock("```\n{{code}}\n```") },
-  { id: "note", label: "Note callout", icon: I.note, keywords: "alert info admonition", block: true, run: insertBlock("> [!NOTE]\n> {{Useful information.}}") },
-  { id: "tip", label: "Tip callout", icon: I.tip, keywords: "alert hint admonition", block: true, run: insertBlock("> [!TIP]\n> {{A helpful suggestion.}}") },
-  { id: "warning", label: "Warning callout", icon: I.warning, keywords: "alert caution important admonition", block: true, run: insertBlock("> [!WARNING]\n> {{Something to watch out for.}}") },
-  { id: "divider", label: "Divider", icon: I.divider, keywords: "hr rule separator line", block: true, run: insertBlock("---\n") },
+  { id: "codeblock", label: t("cmd.codeblock"), icon: I.codeBlock, keywords: kw("codeblock", "fence snippet pre"), block: true, run: insertBlock("```\n{{code}}\n```") },
+  { id: "note", label: t("cmd.note"), icon: I.note, keywords: kw("note", "alert info admonition"), block: true, run: insertBlock("> [!NOTE]\n> {{Useful information.}}") },
+  { id: "tip", label: t("cmd.tip"), icon: I.tip, keywords: kw("tip", "alert hint admonition"), block: true, run: insertBlock("> [!TIP]\n> {{A helpful suggestion.}}") },
+  { id: "warning", label: t("cmd.warning"), icon: I.warning, keywords: kw("warning", "alert caution important admonition"), block: true, run: insertBlock("> [!WARNING]\n> {{Something to watch out for.}}") },
+  { id: "divider", label: t("cmd.divider"), icon: I.divider, keywords: kw("divider", "hr rule separator line"), block: true, run: insertBlock("---\n") },
   // tools: the editor's own commands, exposed with the app's display names
-  { id: "find", label: "Find & replace", icon: I.find, run: openSearchPanel, shortcut: "Ctrl+F", key: "Mod-f" },
-  { id: "moveLineUp", label: "Move line up", icon: I.lineUp, run: moveLineUp, shortcut: "Alt+↑", key: "Alt-ArrowUp" },
-  { id: "moveLineDown", label: "Move line down", icon: I.lineDown, run: moveLineDown, shortcut: "Alt+↓", key: "Alt-ArrowDown" },
-  { id: "copyLineDown", label: "Duplicate line", icon: I.duplicate, run: copyLineDown, shortcut: "Shift+Alt+↓", key: "Shift-Alt-ArrowDown" },
-  { id: "deleteLine", label: "Delete line", icon: I.deleteLine, run: deleteLine, shortcut: "Ctrl+Shift+K", key: "Mod-Shift-k" },
-  { id: "spell", label: "Spellcheck", icon: I.spell, run: toggleSpellcheck, checked: spellcheckEnabled },
+  { id: "find", label: t("cmd.find"), icon: I.find, run: openSearchPanel, shortcut: "Ctrl+F", key: "Mod-f" },
+  { id: "moveLineUp", label: t("cmd.moveLineUp"), icon: I.lineUp, run: moveLineUp, shortcut: "Alt+↑", key: "Alt-ArrowUp" },
+  { id: "moveLineDown", label: t("cmd.moveLineDown"), icon: I.lineDown, run: moveLineDown, shortcut: "Alt+↓", key: "Alt-ArrowDown" },
+  { id: "copyLineDown", label: t("cmd.copyLineDown"), icon: I.duplicate, run: copyLineDown, shortcut: "Shift+Alt+↓", key: "Shift-Alt-ArrowDown" },
+  { id: "deleteLine", label: t("cmd.deleteLine"), icon: I.deleteLine, run: deleteLine, shortcut: "Ctrl+Shift+K", key: "Mod-Shift-k" },
+  { id: "spell", label: t("cmd.spell"), icon: I.spell, run: toggleSpellcheck, checked: spellcheckEnabled },
 ];
 
 export const commandById = new Map(COMMANDS.map((c) => [c.id, c]));

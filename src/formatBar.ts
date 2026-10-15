@@ -2,6 +2,7 @@
 // and an Insert menu. Every button runs a command from editCommands.ts, the
 // same ones behind the keyboard shortcuts and the "/" menu.
 import { commandById, iconHtml } from "./editCommands";
+import { t } from "./i18n";
 
 const GROUPS: string[][] = [
   ["bold", "italic", "strike", "code", "link"],
@@ -9,23 +10,23 @@ const GROUPS: string[][] = [
 ];
 const HEADINGS = ["paragraph", "h1", "h2", "h3"];
 const INSERTS: [id: string, hint: string][] = [
-  ["table", "3 columns, 2 rows"],
-  ["diagram", "Mermaid flowchart"],
-  ["math", "KaTeX formula block"],
-  ["codeblock", "Fenced code"],
-  ["note", "Highlighted information"],
-  ["tip", "A helpful suggestion"],
-  ["warning", "Something to watch out for"],
-  ["divider", "Horizontal rule"],
+  ["table", t("ins.table")],
+  ["diagram", t("ins.diagram")],
+  ["math", t("ins.math")],
+  ["codeblock", t("ins.codeblock")],
+  ["note", t("ins.note")],
+  ["tip", t("ins.tip")],
+  ["warning", t("ins.warning")],
+  ["divider", t("ins.divider")],
 ];
 // the Tools menu: find & replace, line commands and the spellcheck toggle
 const TOOLS: [id: string, hint: string][] = [
-  ["find", "Search the text, replace one or all"],
+  ["find", t("tool.find")],
   ["moveLineUp", ""],
   ["moveLineDown", ""],
   ["copyLineDown", ""],
   ["deleteLine", ""],
-  ["spell", "Underline misspelled words (Windows dictionary)"],
+  ["spell", t("tool.spell")],
 ];
 const SLIDERS =
   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.2" fill="var(--bg)"/><circle cx="15" cy="17" r="2.2" fill="var(--bg)"/></svg>';
@@ -49,7 +50,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html = "
 export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (active: Set<string>) => void {
   bar.replaceChildren();
   bar.setAttribute("role", "toolbar");
-  bar.setAttribute("aria-label", "Formatting");
+  bar.setAttribute("aria-label", t("fb.label"));
   const buttons = new Map<string, HTMLButtonElement>();
   const menus: HTMLElement[] = [];
 
@@ -132,9 +133,9 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
   };
 
   // heading picker: shows the current block type
-  const headingBtn = el("button", "fb-btn fb-heading", `<span class="fb-heading-label">Text</span>${CHEVRON}`);
+  const headingBtn = el("button", "fb-btn fb-heading", `<span class="fb-heading-label">${t("fb.text")}</span>${CHEVRON}`);
   headingBtn.type = "button";
-  headingBtn.title = "Text style";
+  headingBtn.title = t("fb.textStyle");
   dropdown(
     headingBtn,
     HEADINGS.map((id) => [id, ""]),
@@ -158,22 +159,22 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
   }
 
   bar.append(el("span", "fb-sep"));
-  const insertBtn = el("button", "fb-btn fb-insert", `${PLUS}<span>Insert</span>${CHEVRON}`);
+  const insertBtn = el("button", "fb-btn fb-insert", `${PLUS}<span>${t("fb.insert")}</span>${CHEVRON}`);
   insertBtn.type = "button";
-  insertBtn.title = "Insert a block — or type / at the start of a line";
+  insertBtn.title = t("fb.insertHint");
   dropdown(insertBtn, INSERTS, "fb-insert-menu");
   bar.append(insertBtn);
 
   bar.append(el("span", "fb-sep"));
   const toolsBtn = el("button", "fb-btn fb-tools", `${SLIDERS}${CHEVRON}`);
   toolsBtn.type = "button";
-  toolsBtn.title = "Tools: find & replace, line commands, spellcheck";
-  toolsBtn.setAttribute("aria-label", "Tools");
+  toolsBtn.title = t("fb.toolsHint");
+  toolsBtn.setAttribute("aria-label", t("fb.tools"));
   dropdown(toolsBtn, TOOLS, "fb-tools-menu");
   bar.append(toolsBtn);
 
   bar.append(el("span", "fb-spacer"));
-  bar.append(el("span", "fb-hint", "Type <kbd>/</kbd> for blocks"));
+  bar.append(el("span", "fb-hint", t("fb.slashHint")));
 
   // buttons must not take the focus: the command acts on the editor selection
   bar.addEventListener("mousedown", (e) => {
@@ -195,7 +196,7 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
   return (active) => {
     for (const [id, b] of buttons) b.setAttribute("aria-pressed", String(active.has(id)));
     const h = ["h1", "h2", "h3"].find((id) => active.has(id));
-    headingLabel.textContent = h ? commandById.get(h)!.label : "Text";
+    headingLabel.textContent = h ? commandById.get(h)!.label : t("fb.text");
     headingBtn.classList.toggle("is-active", !!h);
     for (const item of headingMenu.querySelectorAll<HTMLElement>("[data-cmd]")) {
       item.classList.toggle("is-current", item.dataset.cmd === (h ?? "paragraph"));

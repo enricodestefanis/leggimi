@@ -12,6 +12,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { resolvePath, type MarkdownDoc } from "./ipc";
 import { unmark as unmarkZoomable } from "./lightbox";
 import * as fm from "./frontmatter";
+import { t } from "./i18n";
 
 // @vscode/markdown-it-katex is CJS-only; not every loader unwraps its default
 const katex = ((katexModule as { default?: unknown }).default ?? katexModule) as typeof katexModule;
@@ -141,7 +142,7 @@ function renderTocPlaceholders(root: HTMLElement): void {
     if (!/^\s*\[\[?toc\]?\]\s*$/i.test(p.textContent ?? "")) continue;
     const nav = document.createElement("nav");
     nav.className = "doc-toc";
-    nav.setAttribute("aria-label", "Table of contents");
+    nav.setAttribute("aria-label", t("render.toc"));
     if (p.dataset.sourceLine) nav.dataset.sourceLine = p.dataset.sourceLine;
     const heads: HTMLElement[] = [];
     let after = false;
@@ -195,7 +196,7 @@ function wrapCodeBlocks(root: HTMLElement): void {
     const btn = document.createElement("button");
     btn.className = "code-copy icon-btn";
     btn.type = "button";
-    btn.title = "Copy";
+    btn.title = t("render.copy");
     btn.innerHTML = COPY_ICON;
     btn.addEventListener("click", async () => {
       try {
@@ -226,7 +227,7 @@ function wrapTables(root: HTMLElement): void {
     const btn = document.createElement("button");
     btn.className = "table-copy icon-btn small";
     btn.type = "button";
-    btn.title = "Copy table (for Excel)";
+    btn.title = t("render.copyTable");
     btn.innerHTML = TABLE_ICON;
     btn.addEventListener("click", async () => {
       const rows = [...table.querySelectorAll("tr")].map((tr) =>

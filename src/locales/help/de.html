@@ -1,0 +1,190 @@
+        <p class="help-lead">Ein schneller Viewer und Editor für Markdown-Dokumente. Dateien werden nur geändert, wenn Sie mit <kbd>Strg</kbd>+<kbd>S</kbd> speichern.</p>
+
+        <h3>Dokumente öffnen</h3>
+        <ul>
+          <li>Doppelklick auf eine <code>.md</code>-Datei im Explorer.</li>
+          <li>Eine Datei auf das Fenster ziehen.</li>
+          <li><kbd>Strg</kbd>+<kbd>O</kbd> drücken oder die Ordner-Schaltfläche in der Symbolleiste verwenden.</li>
+        </ul>
+        <p>Wird eine zweite Datei geöffnet, während die App läuft, nutzt sie dasselbe Fenster.</p>
+        <p>
+          Ohne geöffnetes Dokument listet das Fenster die zuletzt geöffneten Dateien: ein Klick öffnet sie
+          wieder. Jedes Dokument <strong>merkt sich außerdem, wo Sie aufgehört haben</strong>, und
+          springt beim nächsten Öffnen dorthin zurück.
+        </p>
+        <p>
+          Im Terminal öffnet <code>leggimi datei.md</code> eine Datei, mit <code>--line 40</code> an
+          dieser Zeile (der Befehl <code>leggimi</code> steht nach der Installation zur Verfügung).
+        </p>
+
+        <h3>Lesetasten</h3>
+        <p>Beim Lesen bewegen einzelne Tasten durch das Dokument (sie tun nichts, solange Sie in ein Feld tippen oder bearbeiten):</p>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>Ein Stück nach unten / oben scrollen</td></tr>
+            <tr><td><kbd>Leertaste</kbd> / <kbd>Umschalt</kbd>+<kbd>Leertaste</kbd></td><td>Seite nach unten / oben</td></tr>
+            <tr><td><kbd>.</kbd> / <kbd>,</kbd></td><td>Nächste / vorherige Überschrift</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>g</kbd> / <kbd>G</kbd></td><td>Anfang / Ende des Dokuments</td></tr>
+            <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>Nächster / vorheriger Treffer der Suche</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Kurzübersicht der Tasten ein- oder ausblenden</td></tr>
+          </tbody>
+        </table>
+        <p>Eine feine Linie am oberen Rand des Dokuments zeigt, wie weit Sie sind; die Symbolleiste zeigt die geschätzte Lesezeit.</p>
+        <p>
+          <kbd>Strg</kbd>+<kbd>C</kbd> auf einer Auswahl kopiert sie mit Formatierung, fertig für Word oder
+          Outlook, und zugleich als reinen Text. Das Dokument lässt sich auch wie ein Blatt Papier ziehen:
+          mit der mittleren Maustaste überall, mit der linken auf der freien Fläche neben dem Text.
+        </p>
+
+        <h3>Tastenkürzel</h3>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>Strg</kbd>+<kbd>O</kbd></td><td>Datei öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>E</kbd></td><td>Bearbeitungsmodus ein/aus</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>S</kbd></td><td>Datei speichern (beim Bearbeiten)</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>F</kbd></td><td>Im Dokument suchen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>F</kbd></td><td>Im ganzen Ordner suchen</td></tr>
+            <tr><td><kbd>Eingabe</kbd> / <kbd>Umschalt</kbd>+<kbd>Eingabe</kbd></td><td>Nächster / vorheriger Treffer</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>B</kbd></td><td>Dateibrowser ein/aus (fett beim Bearbeiten)</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>I</kbd></td><td>Gliederung ein/aus (kursiv beim Bearbeiten)</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>P</kbd></td><td>Drucken oder als PDF speichern</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd></td><td>Dokument als formatierten Text kopieren</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>E</kbd></td><td>Menü Teilen öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>=</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd></td><td>Größerer / kleinerer Text</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>0</kbd></td><td>Textgröße zurücksetzen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd></td><td>Fenster im Vordergrund halten</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Kurzübersicht der Tasten</td></tr>
+            <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Suchleiste, Vorschau oder diese Hilfe schließen</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Bearbeiten</h3>
+        <p>
+          <kbd>Strg</kbd>+<kbd>E</kbd> oder die Stift-Schaltfläche öffnet das Dokument zum Bearbeiten: links der
+          Texteditor, rechts die Live-Vorschau. Ein orangefarbener Punkt neben dem Dateinamen zeigt
+          ungespeicherte Änderungen an – speichern Sie mit <kbd>Strg</kbd>+<kbd>S</kbd>. Beim Verlassen des
+          Bearbeitungsmodus oder beim Öffnen eines anderen Dokuments mit ungespeicherten Änderungen wird
+          zuerst nachgefragt. Ändert sich die Datei auf der Festplatte, während Sie ungespeicherte
+          Änderungen haben, erscheint eine Warnung statt Ihre Arbeit zu überschreiben; und das Speichern über
+          eine seit dem Öffnen geänderte Datei fragt vorher nach.
+        </p>
+        <p>
+          <strong>Formatierung:</strong> die Leiste über dem Editor formatiert die Auswahl – oder das Wort
+          unter dem Cursor – und fügt Tabellen, Mermaid-Diagramme, Formeln und Hinweisboxen ein. Tippen Sie
+          <kbd>/</kbd> am Zeilenanfang, um einen Block nach Namen zu wählen. Ein über markierten Text
+          eingefügter Link wird zu einem Markdown-Link.
+        </p>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>Strg</kbd>+<kbd>B</kbd> / <kbd>Strg</kbd>+<kbd>I</kbd></td><td>Fett / kursiv</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>X</kbd></td><td>Durchgestrichen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>M</kbd></td><td>Code im Text</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>K</kbd></td><td>Link einfügen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>3</kbd></td><td>Überschrift 1 bis 3 (erneut zum Entfernen)</td></tr>
+            <tr><td><kbd>/</kbd></td><td>Blockmenü, am Zeilenanfang</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>F</kbd> / <kbd>Strg</kbd>+<kbd>H</kbd></td><td>Suchen / suchen und ersetzen im Text</td></tr>
+            <tr><td><kbd>F3</kbd> / <kbd>Umschalt</kbd>+<kbd>F3</kbd></td><td>Nächster / vorheriger Treffer</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Zeile nach oben / unten verschieben</td></tr>
+            <tr><td><kbd>Umschalt</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Zeile duplizieren</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>K</kbd></td><td>Zeile löschen</td></tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>Werkzeuge</strong> (die Schieberegler-Schaltfläche rechts in der Leiste) sammelt Suchen und
+          Ersetzen, die Zeilenbefehle und die <strong>Rechtschreibprüfung</strong>, die falsch geschriebene
+          Wörter mit dem Windows-Wörterbuch Ihrer Anzeigesprache unterstreicht.
+        </p>
+        <p>
+          <strong>Wiederherstellung:</strong> solange Sie ungespeicherte Änderungen haben, wird eine Kopie des
+          Textes beiseitegelegt. Wird die App ohne Speichern beendet (Absturz, erzwungenes Herunterfahren),
+          bietet beim nächsten Öffnen der Datei ein Hinweis die Wiederherstellung an. Die Datei selbst wird
+          nicht angerührt, bis Sie speichern.
+        </p>
+        <p>
+          <strong>Bilder:</strong> fügen Sie einen Screenshot ein (<kbd>Strg</kbd>+<kbd>V</kbd>) oder ziehen Sie
+          eine Bilddatei in den Editor – sie wird in einem Ordner <code>assets</code> neben dem Dokument
+          gespeichert und mit relativem Pfad verlinkt.
+        </p>
+
+        <h3>Dateien durchsuchen</h3>
+        <p>
+          Der linke Bereich listet die Markdown-Dateien des geöffneten Ordners, bis zu vier Ebenen tief. Das
+          Öffnen einer Datei aus dem Bereich behält denselben Stammordner, sodass Sie nie den Überblick
+          verlieren; der <strong>Pfeil nach oben</strong> neben <em>Dateien</em> verschiebt den Stamm in den
+          übergeordneten Ordner. Ein Dokument außerhalb des aktuellen Ordners verlegt den Bereich dorthin.
+          Eingeklappte Ordner bleiben eingeklappt – beim Navigieren und über Neustarts hinweg.
+        </p>
+        <p>Ordner ohne Markdown-Dateien werden ausgeblendet, ebenso versteckte und Build-Ordner wie <code>node_modules</code>.</p>
+        <p>
+          Beide Seitenbereiche lassen sich an der Innenkante breiter ziehen – ein Doppelklick auf die Kante stellt
+          die Standardbreite wieder her. Ihre Textgröße folgt <strong>Bereiche</strong> in den Leseeinstellungen.
+        </p>
+        <p>
+          Das Suchfeld über dem Baum (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>F</kbd>) findet Text in jeder
+          Markdown-Datei des Ordners – Treffer zeigen Datei und Ausschnitt, und das Öffnen eines Treffers hebt den
+          Begriff im Dokument hervor. <kbd>Esc</kbd> löscht die Suche und zeigt wieder den Baum.
+        </p>
+
+        <h3>Gliederung</h3>
+        <p>
+          Der rechte Bereich listet die Überschriften des Dokuments und hebt die gerade gelesene hervor. Ein
+          Klick auf einen Eintrag springt dorthin. Bei langen Dokumenten erscheint ein Filterfeld über der
+          Liste: tippen Sie, um die Überschriften einzugrenzen, dann <kbd>↑</kbd> / <kbd>↓</kbd> und
+          <kbd>Eingabe</kbd> springen zu einer; <kbd>Esc</kbd> leert es.
+        </p>
+
+        <h3>Automatisches Neuladen</h3>
+        <p>Die geöffnete Datei wird auf der Festplatte beobachtet. Ändert sie sich, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
+
+        <h3>Darstellung</h3>
+        <ul>
+          <li>Markdown wie auf GitHub: Tabellen, Aufgabenlisten, Durchstreichen, automatische Links.</li>
+          <li>Codeblöcke werden hervorgehoben und haben beim Überfahren eine Kopieren-Schaltfläche.</li>
+          <li><code>mermaid</code>-Codeblöcke werden zu Diagrammen; ungültige Syntax fällt mit einem Fehlerhinweis auf den Codeblock zurück.</li>
+          <li>Ein Klick auf ein Diagramm oder Bild öffnet es bildschirmfüllend: <kbd>+</kbd> / <kbd>−</kbd> oder das Mausrad zoomen, Ziehen verschiebt, <kbd>0</kbd> passt ins Fenster ein, <kbd>Esc</kbd> schließt. Die Kopieren-Schaltfläche bietet das Bild als PNG (normal oder groß), ein Diagramm auch als SVG, und beides lässt sich als Datei speichern.</li>
+          <li>Formeln werden mit KaTeX gesetzt: <code>$…$</code> im Text, <code>$$…$$</code> oder ein <code>math</code>-Codeblock für abgesetzte Formeln.</li>
+          <li>Hinweisboxen im GitHub-Stil: ein Zitat, das mit <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> oder <code>[!CAUTION]</code> beginnt.</li>
+          <li>Fußnoten: <code>[^1]</code> im Text und <code>[^1]: …</code> an beliebiger Stelle; die Noten werden am Ende gesammelt, mit Links hin und zurück.</li>
+          <li>Aufgabenlisten sind aktiv: ein Klick auf ein Kästchen aktualisiert sofort <code>[ ]</code> / <code>[x]</code> in der Datei (mit <em>Rückgängig</em> im Hinweis) oder im Editorpuffer, während Sie bearbeiten.</li>
+          <li>Tabellen haben beim Überfahren eine Schaltfläche, die sie als tabulatorgetrennten Text in die Zwischenablage legt – fertig für Excel oder Google Tabellen.</li>
+          <li>Links auf andere Dokumente funktionieren wie in einem Wiki: <code>[Text](andere)</code> findet <code>andere.md</code>, <code>[Text](ordner/)</code> öffnet dessen <code>index.md</code> oder <code>README.md</code>, und <code>andere.md#abschnitt</code> springt zu dieser Überschrift.</li>
+          <li>YAML-Front-Matter zwischen <code>---</code>-Zeilen wird zu einem <em>Front Matter</em>-Block am Anfang gefaltet: ein Klick zeigt die Felder als Tabelle.</li>
+          <li>Ein Absatz, der nur <code>[TOC]</code> enthält, wird zu einem Inhaltsverzeichnis der folgenden Überschriften, das auch in Druck, HTML und DOCX landet.</li>
+          <li>Bilder mit relativem Pfad werden relativ zum Ordner des Dokuments aufgelöst.</li>
+          <li>Links auf Webseiten öffnen sich im Standardbrowser; Links auf andere Markdown-Dateien im Viewer.</li>
+        </ul>
+
+        <h3>Teilen und exportieren</h3>
+        <p>Die Schaltfläche <strong>Teilen</strong> (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>E</kbd>) sammelt alles, was die App verlässt:</p>
+        <ul>
+          <li><strong>Als formatierten Text kopieren</strong> (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd>): legt das gerenderte Dokument mit Formatierung in die Zwischenablage, fertig zum Einfügen in Outlook, Word oder Teams. Lokale Bilder werden eingebettet.</li>
+          <li><strong>Drucken…</strong> (<kbd>Strg</kbd>+<kbd>P</kbd>): druckt nur das Dokument, für Papier gesetzt, immer auf hellem Hintergrund, mit Titel und Datum oben auf jeder Seite und „Seite / Seiten“ unten.</li>
+          <li><strong>Als PDF speichern</strong>: dasselbe Layout direkt in eine PDF-Datei geschrieben, ohne weiteren Dialog außer der Dateiauswahl. <strong>Neue Seite bei jeder Überschrift 1</strong> ist eine gemerkte Option im Menü, für beides.</li>
+          <li><strong>Als HTML / DOCX exportieren</strong>: speichert das Dokument als eine eigenständige <code>.html</code>-Seite, die in jedem Browser läuft, oder als für Microsoft Word optimiertes <code>.docx</code> – Formeln werden native Word-Gleichungen, Diagramme Bilder.</li>
+        </ul>
+        <p>Druck und Exporte verwenden immer das Standard-Textlayout, unabhängig von den aktiven Leseeinstellungen.</p>
+        <h3>Leseeinstellungen</h3>
+        <p>
+          Die Schaltfläche <strong>Aa</strong> öffnet die Leseeinstellungen: Textgröße, Schrift mit oder ohne
+          Serifen, Zeilenabstand, Spaltenbreite, die Sprache der Oberfläche und das Design:
+          <strong>hell</strong>, <strong>Sepia</strong> (warmes Papier), <strong>dunkel</strong>,
+          <strong>schwarz</strong> (für OLED-Bildschirme) oder <strong>auto</strong> (hell oder dunkel wie
+          Windows). Die Textgröße ist überall mit <kbd>Strg</kbd>+<kbd>=</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd>,
+          <kbd>Strg</kbd>+Mausrad und <kbd>Strg</kbd>+<kbd>0</kbd> zum Zurücksetzen erreichbar; der Editortext
+          skaliert mit. <strong>Bereiche</strong> stellt die Textgröße von Dateibrowser und Gliederung getrennt
+          ein – <kbd>Strg</kbd>+Mausrad über einem Bereich ändert nur diesen. Jede Wahl bleibt über Neustarts
+          erhalten.
+        </p>
+        <h3>Windows-Integration</h3>
+        <p>Geöffnete Dateien erscheinen unter „Zuletzt verwendet“ in Windows und in der Sprungliste der App in der Taskleiste. Ein Doppelklick auf eine <code>.md</code>-Datei im Explorer öffnet sie hier, sobald der Installer die Zuordnung registriert hat.</p>
+        <p>
+          Rechtsklick auf eine Datei im Browserbereich oder auf den Dateinamen in der Symbolleiste: <strong>im
+          Explorer anzeigen</strong>, den Pfad kopieren oder einen Markdown-Link relativ zum geöffneten Dokument
+          kopieren. Die Pin-Schaltfläche (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd>) hält das Fenster über den
+          anderen.
+        </p>
+        <p>
+          Eine <strong>portable</strong> Version gibt es auf GitHub als Zip: irgendwo entpacken und starten; sie
+          hält ihre Einstellungen in einem Ordner <code>data</code> neben dem Programm statt in Ihrem Profil.
+        </p>

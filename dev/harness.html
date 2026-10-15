@@ -51,6 +51,8 @@
       const DIR = "C:\\harness";
       const PATH = DIR + "\\test.md";
       const params = new URLSearchParams(location.search);
+      // ?lang=it forces the UI language (what the Aa popover stores)
+      if (params.has("lang")) localStorage.setItem("lang", params.get("lang"));
       const src = params.get("doc");
       // ?doc=none starts on the empty screen (the home with the recent files)
       const content = src && src !== "none" ? await (await fetch(src)).text() : defaultDoc();
@@ -66,9 +68,13 @@
         /** set to true to make the next guarded write report a conflict */
         conflict: false,
         /** replace the open document, as if the file had been reopened */
-        async load(text) {
+        async load(text, line = null) {
           harness.files.set(PATH, text);
-          await emit("open-file", PATH);
+          await emit("open-file", { path: PATH, line });
+        },
+        /** open another in-memory file, like a second `leggimi` launch */
+        async open(path, line = null) {
+          await emit("open-file", { path, line });
         },
       });
 
@@ -78,7 +84,7 @@
           harness.calls.push({ cmd, args });
           switch (cmd) {
             case "get_initial_file":
-              return src === "none" ? null : PATH;
+              return src === "none" ? null : { path: PATH, line: params.has("line") ? Number(params.get("line")) : null };
             case "read_markdown":
               if (!harness.files.has(args.path)) throw `Cannot open ${args.path}: not found`;
               return { path: args.path, dir: DIR, content: harness.files.get(args.path) ?? "", modified: harness.modified };

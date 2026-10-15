@@ -3,6 +3,7 @@
 
 import { asBlob } from "html-docx-js-typescript";
 
+import * as i18n from "./i18n";
 import { rerenderForTheme } from "./mermaid";
 
 import markdownCss from "./styles/markdown.css?inline";
@@ -557,7 +558,7 @@ export async function buildStandaloneHtml(
   await inlineImages(clone);
   return [
     "<!doctype html>",
-    '<html lang="en">',
+    `<html lang="${i18n.current()}">`,
     "<head>",
     '<meta charset="utf-8" />',
     '<meta name="viewport" content="width=device-width, initial-scale=1" />',

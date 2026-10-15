@@ -119,6 +119,11 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 - Single instance: further files open in the existing window
 - Drag and drop files onto the window, or press `Ctrl+O`
 - Built-in help (`F1`) showing the running version
+- **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the
+  interface and the help follow the Windows display language, with an override in the reading
+  settings
+- **Command line**: `leggimi file.md --line 40` opens a file at a line, in the running window
+  if there is one; the installer adds the `leggimi` command for terminals
 
 ## Keyboard shortcuts
 
@@ -152,6 +157,18 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 | `?` | Quick reference of the keys |
 | `F1` | Show help |
 | `Esc` | Close the preview, the find bar or help |
+
+## Command line
+
+```
+leggimi [file] [--line N]
+```
+
+`leggimi README.md` opens the file (relative to the current folder) in the running window, or
+starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
+block containing it, in edit mode the editor caret. The installer puts a `leggimi` command in
+`%LOCALAPPDATA%\Microsoft\WindowsApps`, which is on every user's PATH; the Store build registers
+`leggimi.exe` as an app execution alias; the portable build is run by its own path.
 
 ## File browser
 

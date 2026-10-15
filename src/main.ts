@@ -27,6 +27,8 @@ import * as positions from "./positions";
 import * as recents from "./recents";
 import * as rating from "./rating";
 import * as drafts from "./drafts";
+import * as i18n from "./i18n";
+import { t } from "./i18n";
 import { captureScrollAnchor, restoreScrollAnchor, type ScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
 import { buildDocxBase64, buildStandaloneHtml, copyAsRichText, copySelectionAsRichText } from "./share";
@@ -197,7 +199,7 @@ function updateTitles(): void {
     docTitle.textContent = fileName(currentDoc.path);
     docTitle.title = currentDoc.path;
     getCurrentWindow()
-      .setTitle(`${dirty ? "• " : ""}${fileName(currentDoc.path)} — Leggimi`)
+      .setTitle(`${dirty ? "• " : ""}${t("toolbar.windowTitle", { name: fileName(currentDoc.path) })}`)
       .catch(() => {});
   }
 }
@@ -223,7 +225,7 @@ async function enterEditMode(): Promise<void> {
     editorMod ??= await import("./editor");
   } catch (err) {
     // the editor chunk loads on first use; say so instead of silently doing nothing
-    showNotice(`The editor could not be loaded: ${err}`);
+    showNotice(t("msg.editorLoadFailed", { err: String(err) }));
     return;
   }
   editorMod.mount(editorPane, {
@@ -303,7 +305,7 @@ async function insertPastedImage(file: File): Promise<void> {
     );
     editorMod.insertAtCursor(`![](${encodeURI(rel)})`);
   } catch (err) {
-    showNotice(`Image paste failed: ${err}`);
+    showNotice(t("msg.imagePasteFailed", { err: String(err) }));
   }
 }
 
@@ -313,13 +315,13 @@ async function insertDroppedImage(path: string): Promise<void> {
     const rel = await ipc.importImage(currentDoc.dir, path);
     editorMod.insertAtCursor(`![](${encodeURI(rel)})`);
   } catch (err) {
-    showNotice(`Image drop failed: ${err}`);
+    showNotice(t("msg.imageDropFailed", { err: String(err) }));
   }
 }
 
 const confirmDiscard = async (): Promise<boolean> => {
-  const ok = await ask("You have unsaved changes. Discard them?", {
-    title: "Unsaved changes",
+  const ok = await ask(t("msg.discardQ"), {
+    title: t("msg.discardTitle"),
     kind: "warning",
   }).catch(() => false);
   // a deliberate discard also drops the recovery draft of that buffer
@@ -353,10 +355,10 @@ function offerDraft(doc: ipc.MarkdownDoc): void {
     drafts.remove(doc.path);
     return;
   }
-  showNotice("Unsaved edits from a previous session were recovered.", {
+  showNotice(t("msg.draftRecovered"), {
     sticky: true,
     action: {
-      label: "Restore",
+      label: t("msg.restore"),
       fn: () => {
         if (currentDoc !== doc) return;
         hideNotice(true);
@@ -430,9 +432,9 @@ async function updatePreview(content: string): Promise<void> {
         collectPreviewAnchors();
         scheduleSyncPreview(true);
       })
-      .catch((err) => showNotice(`Diagram rendering failed: ${err}`));
+      .catch((err) => showNotice(t("msg.diagramFailed", { err: String(err) })));
   } catch (err) {
-    if (gen === previewGen) showNotice(`Preview error: ${err}`);
+    if (gen === previewGen) showNotice(t("msg.previewError", { err: String(err) }));
   }
 }
 
@@ -575,10 +577,12 @@ async function writeDocument(doc: ipc.MarkdownDoc, content: string): Promise<num
   } catch (err) {
     if (String(err) !== ipc.WRITE_CONFLICT) throw err;
     // someone else wrote the file since it was read: overwrite only on request
-    const overwrite = await ask(
-      "The file changed on disk since you opened it. Overwrite it with your version?",
-      { title: "File changed on disk", kind: "warning", okLabel: "Overwrite", cancelLabel: "Keep theirs" },
-    ).catch(() => false);
+    const overwrite = await ask(t("msg.conflictQ"), {
+      title: t("msg.conflictTitle"),
+      kind: "warning",
+      okLabel: t("msg.overwrite"),
+      cancelLabel: t("msg.keepTheirs"),
+    }).catch(() => false);
     if (!overwrite) return null;
     suppressReloadUntil = Date.now() + 1500;
     return ipc.writeMarkdown(doc.path, content, null);
@@ -598,7 +602,7 @@ async function saveFile(): Promise<void> {
     drafts.remove(doc.path);
     hideNotice(true);
   } catch (err) {
-    showNotice(`Save failed: ${err}`);
+    showNotice(t("msg.saveFailed", { err: String(err) }));
   }
 }
 
@@ -634,9 +638,9 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
     }
     currentDoc = { ...doc, content, modified };
     const before = doc.content;
-    showNotice(box.checked ? "Task checked: the file was updated." : "Task unchecked: the file was updated.", {
+    showNotice(t(box.checked ? "msg.taskChecked" : "msg.taskUnchecked"), {
       action: {
-        label: "Undo",
+        label: t("msg.undo"),
         fn: () => {
           if (!currentDoc || !samePath(currentDoc.path, doc.path)) return;
           const cur = currentDoc;
@@ -647,13 +651,13 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
               box.checked = !box.checked;
               hideNotice(true);
             })
-            .catch((err) => showNotice(`Undo failed: ${err}`));
+            .catch((err) => showNotice(t("msg.undoFailed", { err: String(err) })));
         },
       },
     });
   } catch (err) {
     box.checked = !box.checked;
-    showNotice(`Could not update the file: ${err}`);
+    showNotice(t("msg.taskUpdateFailed", { err: String(err) }));
   }
 }
 
@@ -666,7 +670,7 @@ async function reloadFromDisk(): Promise<void> {
     await updatePreview(doc.content);
     hideNotice(true);
   } catch (err) {
-    showNotice(`Reload failed: ${err}`);
+    showNotice(t("msg.reloadFailed", { err: String(err) }));
   }
 }
 
@@ -690,7 +694,7 @@ async function copyDocAsRichText(): Promise<void> {
     await copyAsRichText(article, currentDoc.dir, plain);
     flashDone(btnShare);
   } catch (err) {
-    showNotice(`Copy failed: ${err}`);
+    showNotice(t("msg.copyFailed", { err: String(err) }));
   }
 }
 
@@ -706,7 +710,7 @@ function setPrintMeta(): () => void {
   if (!currentDoc) return () => {};
   const h1 = article.querySelector("h1")?.textContent?.trim();
   const title = h1 || fileName(currentDoc.path).replace(MD_EXT_RE, "");
-  const date = new Date().toLocaleDateString(undefined, { dateStyle: "medium" });
+  const date = i18n.fmtDate(new Date(), { dateStyle: "medium" });
   const style = document.createElement("style");
   style.id = "print-page-meta";
   style.textContent = `@media print { @page { @top-center { content: ${cssString(`${title}  ·  ${date}`)}; } } }`;
@@ -752,7 +756,7 @@ async function exportDocAsPdf(): Promise<void> {
   const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
   const target = await saveDialog({
     defaultPath: `${base}.pdf`,
-    filters: [{ name: "PDF", extensions: ["pdf"] }],
+    filters: [{ name: t("filter.pdf"), extensions: ["pdf"] }],
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   pdfInProgress = true;
@@ -761,12 +765,12 @@ async function exportDocAsPdf(): Promise<void> {
   try {
     await ipc.printToPdf(target, false);
     flashDone(btnShare);
-    showNotice("PDF saved.", {
-      action: { label: "Show in folder", fn: () => void revealItemInDir(target).catch(() => {}) },
+    showNotice(t("msg.pdfSaved"), {
+      action: { label: t("msg.showInFolder"), fn: () => void revealItemInDir(target).catch(() => {}) },
     });
   } catch (err) {
-    showNotice(`PDF export failed: ${err}`, {
-      action: { label: "Use the print dialog", fn: () => void printDoc() },
+    showNotice(t("msg.pdfFailed", { err: String(err) }), {
+      action: { label: t("msg.usePrintDialog"), fn: () => void printDoc() },
     });
   } finally {
     clear();
@@ -815,9 +819,10 @@ function syncReadingMenu(): void {
     width: p.width,
     sideSize: p.sideSize,
     theme: theme.currentPref(),
+    lang: i18n.pref(),
   };
   for (const seg of readingMenu.querySelectorAll<HTMLElement>(".rs-seg")) {
-    const key = seg.id === "rs-theme" ? "theme" : (seg.dataset.pref ?? "");
+    const key = seg.id === "rs-theme" ? "theme" : seg.id === "rs-lang" ? "lang" : (seg.dataset.pref ?? "");
     for (const opt of seg.querySelectorAll<HTMLButtonElement>(".rs-opt")) {
       opt.setAttribute("aria-pressed", String(opt.dataset.value === active[key]));
     }
@@ -844,7 +849,7 @@ async function exportDocAsHtml(): Promise<void> {
   const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
   const target = await saveDialog({
     defaultPath: `${base}.html`,
-    filters: [{ name: "HTML", extensions: ["html"] }],
+    filters: [{ name: t("filter.html"), extensions: ["html"] }],
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   try {
@@ -861,7 +866,7 @@ async function exportDocAsDocx(): Promise<void> {
   const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
   const target = await saveDialog({
     defaultPath: `${base}.docx`,
-    filters: [{ name: "Word document", extensions: ["docx"] }],
+    filters: [{ name: t("filter.word"), extensions: ["docx"] }],
   }).catch(() => null);
   if (typeof target !== "string" || !target) return;
   try {
@@ -1068,7 +1073,7 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
   if (hits.length === 0) {
     const empty = document.createElement("div");
     empty.className = "search-empty";
-    empty.textContent = "No matches";
+    empty.textContent = t("pane.noMatches");
     searchResults.append(empty);
     return;
   }
@@ -1091,7 +1096,7 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       const row = document.createElement("button");
       row.type = "button";
       row.className = "search-hit";
-      row.title = `Line ${hit.line}`;
+      row.title = t("pane.lineN", { n: hit.line });
       row.append(...highlightMatch(hit.preview, q));
       row.addEventListener("click", () => openHit(hit.path, q));
       searchResults.append(row);
@@ -1191,8 +1196,8 @@ function updateDocMeta(): void {
   const cjk = (text.match(CJK_RE) ?? []).length;
   const words = (text.replace(CJK_RE, " ").match(WORD_RE) ?? []).length;
   const minutes = Math.max(1, Math.ceil(words / WORDS_PER_MIN + cjk / CJK_PER_MIN));
-  docMeta.textContent = `${minutes} min read`;
-  docMeta.title = `${(words + cjk).toLocaleString("en-US")} words`;
+  docMeta.textContent = t("msg.minRead", { n: minutes });
+  docMeta.title = t("msg.words", { n: i18n.fmtNumber(words + cjk) });
   docMeta.hidden = false;
 }
 
@@ -1372,7 +1377,7 @@ function showEmpty(): void {
 async function chooseFile(): Promise<void> {
   const picked = await openDialog({
     multiple: false,
-    filters: [{ name: "Markdown", extensions: MD_EXTENSIONS }],
+    filters: [{ name: t("filter.markdown"), extensions: MD_EXTENSIONS }],
   }).catch(() => null);
   if (typeof picked === "string") await openFile(picked);
 }
@@ -1423,7 +1428,7 @@ function wireUi(): void {
   });
   $("#file-reveal").addEventListener("click", () => {
     fileMenu.hidden = true;
-    revealItemInDir(fileMenuPath).catch((err) => showNotice(`Could not open File Explorer: ${err}`));
+    revealItemInDir(fileMenuPath).catch((err) => showNotice(t("msg.revealFailed", { err: String(err) })));
   });
   $("#file-copy-path").addEventListener("click", () => {
     fileMenu.hidden = true;
@@ -1555,6 +1560,22 @@ function wireUi(): void {
   $("#rs-theme").addEventListener("click", (e) => {
     const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
     if (opt) theme.setPref(opt.dataset.value as theme.ThemePref);
+  });
+  // a language change reloads the window: every module reads the dictionary
+  // at load time, and a reload is cheaper than rebuilding menus and keymaps
+  $("#rs-lang").addEventListener("click", async (e) => {
+    const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
+    if (!opt) return;
+    const next = opt.dataset.value as i18n.LangPref;
+    if (next === i18n.pref()) return;
+    if (editorMod?.isDirty()) {
+      const ok = await ask(t("msg.langReloadQ"), { title: t("msg.discardTitle"), kind: "warning" }).catch(() => false);
+      if (!ok) return;
+    }
+    i18n.setPref(next);
+    // get_initial_file was consumed at boot: carry the open document across
+    if (currentDoc) sessionStorage.setItem("reopen", currentDoc.path);
+    location.reload();
   });
   prefs.onChange(() => {
     syncReadingMenu();
@@ -1765,9 +1786,9 @@ function wireUi(): void {
         .resolveDoc(currentDoc.dir, rel)
         .then((p) => {
           if (p) return openFile(p, { anchor });
-          showNotice(`Not found: ${rel}`);
+          showNotice(t("msg.notFound", { name: rel }));
         })
-        .catch(() => showNotice(`Not found: ${rel}`));
+        .catch(() => showNotice(t("msg.notFound", { name: rel })));
     }
   });
 
@@ -1799,6 +1820,7 @@ async function showStoreRating(): Promise<void> {
 }
 
 async function boot(): Promise<void> {
+  i18n.init();
   theme.init();
   prefs.init();
   showVersion().catch(() => {});
@@ -1814,15 +1836,17 @@ async function boot(): Promise<void> {
 
   // listeners must be live before get_initial_file, or a double-click
   // arriving during startup would be lost
-  await ipc.onOpenFile((p) => openFile(p));
+  await ipc.onOpenFile((l) => {
+    if (l.path) openFile(l.path, { line: l.line ?? undefined });
+  });
   await ipc.onFileChanged(() => {
     if (!currentDoc) return;
     if (Date.now() < suppressReloadUntil) return; // echo of our own save
     if (editing && editorMod?.isDirty()) {
       // never clobber a dirty buffer
-      showNotice("File changed on disk. Saving will overwrite it.", {
+      showNotice(t("msg.fileChanged"), {
         action: {
-          label: "Reload",
+          label: t("msg.reload"),
           fn: () => {
             reloadFromDisk();
           },
@@ -1848,7 +1872,10 @@ async function boot(): Promise<void> {
   });
 
   const initial = await ipc.getInitialFile().catch(() => null);
-  if (initial) await openFile(initial);
+  const reopen = sessionStorage.getItem("reopen");
+  sessionStorage.removeItem("reopen");
+  if (initial?.path) await openFile(initial.path, { line: initial.line ?? undefined });
+  else if (reopen) await openFile(reopen);
   else showEmpty();
 
   await ipc.showWindow().catch(() => {});
