@@ -86,6 +86,7 @@ export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {
   await rewriteImages(staging, doc.dir);
   wrapCodeBlocks(staging);
   wrapTables(staging);
+  renderTocPlaceholders(staging);
   // after the wraps: the front matter's own table is not a document table
   if (yaml !== null) staging.prepend(fm.build(yaml));
   return staging;
@@ -130,6 +131,52 @@ function watchForLoadFailure(img: HTMLImageElement): void {
 function markMissing(img: HTMLImageElement): void {
   img.classList.add("img-missing");
   unmarkZoomable(img); // nothing to preview
+}
+
+// A paragraph that is just [TOC] (or [[TOC]], [toc]) becomes a table of
+// contents of the headings that follow it, as nested lists of links. It is
+// part of the document, so it also goes to print, HTML and DOCX.
+function renderTocPlaceholders(root: HTMLElement): void {
+  for (const p of [...root.querySelectorAll("p")]) {
+    if (!/^\s*\[\[?toc\]?\]\s*$/i.test(p.textContent ?? "")) continue;
+    const nav = document.createElement("nav");
+    nav.className = "doc-toc";
+    nav.setAttribute("aria-label", "Table of contents");
+    if (p.dataset.sourceLine) nav.dataset.sourceLine = p.dataset.sourceLine;
+    const heads: HTMLElement[] = [];
+    let after = false;
+    for (const h of root.querySelectorAll<HTMLElement>(":is(h1,h2,h3,h4)[id]")) {
+      if (!after && p.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING) after = true;
+      if (after) heads.push(h);
+    }
+    const top = heads.length ? Math.min(...heads.map((h) => Number(h.tagName[1]))) : 1;
+    const stack: HTMLUListElement[] = [];
+    const rootList = document.createElement("ul");
+    stack.push(rootList);
+    let level = top;
+    for (const h of heads) {
+      const l = Math.max(top, Number(h.tagName[1]));
+      while (l > level) {
+        const ul = document.createElement("ul");
+        const parent = stack[stack.length - 1];
+        (parent.lastElementChild ?? parent).append(ul);
+        stack.push(ul);
+        level++;
+      }
+      while (l < level && stack.length > 1) {
+        stack.pop();
+        level--;
+      }
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = `#${h.id}`;
+      a.textContent = h.textContent ?? "";
+      li.append(a);
+      stack[stack.length - 1].append(li);
+    }
+    nav.append(rootList);
+    p.replaceWith(nav);
+  }
 }
 
 function wrapCodeBlocks(root: HTMLElement): void {

@@ -112,6 +112,7 @@ pub fn run() {
             commands::write_markdown,
             commands::existing_paths,
             commands::resolve_doc,
+            commands::print_to_pdf,
             commands::export_file,
             commands::export_binary,
             commands::save_clipboard_image,

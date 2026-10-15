@@ -7,6 +7,27 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.13.0] - 2026-10-15
+
+The print release.
+
+### Added
+- **Save as PDF** in the Share menu: the document is written straight to a PDF through
+  WebView2's own printer, with the same paper layout as printing. No print dialog, only the
+  file picker; the notice afterwards opens the folder.
+- Printed pages (and the PDF) carry a **header** with the document title (the first
+  heading, or the file name) and the date, and a **footer** with "page / pages".
+- **New page at every heading 1**: an option in the Share menu, remembered, for printing
+  and the PDF.
+- A paragraph that is just **`[TOC]`** renders as a table of contents of the headings that
+  follow it, as nested links; it is part of the document, so it is printed and exported too.
+
+### Changed
+- Printing from a dark theme now re-renders the diagrams in the light palette for paper;
+  before, only the page chrome switched.
+- The Share menu's print entry is now **Print…** (the system dialog) next to the new
+  **Save as PDF**.
+
 ## [1.12.0] - 2026-10-15
 
 The editor release: the things that make the editor safe to live in.

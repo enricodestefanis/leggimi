@@ -1,6 +1,6 @@
 [package]
 name = "leggimi"
-version = "1.12.0"
+version = "1.13.0"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
 license = "MIT"
@@ -29,6 +29,11 @@ notify-debouncer-full = "0.5"
 walkdir = "2"
 dunce = "1"
 base64 = "0.22"
+tokio = { version = "1", features = ["sync"] }
 
 [target."cfg(windows)".dependencies]
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_Packaging_Appx", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+# PDF export through ICoreWebView2_7::PrintToPdf; the versions must match the
+# ones wry links, or the COM interface types do not unify
+webview2-com = "0.38"
+windows = "0.61"

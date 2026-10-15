@@ -109,6 +109,12 @@
               }
               return null;
             }
+            case "print_to_pdf":
+              // what the printer would see at this moment
+              harness.pdf = { args, meta: (document.getElementById("print-page-meta") || {}).textContent, theme: document.documentElement.dataset.theme };
+              return null;
+            case "plugin:dialog|save":
+              return harness.savePath || null;
             case "plugin:window|set_always_on_top":
             case "plugin:opener|reveal_item_in_dir":
               return null;

@@ -694,9 +694,85 @@ async function copyDocAsRichText(): Promise<void> {
   }
 }
 
-function printDoc(): void {
+/* ---- printing and PDF ---- */
+
+const cssString = (s: string): string =>
+  `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\s+/g, " ")}"`;
+
+// The page header carries the document title and the date. CSS cannot read
+// them from the page (string-set is unimplemented), so they are injected as
+// a literal @page rule for the duration of the print.
+function setPrintMeta(): () => void {
+  if (!currentDoc) return () => {};
+  const h1 = article.querySelector("h1")?.textContent?.trim();
+  const title = h1 || fileName(currentDoc.path).replace(MD_EXT_RE, "");
+  const date = new Date().toLocaleDateString(undefined, { dateStyle: "medium" });
+  const style = document.createElement("style");
+  style.id = "print-page-meta";
+  style.textContent = `@media print { @page { @top-center { content: ${cssString(`${title}  ·  ${date}`)}; } } }`;
+  document.head.append(style);
+  return () => style.remove();
+}
+
+// paper is always light: the chrome, and the diagrams too
+let printThemeRestore: [string, string] | undefined;
+async function enterPrintTheme(): Promise<void> {
+  if (printThemeRestore) return;
+  const ds = document.documentElement.dataset;
+  printThemeRestore = [ds.theme ?? "light", ds.scheme ?? "light"];
+  ds.theme = "light";
+  ds.scheme = "light";
+  if (printThemeRestore[1] === "dark") await rerenderForTheme(article, false).catch(() => {});
+}
+function leavePrintTheme(): void {
+  if (!printThemeRestore) return;
+  const ds = document.documentElement.dataset;
+  [ds.theme, ds.scheme] = printThemeRestore;
+  const wasDark = printThemeRestore[1] === "dark";
+  printThemeRestore = undefined;
+  if (wasDark) rerenderForTheme(article, true).catch(() => {});
+}
+
+async function printDoc(): Promise<void> {
   if (!currentDoc) return;
-  window.print();
+  const clear = setPrintMeta();
+  await enterPrintTheme();
+  try {
+    window.print(); // blocks until the dialog closes
+  } finally {
+    clear();
+    leavePrintTheme();
+  }
+}
+
+let pdfInProgress = false;
+
+async function exportDocAsPdf(): Promise<void> {
+  if (!currentDoc || pdfInProgress) return;
+  const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
+  const target = await saveDialog({
+    defaultPath: `${base}.pdf`,
+    filters: [{ name: "PDF", extensions: ["pdf"] }],
+  }).catch(() => null);
+  if (typeof target !== "string" || !target) return;
+  pdfInProgress = true;
+  const clear = setPrintMeta();
+  await enterPrintTheme();
+  try {
+    await ipc.printToPdf(target, false);
+    flashDone(btnShare);
+    showNotice("PDF saved.", {
+      action: { label: "Show in folder", fn: () => void revealItemInDir(target).catch(() => {}) },
+    });
+  } catch (err) {
+    showNotice(`PDF export failed: ${err}`, {
+      action: { label: "Use the print dialog", fn: () => void printDoc() },
+    });
+  } finally {
+    clear();
+    leavePrintTheme();
+    pdfInProgress = false;
+  }
 }
 
 function positionMenu(menu: HTMLElement, anchor: HTMLElement): void {
@@ -1434,7 +1510,19 @@ function wireUi(): void {
   });
   $("#share-print").addEventListener("click", () => {
     shareMenu.hidden = true;
-    printDoc();
+    void printDoc();
+  });
+  $("#export-pdf").addEventListener("click", () => {
+    shareMenu.hidden = true;
+    void exportDocAsPdf();
+  });
+  const breakH1 = $<HTMLButtonElement>("#print-break-h1");
+  const syncBreakH1 = () => breakH1.setAttribute("aria-checked", String(prefs.get().printBreakH1));
+  syncBreakH1();
+  prefs.onChange(syncBreakH1);
+  breakH1.addEventListener("click", (e) => {
+    e.stopPropagation(); // the menu stays open: it is a setting, not an action
+    prefs.set({ printBreakH1: !prefs.get().printBreakH1 });
   });
   $("#export-html").addEventListener("click", () => {
     shareMenu.hidden = true;
@@ -1598,7 +1686,7 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.key.toLowerCase() === "p") {
       // swallow it even without a document: WebView2 would print the empty UI
       e.preventDefault();
-      printDoc();
+      void printDoc();
     } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "c") {
       e.preventDefault();
       copyDocAsRichText();
@@ -1639,21 +1727,11 @@ function wireUi(): void {
     { passive: false },
   );
 
-  // diagrams and code keep their on-screen palette in the DOM, but the page
-  // chrome must print light: flip the theme around the native print dialog
-  let printThemeRestore: [string, string] | undefined;
-  window.addEventListener("beforeprint", () => {
-    const ds = document.documentElement.dataset;
-    printThemeRestore = [ds.theme ?? "light", ds.scheme ?? "light"];
-    ds.theme = "light";
-    ds.scheme = "light";
-  });
+  // a print the app did not start (the WebView2 context menu) still gets the
+  // light chrome; prints started by printDoc/exportDocAsPdf already did this
+  window.addEventListener("beforeprint", () => void enterPrintTheme());
   window.addEventListener("afterprint", () => {
-    if (printThemeRestore) {
-      const ds = document.documentElement.dataset;
-      [ds.theme, ds.scheme] = printThemeRestore;
-    }
-    printThemeRestore = undefined;
+    if (!pdfInProgress) leavePrintTheme();
   });
 
   // help dialog links (licence, repository) → default browser

@@ -462,6 +462,88 @@ pub fn is_store_install() -> bool {
     false
 }
 
+/// Renders the current page to a PDF with WebView2's own printer
+/// (`ICoreWebView2_7::PrintToPdf`): the `print` media styles apply, including
+/// the `@page` header and footer, exactly like the print dialog's "Save as
+/// PDF" but without the dialog. One job at a time; the file is overwritten.
+#[tauri::command]
+pub async fn print_to_pdf(app: AppHandle, path: String, landscape: bool) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use tokio::sync::oneshot;
+        let target = PathBuf::from(&path);
+        if !target.is_absolute() {
+            return Err("The PDF path must be absolute".to_owned());
+        }
+        if let Some(dir) = target.parent() {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+        let window = app
+            .get_webview_window("main")
+            .ok_or_else(|| "No main window".to_owned())?;
+        let (tx, rx) = oneshot::channel::<Result<(), String>>();
+        let tx = std::sync::Arc::new(std::sync::Mutex::new(Some(tx)));
+        let tx_sync = tx.clone();
+
+        // the closure runs on the UI thread, where every WebView2 call must happen
+        window
+            .with_webview(move |pw| {
+                use webview2_com::Microsoft::Web::WebView2::Win32::*;
+                use webview2_com::PrintToPdfCompletedHandler;
+                use windows::core::{Interface, HSTRING};
+
+                let tx_done = tx.clone();
+                let outcome: windows::core::Result<()> = (|| unsafe {
+                    let core = pw.controller().CoreWebView2()?;
+                    let wv7: ICoreWebView2_7 = core.cast()?;
+                    let env6: ICoreWebView2Environment6 = pw.environment().cast()?;
+                    let settings = env6.CreatePrintSettings()?;
+                    settings.SetOrientation(if landscape {
+                        COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE
+                    } else {
+                        COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT
+                    })?;
+                    settings.SetShouldPrintBackgrounds(true)?; // code blocks, callouts, tables
+                    settings.SetShouldPrintHeaderAndFooter(false)?; // drawn by the @page CSS
+                    settings.SetPageWidth(8.27)?; // A4 (the default is US Letter)
+                    settings.SetPageHeight(11.69)?;
+                    // fallbacks only: the @page margins in print.css take precedence
+                    settings.SetMarginTop(0.63)?;
+                    settings.SetMarginBottom(0.63)?;
+                    settings.SetMarginLeft(0.63)?;
+                    settings.SetMarginRight(0.63)?;
+                    let handler = PrintToPdfCompletedHandler::create(Box::new(move |hr, ok| {
+                        let result = match (hr, ok) {
+                            (Ok(()), true) => Ok(()),
+                            (Ok(()), false) => {
+                                Err("The PDF could not be written (another export may be running)".to_owned())
+                            }
+                            (Err(e), _) => Err(e.to_string()),
+                        };
+                        if let Some(tx) = tx_done.lock().unwrap().take() {
+                            let _ = tx.send(result);
+                        }
+                        Ok(())
+                    }));
+                    wv7.PrintToPdf(&HSTRING::from(target.as_os_str()), &settings, &handler)
+                })();
+                if let Err(e) = outcome {
+                    if let Some(tx) = tx.lock().unwrap().take() {
+                        let _ = tx.send(Err(e.to_string()));
+                    }
+                }
+            })
+            .map_err(|e| e.to_string())?;
+        drop(tx_sync);
+        rx.await.map_err(|_| "The PDF export was interrupted".to_owned())?
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, path, landscape);
+        Err("PDF export is only available on Windows".to_owned())
+    }
+}
+
 const STORE_REVIEW_URL: &str = "ms-windows-store://review/?ProductId=9PG51TBZ2CB1";
 
 #[tauri::command]

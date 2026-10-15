@@ -2,8 +2,36 @@
    out for paper. The light theme is forced from main.ts on beforeprint. */
 
 @media print {
+  /* Header and footer live in the page margin boxes (Chromium 131+). The
+     header text is injected per print by main.ts (setPrintMeta), since
+     string-set is not implemented; the footer counts pages by itself. */
   @page {
-    margin: 16mm;
+    margin: 20mm 16mm 18mm 16mm;
+
+    @top-center {
+      content: "";
+      font: 9.5px/1.2 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      color: #6b6b6b;
+      vertical-align: bottom;
+      padding-bottom: 5mm;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font: 9.5px/1.2 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      color: #6b6b6b;
+      vertical-align: top;
+      padding-top: 4mm;
+    }
+  }
+
+  /* optional: every heading 1 after the first starts a page (the Share menu
+     option). h1 ~ h1, not :first-child: the hidden front matter comes first. */
+  html[data-print-h1-break="1"] .markdown-body h1 ~ h1 {
+    break-before: page;
   }
 
   /* paper always gets the standard text layout; !important is required to

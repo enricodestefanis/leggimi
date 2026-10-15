@@ -387,6 +387,32 @@ body.resizing * {
   color: var(--text-muted);
 }
 
+/* checkable menu entries (print option): a box on the right */
+.menu-check {
+  position: relative;
+  padding-right: 34px;
+}
+
+.menu-check::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  transition: background-color 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+
+.menu-check[aria-checked="true"]::after {
+  border-color: var(--accent);
+  background:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')
+      center / 10px no-repeat var(--accent);
+}
+
 .menu-sep {
   height: 1px;
   background: var(--border);

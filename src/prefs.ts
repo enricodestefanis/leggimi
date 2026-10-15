@@ -14,6 +14,8 @@ export interface ReaderPrefs {
   lineHeight: LineHeight;
   width: ColumnWidth;
   sideSize: SideSize;
+  /** printing: start a new page at every heading 1 */
+  printBreakH1: boolean;
 }
 
 export const SIZE_STEPS = [13, 14, 15, 16, 17, 18, 20, 22];
@@ -24,6 +26,7 @@ export const DEFAULTS: ReaderPrefs = {
   lineHeight: "normal",
   width: "normal",
   sideSize: "normal",
+  printBreakH1: false,
 };
 
 const KEY = "reader-prefs";
@@ -55,6 +58,7 @@ export function get(): ReaderPrefs {
       : DEFAULTS.lineHeight,
     width: isOneOf(o.width, ["narrow", "normal", "wide", "full"]) ? o.width : DEFAULTS.width,
     sideSize: isOneOf(o.sideSize, SIDE_STEPS) ? o.sideSize : DEFAULTS.sideSize,
+    printBreakH1: o.printBreakH1 === true,
   };
 }
 
@@ -79,7 +83,7 @@ export function bumpSideSize(dir: 1 | -1): void {
 }
 
 export function reset(): void {
-  set({ ...DEFAULTS });
+  set({ ...DEFAULTS, printBreakH1: get().printBreakH1 });
 }
 
 export function onChange(cb: (p: ReaderPrefs) => void): void {
@@ -97,5 +101,7 @@ function apply(p: ReaderPrefs): void {
   root.dataset.readerLh = p.lineHeight;
   root.dataset.readerWidth = p.width;
   root.dataset.sideSize = p.sideSize;
+  if (p.printBreakH1) root.dataset.printH1Break = "1";
+  else delete root.dataset.printH1Break;
   for (const cb of listeners) cb(p);
 }

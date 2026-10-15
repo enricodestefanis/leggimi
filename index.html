@@ -147,8 +147,16 @@
         <span class="menu-hint">Paste into Outlook, Word or Teams · Ctrl+Shift+C</span>
       </button>
       <button id="share-print" class="menu-item" type="button">
-        <span class="menu-title">Print / PDF</span>
-        <span class="menu-hint">Paper layout, or save as PDF · Ctrl+P</span>
+        <span class="menu-title">Print…</span>
+        <span class="menu-hint">The system print dialog · Ctrl+P</span>
+      </button>
+      <button id="export-pdf" class="menu-item" type="button">
+        <span class="menu-title">Save as PDF</span>
+        <span class="menu-hint">One click, with page numbers and header</span>
+      </button>
+      <button id="print-break-h1" class="menu-item menu-check" type="button" role="menuitemcheckbox" aria-checked="false">
+        <span class="menu-title">New page at every heading 1</span>
+        <span class="menu-hint">For printing and PDF</span>
       </button>
       <div class="menu-sep"></div>
       <button id="export-html" class="menu-item" type="button">
@@ -427,6 +435,7 @@
           <li>Tables have a copy button on hover that puts them on the clipboard as tab-separated text, ready for Excel or Google Sheets.</li>
           <li>Links to other documents work like a wiki: <code>[text](other)</code> finds <code>other.md</code>, <code>[text](folder/)</code> opens the folder's <code>index.md</code> or <code>README.md</code>, and <code>other.md#section</code> jumps to that heading.</li>
           <li>YAML front matter between <code>---</code> lines is folded into a <em>Front matter</em> block at the top: click it to see the fields as a table.</li>
+          <li>A paragraph containing only <code>[TOC]</code> becomes a table of contents of the headings that follow, which also goes to print, HTML and DOCX.</li>
           <li>Images with relative paths resolve against the document's folder.</li>
           <li>Links to web pages open in your default browser; links to other Markdown files open in the viewer.</li>
         </ul>
@@ -435,7 +444,8 @@
         <p>The <strong>Share</strong> button (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) collects everything that leaves the app:</p>
         <ul>
           <li><strong>Copy as rich text</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>): puts the rendered document on the clipboard with formatting, ready to paste into Outlook, Word or Teams. Local images are embedded.</li>
-          <li><strong>Print / PDF</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): prints only the document, laid out for paper, always on a light background. Choose "Save as PDF" in the print dialog to produce a PDF.</li>
+          <li><strong>Print…</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): prints only the document, laid out for paper, always on a light background, with the title and date at the top of every page and "page / pages" at the bottom.</li>
+          <li><strong>Save as PDF</strong>: the same layout written straight to a PDF file, no dialog other than the file picker. <strong>New page at every heading 1</strong> is an option in the menu, remembered, for both.</li>
           <li><strong>Export as HTML / DOCX</strong>: saves the document as a single self-contained <code>.html</code> page that opens in any browser, or as a <code>.docx</code> optimized for Microsoft Word — math becomes native Word equations, diagrams become images.</li>
         </ul>
         <p>Printing and exports always use the standard text layout, whatever reading settings are active.</p>

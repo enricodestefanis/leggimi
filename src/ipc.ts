@@ -51,6 +51,8 @@ export const resolvePath = (dir: string, rel: string) => invoke<string>("resolve
 // a document link without extension, or to a folder: the file it stands for
 export const resolveDoc = (dir: string, rel: string) => invoke<string | null>("resolve_doc", { dir, rel });
 export const showWindow = () => invoke<void>("show_window");
+export const printToPdf = (path: string, landscape: boolean) =>
+  invoke<void>("print_to_pdf", { path, landscape });
 export const isStoreInstall = () => invoke<boolean>("is_store_install");
 export const openStoreReview = () => invoke<void>("open_store_review");
 

@@ -103,9 +103,11 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
   edits it warns instead of overwriting your buffer, and saving over a file that changed since
   you opened it asks first
 - **Share menu** (`Ctrl+Shift+E`) collecting everything that leaves the app: **copy as rich
-  text** (`Ctrl+Shift+C`) to paste with formatting into Outlook, Word or Teams; **print / save
-  as PDF** (`Ctrl+P`) with a paper-oriented layout; **export to self-contained HTML or DOCX** —
+  text** (`Ctrl+Shift+C`) to paste with formatting into Outlook, Word or Teams; **print**
+  (`Ctrl+P`) and **one-click Save as PDF**, both with a header (title, date) and page numbers
+  and an optional page break at every heading 1; **export to self-contained HTML or DOCX** —
   in Word, math becomes native equations and Mermaid diagrams become images
+- A paragraph that is just `[TOC]` renders as a table of contents of the headings below it
 - **Reading settings** (the `Aa` button): text size (`Ctrl+=` / `Ctrl+−` / `Ctrl+0` /
   `Ctrl`+scroll), sans or serif font, line spacing, column width and the **light / sepia /
   dark / black / follow Windows** theme — all remembered across restarts, never affecting
