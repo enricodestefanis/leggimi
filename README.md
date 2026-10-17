@@ -13,17 +13,18 @@
 </p>
 
 *Leggimi* — Italian for "read me" — is a fast Markdown viewer and editor for Windows, built with
-Tauri 2. Documents open in a clean, centered reading column with light and dark themes; an
-optional edit mode adds a split view with a live preview. Files are only modified when you save
-explicitly.
+Tauri 2. Double-click a `.md` file and it opens in a clean, centered reading column, where you
+left it, with light, sepia, dark and black themes; an optional edit mode adds a split view with a
+live preview. Files are only modified when you save explicitly. The interface speaks English,
+Italian, German, French, Spanish and Simplified Chinese.
 
 <p align="center">
-  <img alt="Leggimi — viewer mode with Mermaid, file browser and outline" src="docs/screenshot-viewer.png" width="49%" />
-  <img alt="Leggimi — edit mode with live preview, KaTeX and callouts" src="docs/screenshot-editor.png" width="49%" />
+  <img alt="Leggimi — reading view with the file browser, the outline, a callout and a table" src="docs/screenshot-viewer.png" width="49%" />
+  <img alt="Leggimi — edit mode with find &amp; replace, the format bar and the live preview" src="docs/screenshot-editor.png" width="49%" />
 </p>
 
 <p align="center">
-  <img alt="Editing in Leggimi: the format bar makes a word bold, the / menu inserts a table and a Mermaid diagram, and the live preview follows" src="docs/edit-assist.gif" width="98%" />
+  <img alt="Leggimi in under a minute: a recent file reopens where it was left, the reading keys and the ? overlay, the dark theme, the view following a change on disk, find &amp; replace in the editor, a diagram full-window, the interface switching to Italian" src="docs/trailer.gif" width="98%" />
 </p>
 
 ## Install
@@ -41,14 +42,32 @@ explicitly.
   ```powershell
   winget install --id 9PG51TBZ2CB1 --source msstore
   ```
-- **Portable**: `Leggimi_x.y.z_x64-portable.zip` on the same releases page — unzip anywhere and
-  run; settings stay in a `data` folder next to the exe (delete `leggimi-portable.txt` to use
-  the per-user location instead). No file association is registered.
 - **Direct download**: the NSIS installer (`Leggimi_x.y.z_x64-setup.exe`) is attached to every
   [GitHub release](https://github.com/enricodestefanis/leggimi/releases/latest). It is not
   code-signed, so SmartScreen may ask you to confirm on first run.
+- **Portable**: `Leggimi_x.y.z_x64-portable.zip` on the same releases page; see below.
 
-Both builds are the same app, free, with no accounts, no ads and no telemetry.
+All three are the same app, free, with no accounts, no ads and no telemetry.
+
+### Portable build
+
+The portable zip is for a USB stick, a projects folder, or a work PC where you cannot install
+anything. It is published only on GitHub Releases (the Store distributes the MSIX package).
+
+- **Use it**: unzip anywhere you can write to and run `Leggimi.exe`. Nothing is installed: no
+  file association, no Start menu entry, no `leggimi` command. Open files with `Ctrl+O`, by
+  dropping them on the window, from the file browser, or from a terminal by path:
+  `Leggimi.exe path\to\file.md --line 40`.
+- **Where things live**: the `leggimi-portable.txt` marker next to the exe makes the app keep
+  its settings, recent files, reading positions and recovery drafts in a `data` folder beside
+  it, instead of the user profile. Move or copy the whole folder and everything travels with it.
+  Delete the marker to use the per-user location like the installed app.
+- **Side by side**: the portable copy has its own instance identity, so it runs next to an
+  installed Leggimi without stealing its files or settings.
+- **Update**: unzip the new version over the old folder (or replace `Leggimi.exe`); `data` is
+  kept. There is no automatic update.
+- **SmartScreen**: like the installer, the exe is not code-signed; on the first run Windows may
+  ask you to confirm (More info → Run anyway).
 
 ## Features
 
@@ -120,8 +139,8 @@ Both builds are the same app, free, with no accounts, no ads and no telemetry.
 - Drag and drop files onto the window, or press `Ctrl+O`
 - Built-in help (`F1`) showing the running version
 - **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the
-  interface and the help follow the Windows display language, with an override in the reading
-  settings
+  interface and the help follow the first supported language in your Windows preferred
+  languages, with an override in the reading settings
 - **Command line**: `leggimi file.md --line 40` opens a file at a line, in the running window
   if there is one; the installer adds the `leggimi` command for terminals
 
@@ -197,6 +216,12 @@ npm run tauri build    # installer carries the new version
 Record what changed in [CHANGELOG.md](CHANGELOG.md). `npm version` also creates a git tag; push
 it with `git push --follow-tags`. Keep `src-tauri/Cargo.toml` in step for tidiness — it is the
 crate version and does not drive what the app displays.
+
+A GitHub release carries two assets from the same build: the installer
+`src-tauri\target\release\bundle\nsis\Leggimi_x.y.z_x64-setup.exe` and the portable zip
+produced by `npm run package:portable` (`src-tauri\target\release\bundle\portable\`), which
+wraps the release exe with the `leggimi-portable.txt` marker and a short `README.txt`. The
+Store gets the MSIX below.
 
 ### Microsoft Store package
 

@@ -41,12 +41,17 @@
     --reader-font-size: 16px !important;
     --reader-line-height: 1.7 !important;
     --reader-font: var(--sans) !important;
+    /* white paper whatever the screen theme: the PDF prints backgrounds (for
+       code blocks, callouts and tables), and the light theme's warm page
+       colour came out as a cream box framed by the white page margins */
+    --bg: #ffffff !important;
   }
 
   html,
   body {
     height: auto;
     overflow: visible;
+    background: #ffffff;
   }
 
   #app {

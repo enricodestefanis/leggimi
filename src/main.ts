@@ -251,6 +251,9 @@ async function enterEditMode(): Promise<void> {
   syncSuppressedUntil = performance.now() + 200;
   editorMod.setContent(currentDoc.content);
   editing = true;
+  // the reading find bar searches the preview; while editing, Ctrl+F and F3
+  // belong to the editor's panel, so close the bar instead of showing both
+  search.close();
   app.classList.add("editing");
   btnEdit.setAttribute("aria-pressed", "true");
   updateTitles();
@@ -1683,8 +1686,22 @@ function wireUi(): void {
       treeSearch.focus();
       treeSearch.select();
     } else if (e.ctrlKey && e.key.toLowerCase() === "f") {
+      // while editing, find always means the editor's panel (case, word,
+      // regexp, replace), wherever the focus is: never a second find bar
       e.preventDefault();
-      search.open();
+      if (editing && editorMod) editorMod.openFind(false);
+      else search.open();
+    } else if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "h") {
+      if (editing && editorMod) {
+        e.preventDefault();
+        editorMod.openFind(true);
+      }
+    } else if (e.key === "F3" && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      const dir = e.shiftKey ? -1 : 1;
+      if (editing && editorMod) editorMod.findStep(dir);
+      else if (search.hasMatches()) search.step(dir);
+      else if (currentDoc) search.open();
     } else if (e.ctrlKey && e.key.toLowerCase() === "o") {
       e.preventDefault();
       chooseFile();

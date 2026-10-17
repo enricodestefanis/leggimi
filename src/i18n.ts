@@ -1,7 +1,8 @@
 // The UI language. Dictionaries are typed against the English one, so a
 // missing or extra key is a compile error. The language is resolved when this
-// module loads (localStorage `lang`, else the Windows display language that
-// WebView2 reports), so every module may call t() at load time.
+// module loads (localStorage `lang`, else the first supported language of the
+// Windows preferred languages list, which lib.rs injects as __LEGGIMI_LANGS__),
+// so every module may call t() at load time.
 import en from "./locales/en";
 import it from "./locales/it";
 import de from "./locales/de";
@@ -26,8 +27,17 @@ const KEY = "lang";
 
 const isLang = (v: unknown): v is Lang => (LANGS as readonly unknown[]).includes(v);
 
+// Windows' preferred languages (Settings > Time & language), as Store apps
+// are expected to follow them; navigator.languages is only the Windows display
+// language in WebView2, and the fallback in the browser harness.
+function systemTags(): readonly string[] {
+  const injected = (window as { __LEGGIMI_LANGS__?: unknown }).__LEGGIMI_LANGS__;
+  if (Array.isArray(injected) && injected.length > 0) return injected.map(String);
+  return navigator.languages?.length ? navigator.languages : [navigator.language];
+}
+
 function fromSystem(): Lang {
-  for (const tag of navigator.languages?.length ? navigator.languages : [navigator.language]) {
+  for (const tag of systemTags()) {
     const lower = (tag ?? "").toLowerCase();
     if (lower.startsWith("zh")) return "zh-CN";
     const primary = lower.split("-")[0];

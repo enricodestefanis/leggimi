@@ -13,6 +13,42 @@ const kw = (id: string, english: string): string => `${english} ${t(`kw.${id}` a
 
 export type EditCommand = (view: EditorView) => boolean;
 
+// ---------------------------------------------------------------- find
+
+// One CodeMirror search panel, two faces: Ctrl+F shows the find row only,
+// Ctrl+H (and the Tools menu) adds the replace row. The replace controls are
+// hidden by a class, so switching face keeps the query and the options.
+let replaceRow = false;
+
+export function syncSearchPanel(view: EditorView): void {
+  view.dom.querySelector(".cm-search")?.classList.toggle("cm-search-find-only", !replaceRow);
+}
+
+/** The panel closed: the next one opened by F3 starts as a plain find. */
+export function searchPanelClosed(): void {
+  replaceRow = false;
+}
+
+function openSearch(view: EditorView, withReplace: boolean): boolean {
+  replaceRow = withReplace;
+  openSearchPanel(view);
+  syncSearchPanel(view);
+  // with a query already there (the selection, or the last search) the next
+  // thing to type is the replacement
+  if (withReplace) {
+    const query = view.dom.querySelector<HTMLInputElement>(".cm-search [name=search]");
+    const replace = view.dom.querySelector<HTMLInputElement>(".cm-search [name=replace]");
+    if (query?.value && replace) {
+      replace.focus();
+      replace.select();
+    }
+  }
+  return true;
+}
+
+export const openFind: EditCommand = (view) => openSearch(view, false);
+export const openReplace: EditCommand = (view) => openSearch(view, true);
+
 // ---------------------------------------------------------------- inline
 
 // Consecutive `ch` characters starting at `pos`, walking in `dir`.
@@ -383,7 +419,7 @@ export const COMMANDS: CommandInfo[] = [
   { id: "warning", label: t("cmd.warning"), icon: I.warning, keywords: kw("warning", "alert caution important admonition"), block: true, run: insertBlock("> [!WARNING]\n> {{Something to watch out for.}}") },
   { id: "divider", label: t("cmd.divider"), icon: I.divider, keywords: kw("divider", "hr rule separator line"), block: true, run: insertBlock("---\n") },
   // tools: the editor's own commands, exposed with the app's display names
-  { id: "find", label: t("cmd.find"), icon: I.find, run: openSearchPanel, shortcut: "Ctrl+F", key: "Mod-f" },
+  { id: "find", label: t("cmd.find"), icon: I.find, run: openReplace, shortcut: "Ctrl+H", key: "Mod-h" },
   { id: "moveLineUp", label: t("cmd.moveLineUp"), icon: I.lineUp, run: moveLineUp, shortcut: "Alt+↑", key: "Alt-ArrowUp" },
   { id: "moveLineDown", label: t("cmd.moveLineDown"), icon: I.lineDown, run: moveLineDown, shortcut: "Alt+↓", key: "Alt-ArrowDown" },
   { id: "copyLineDown", label: t("cmd.copyLineDown"), icon: I.duplicate, run: copyLineDown, shortcut: "Shift+Alt+↓", key: "Shift-Alt-ArrowDown" },

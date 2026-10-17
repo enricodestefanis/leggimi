@@ -9,7 +9,7 @@ import {
   scrollPastEnd,
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { search, searchKeymap, openSearchPanel } from "@codemirror/search";
+import { search, searchKeymap, searchPanelOpen, findNext, findPrevious } from "@codemirror/search";
 import { syntaxHighlighting, syntaxTree, HighlightStyle } from "@codemirror/language";
 import {
   autocompletion,
@@ -20,6 +20,7 @@ import {
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { tags } from "@lezer/highlight";
+import { t } from "./i18n";
 import {
   COMMANDS,
   commandById,
@@ -28,6 +29,10 @@ import {
   spellCompartment,
   spellAttrs,
   spellcheckEnabled,
+  openFind as openFindCmd,
+  openReplace as openReplaceCmd,
+  syncSearchPanel,
+  searchPanelClosed,
 } from "./editCommands";
 import { mountFormatBar } from "./formatBar";
 
@@ -133,8 +138,15 @@ const appTheme = EditorView.theme({
     fontSize: "11.5px",
     color: "var(--text-muted)",
   },
-  // find & replace panel (@codemirror/search), styled like the app's bars
-  ".cm-panels": { backgroundColor: "var(--surface)", color: "var(--text)", border: "none" },
+  // find & replace panel (@codemirror/search), styled like the app's bars.
+  // CodeMirror stacks panels at z-index 300, above the app's menus (40), so
+  // the format bar's dropdowns opened under the panel; the scroller is its
+  // own stacking context, so 1 still keeps the panel over the text.
+  ".cm-panels": { backgroundColor: "var(--surface)", color: "var(--text)", border: "none", zIndex: "1" },
+  // Ctrl+F: the find row only (Ctrl+H shows the replace row too)
+  ".cm-search.cm-search-find-only [name=replace], .cm-search.cm-search-find-only [name=replaceAll]": {
+    display: "none",
+  },
   ".cm-panels.cm-panels-top": { borderBottom: "1px solid var(--border)" },
   ".cm-panel.cm-search": {
     fontFamily: "var(--sans)",
@@ -146,6 +158,12 @@ const appTheme = EditorView.theme({
     gap: "4px 6px",
   },
   ".cm-panel.cm-search br": { display: "none" },
+  // the replace controls start their own row, under the find field: a <br> is
+  // no flex item, so a full-width ::after breaks the line and `order` moves
+  // the replace field and buttons after it (the close button stays on row 1)
+  ".cm-panel.cm-search::after": { content: '""', flexBasis: "100%", height: "0", order: "1" },
+  ".cm-panel.cm-search.cm-search-find-only::after": { display: "none" },
+  ".cm-panel.cm-search [name=replace], .cm-panel.cm-search [name=replaceAll]": { order: "2" },
   ".cm-panel.cm-search .cm-textfield": {
     font: "inherit",
     fontSize: "12.5px",
@@ -289,10 +307,35 @@ export function mount(host: HTMLElement, cb: EditorCallbacks): void {
   view.scrollDOM.addEventListener("scroll", () => callbacks?.onScroll(), { passive: true });
 }
 
+// CodeMirror's own UI strings in the interface language: the find panel's
+// fields and buttons, go to line, and the screen-reader announcements
+const cmPhrases = EditorState.phrases.of({
+  Find: t("cm.find"),
+  Replace: t("cm.replace"),
+  next: t("cm.next"),
+  previous: t("cm.previous"),
+  all: t("cm.all"),
+  "match case": t("cm.matchCase"),
+  regexp: t("cm.regexp"),
+  "by word": t("cm.byWord"),
+  replace: t("cm.replaceOne"),
+  "replace all": t("cm.replaceAll"),
+  close: t("cm.close"),
+  "current match": t("cm.currentMatch"),
+  "on line": t("cm.onLine"),
+  "replaced $ matches": t("cm.replacedMatches"),
+  "replaced match on line $": t("cm.replacedOnLine"),
+  "Go to line": t("cm.gotoLine"),
+  go: t("cm.go"),
+  Completions: t("cm.completions"),
+  "Selection deleted": t("cm.selectionDeleted"),
+});
+
 function makeState(content: string): EditorState {
   return EditorState.create({
     doc: content,
     extensions: [
+      cmPhrases,
       lineNumbers(),
       highlightActiveLineGutter(),
       drawSelection(),
@@ -314,7 +357,9 @@ function makeState(content: string): EditorState {
             return true;
           },
         },
-        { key: "Mod-h", run: openSearchPanel, preventDefault: true },
+        // also from inside the panel's fields, so Ctrl+F / Ctrl+H switch its face
+        { key: "Mod-f", run: openFindCmd, scope: "editor search-panel", preventDefault: true },
+        { key: "Mod-h", run: openReplaceCmd, scope: "editor search-panel", preventDefault: true },
         ...formatKeymap,
         indentWithTab,
         ...historyKeymap,
@@ -328,6 +373,11 @@ function makeState(content: string): EditorState {
         }
         if (update.docChanged || update.selectionSet) formatsListener?.(activeFormats(update.state));
         if (update.selectionSet && !update.docChanged) callbacks?.onCaretMoved();
+        // a panel opened by any path (F3 too) gets the right face
+        const panelWas = searchPanelOpen(update.startState);
+        const panelIs = searchPanelOpen(update.state);
+        if (panelIs && !panelWas) syncSearchPanel(update.view);
+        else if (panelWas && !panelIs) searchPanelClosed();
       }),
       // clipboard images (screenshots) land as files; text paste stays native.
       // Native file *drops* never reach the DOM here — Tauri intercepts them.
@@ -365,6 +415,23 @@ export function loadDraft(text: string): void {
   dirty = text !== lastSaved;
   callbacks?.onDirtyChanged(dirty);
   formatsListener?.(activeFormats(view.state));
+  // setState fires no update listener: tell the preview (and the draft
+  // timer) by hand, or the restored text shows only after the next keystroke
+  callbacks?.onDocChanged();
+}
+
+/** Ctrl+F / Ctrl+H pressed outside the text (preview, toolbar) while editing. */
+export function openFind(withReplace: boolean): void {
+  if (!view) return;
+  if (withReplace) openReplaceCmd(view);
+  else openFindCmd(view);
+}
+
+/** F3 / Shift+F3 outside the text: next or previous match (opens the panel without a query). */
+export function findStep(dir: 1 | -1): void {
+  if (!view) return;
+  if (dir === 1) findNext(view);
+  else findPrevious(view);
 }
 
 export function getContent(): string {

@@ -36,4 +36,5 @@ windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage
 # PDF export through ICoreWebView2_7::PrintToPdf; the versions must match the
 # ones wry links, or the COM interface types do not unify
 webview2-com = "0.38"
-windows = "0.61"
+# System_UserProfile: the preferred languages list that picks the UI language
+windows = { version = "0.61", features = ["System_UserProfile", "Foundation_Collections"] }

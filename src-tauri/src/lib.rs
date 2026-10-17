@@ -107,6 +107,33 @@ fn portable_data_dir() -> Option<std::path::PathBuf> {
     Some(data)
 }
 
+/// The user's preferred languages, in order (Settings > Time & language >
+/// Language & region). Windows says Store apps "appear in the first supported
+/// language in this list"; WebView2's `navigator.languages` reports the
+/// Windows display language instead, which is often English on a machine set
+/// up for an Italian user.
+#[cfg(windows)]
+fn preferred_languages() -> Vec<String> {
+    use windows::System::UserProfile::GlobalizationPreferences;
+    GlobalizationPreferences::Languages()
+        .map(|list| list.into_iter().map(|tag| tag.to_string()).collect())
+        .unwrap_or_default()
+}
+
+#[cfg(not(windows))]
+fn preferred_languages() -> Vec<String> {
+    Vec::new()
+}
+
+/// Hands the preferred languages to the page before any of its scripts run:
+/// i18n.ts resolves the UI language synchronously when it loads.
+fn system_languages_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    let langs = serde_json::to_string(&preferred_languages()).unwrap_or_else(|_| "[]".to_owned());
+    tauri::plugin::Builder::new("system-languages")
+        .js_init_script(format!("window.__LEGGIMI_LANGS__ = {langs};"))
+        .build()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
@@ -131,6 +158,7 @@ pub fn run() {
                 let _ = app.emit("open-file", launch);
             }
         }))
+        .plugin(system_languages_plugin())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

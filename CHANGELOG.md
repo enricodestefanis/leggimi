@@ -15,8 +15,10 @@ command line.
 ### Added
 - **Localized interface**: English, Italian, German, French, Spanish and Simplified Chinese,
   including the menus, the notices, the home screen, the keys overlay and the whole F1 help.
-  The language follows the Windows display language; **Language** in the reading settings
-  overrides it (the window reloads, keeping the open document).
+  The language is the first supported one in the Windows preferred languages (Settings >
+  Time & language), as Windows promises for Store apps, even when the Windows display
+  language is another; **Language** in the reading settings overrides it (the window
+  reloads, keeping the open document).
 - **Command line**: `leggimi file.md` opens a file and `--line 40` (or `-l 40`) opens it at
   that line, in the running window if there is one. The installer adds a `leggimi` command
   for terminals, the Store build registers it as an app execution alias.
@@ -27,6 +29,10 @@ command line.
 - Dates and numbers follow the interface language (reading time, recent files, the date in
   the print header).
 - Exported HTML carries the interface language in its `lang` attribute.
+
+### Fixed
+- Mermaid edge labels in the dark and black themes sat on light grey boxes (mermaid's own
+  dark palette); they now take the page background.
 
 ## [1.13.0] - 2026-10-15
 

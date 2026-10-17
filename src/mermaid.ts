@@ -7,10 +7,14 @@ let seq = 0;
 
 async function load(dark: boolean): Promise<MermaidModule> {
   if (!mermaid) mermaid = (await import("mermaid")).default;
+  // mermaid's dark theme draws edge labels on light grey boxes; the page background
+  // makes them part of the page (the neutral theme's white box already fits light paper)
+  const bg = dark ? getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() : "";
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: "strict",
     theme: dark ? "dark" : "neutral",
+    ...(bg ? { themeVariables: { edgeLabelBackground: bg } } : {}),
     fontFamily: '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
   });
   return mermaid;
