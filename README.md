@@ -81,7 +81,7 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   links, lists, task lists, quotes), the usual shortcuts, and a **`/` menu** at the start of a
   line that inserts tables, Mermaid diagrams, KaTeX formulas, code blocks and callouts. The file
   stays plain Markdown — every command just edits the text
-- **Find & replace** (`Ctrl+F` / `Ctrl+H`), **spellcheck** with the Windows dictionary, line
+- **Find & replace** (`Ctrl+F` / `Ctrl+H`), **spellcheck** with the dictionary of the interface language, line
   commands (`Alt+↑` / `Alt+↓` move, `Shift+Alt+↓` duplicate, `Ctrl+Shift+K` delete), and a
   **recovery draft** that offers your unsaved text back after a crash
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
@@ -108,11 +108,23 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   hairline along the top of the document shows the progress and the toolbar the estimated
   reading time; the document can also be dragged like a sheet of paper (middle button)
 - **Smart links**: `[text](other)` finds `other.md`, `[text](folder/)` opens the folder's
-  `index.md` or `README.md`, `other.md#section` jumps to the heading
-- Right-click a file for **Show in File Explorer**, **Copy path** and **Copy as Markdown
-  link**; a **pin** button (`Ctrl+Shift+T`) keeps the window on top
-- **File browser** for the Markdown files in the folder you opened; collapsed folders are
-  remembered across navigation and restarts
+  `index.md` or `README.md` (or shows the folder in the file browser), `other.md#section` jumps to
+  the heading; a link to an image opens the preview, to any other file (a PDF, a spreadsheet) a
+  notice offers to open it in its own app, and `mailto:` links open the mail app
+- **Right-click menu of the document**: copy the selection (with its formatting or as plain
+  text) or search for it in the document or the folder; open, copy or open in a new window a
+  link; copy a code block or a table; **copy a link to the section** (`[Heading](file.md#heading)`,
+  followed by Leggimi from any other document); **edit from here**; print or save as PDF
+- Right-click a file for **Open in a new window**, **Show in File Explorer**, **Copy path** and
+  **Copy as Markdown link**; a **pin** button (`Ctrl+Shift+T`) keeps the window on top
+- **More than one document at a time**: a file opened from outside (double-click, *Open with*,
+  `leggimi file.md`) gets a window of its own, or brings forward the window that already shows
+  it; `Ctrl`+click (or the middle button) opens a file, a recent document or a link in a new
+  window, `Ctrl+Shift+N` an empty one; the theme and the text settings follow in every window
+- **Back and forward** like a browser (`Alt+←` / `Alt+→`, the mouse's side buttons): after a
+  link to a section, a jump through the outline or a move to another document
+- **File browser** for the Markdown files in the folder you opened, kept up to date as files
+  come and go on disk; collapsed folders are remembered across navigation and restarts
 - **Resizable side panels**: drag the inner edge of the file browser or the outline to widen it
   (double-click to restore the default), and size their text independently of the document with
   **Panels** in the reading settings
@@ -132,16 +144,16 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   dark / black / follow Windows** theme — all remembered across restarts, never affecting
   print or export;
   the editor text scales along with the size, and **Panels** sizes the side panels
-- Find in document (`Ctrl+F`), relative images
+- Find in document (`Ctrl+F`), relative images, video and audio (`srcset` and `<picture>` too)
 - Opened files land in Windows' **Recent items and the taskbar jump list**
 - Double-click any `.md` file in File Explorer — the installer registers the association
-- Single instance: further files open in the existing window
-- Drag and drop files onto the window, or press `Ctrl+O`
+- Drag and drop files onto the window, or press `Ctrl+O`; several at once open one per window
+- `F5` reads the open file again from disk, keeping your place
 - Built-in help (`F1`) showing the running version
 - **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the
   interface and the help follow the first supported language in your Windows preferred
   languages, with an override in the reading settings
-- **Command line**: `leggimi file.md --line 40` opens a file at a line, in the running window
+- **Command line**: `leggimi file.md --line 40` opens a file at a line, in the running app
   if there is one; the installer adds the `leggimi` command for terminals
 
 ## Keyboard shortcuts
@@ -149,6 +161,11 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 | Keys | Action |
 |---|---|
 | `Ctrl+O` | Open a file |
+| `Ctrl+Shift+N` | New window |
+| `Ctrl+W` / `Ctrl+F4` | Close the window |
+| `Ctrl`+click | Open a file, a recent document or a link in a new window |
+| `Alt+←` / `Alt+→` | Back / forward |
+| `F5` / `Ctrl+R` | Reload the file from disk |
 | `Ctrl+E` | Toggle edit mode |
 | `Ctrl+S` | Save the file (edit mode) |
 | `Ctrl+F` | Find in document |
@@ -183,8 +200,8 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 leggimi [file] [--line N]
 ```
 
-`leggimi README.md` opens the file (relative to the current folder) in the running window, or
-starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
+`leggimi README.md` opens the file (relative to the current folder) in a new window of the
+running app, or brings forward the window that already shows it, or starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
 block containing it, in edit mode the editor caret. The installer puts a `leggimi` command in
 `%LOCALAPPDATA%\Microsoft\WindowsApps`, which is on every user's PATH; the Store build registers
 `leggimi.exe` as an app execution alias; the portable build is run by its own path.

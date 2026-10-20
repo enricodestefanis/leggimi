@@ -6,7 +6,15 @@
           <li>Arrastra un archivo a la ventana.</li>
           <li>Pulsa <kbd>Ctrl</kbd>+<kbd>O</kbd> o usa el botón de carpeta de la barra de herramientas.</li>
         </ul>
-        <p>Abrir un segundo archivo mientras la aplicación se ejecuta reutiliza la misma ventana.</p>
+        <p>
+          Un archivo abierto desde fuera mientras la aplicación se ejecuta (doble clic, <em>Abrir con</em>,
+          <code>leggimi archivo.md</code>) tiene <strong>su propia ventana</strong>; si ya está abierto, su
+          ventana pasa al frente. Dentro de la aplicación los archivos se abren en la misma ventana:
+          <kbd>Ctrl</kbd>+clic (o el botón central) en un archivo, un documento reciente, un resultado de
+          búsqueda o un enlace lo abre en una ventana nueva, igual que <em>Abrir en una ventana nueva</em> en su
+          menú contextual, y <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>N</kbd> abre una vacía. Varios archivos
+          abiertos a la vez (<kbd>Ctrl</kbd>+<kbd>O</kbd> o arrastrados) van cada uno a su ventana.
+        </p>
         <p>
           Sin ningún documento abierto, la ventana muestra los archivos abiertos recientemente: haz clic en uno
           para volver a abrirlo. Cada documento además <strong>recuerda dónde dejaste de leer</strong> y vuelve
@@ -35,6 +43,16 @@
           además de como texto sin formato. El documento también se puede arrastrar como una hoja de papel:
           con el botón central en cualquier sitio, o con el botón izquierdo en el espacio vacío junto al texto.
         </p>
+        <p>
+          El clic derecho en el documento abre su menú: copiar la selección (con formato o como texto sin
+          formato) o buscarla en el documento o en la carpeta; abrir o copiar un enlace; abrir una imagen o un
+          diagrama, copiar un bloque de código o una tabla; <strong>copiar el enlace a la sección</strong>,
+          <code>[Título](archivo.md#título)</code>, que funciona desde cualquier otro documento; <strong>editar
+          desde ese punto</strong>; imprimir o guardar como PDF.
+        </p>
+        <p>
+          Como en un navegador, <kbd>Alt</kbd>+<kbd>←</kbd> (o el botón lateral <em>atrás</em> del ratón) vuelve adonde estabas antes de un enlace a una sección, un clic en el índice o el paso a otro documento; <kbd>Alt</kbd>+<kbd>→</kbd> (o el botón <em>adelante</em>) rehace el camino. <strong>Atrás</strong> y <strong>Adelante</strong> están también arriba en el menú del clic derecho. Cada ventana tiene su propio historial.
+        </p>
 
         <h3>Atajos de teclado</h3>
         <table class="help-keys">
@@ -53,6 +71,10 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Texto más grande / más pequeño</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Restablecer el tamaño del texto</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd></td><td>Mantener la ventana en primer plano</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>Volver a cargar el archivo del disco</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>N</kbd></td><td>Ventana nueva</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Cerrar la ventana</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Atrás / adelante</td></tr>
             <tr><td><kbd>?</kbd></td><td>Recordatorio de teclas</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Mostrar esta ayuda</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Cerrar la barra de búsqueda, la vista previa o esta ayuda</td></tr>
@@ -92,7 +114,7 @@
         <p>
           <strong>Herramientas</strong> (el botón de controles a la derecha de la barra) reúne buscar y
           reemplazar, los comandos de línea y la <strong>corrección ortográfica</strong>, que subraya las palabras
-          mal escritas con el diccionario de Windows de tu idioma.
+          mal escritas con el diccionario del idioma de la interfaz y propone correcciones con el clic derecho (tras cambiar el idioma en los ajustes de lectura, desde el siguiente inicio).
         </p>
         <p>
           <strong>Recuperación:</strong> mientras tienes cambios sin guardar, se conserva aparte una copia del
@@ -114,6 +136,7 @@
           contraídas mientras navegas, y también tras reiniciar.
         </p>
         <p>Las carpetas sin archivos Markdown se ocultan, igual que las carpetas ocultas y de compilación como <code>node_modules</code>.</p>
+        <p>El panel se actualiza solo cuando se añaden, renombran o eliminan archivos en la carpeta. Si renombras el documento abierto, la ventana lo sigue; si lo eliminas o lo mueves, su texto queda en pantalla y un aviso ofrece guardarlo de nuevo.</p>
         <p>
           Ambos paneles laterales se ensanchan arrastrando su borde interior; un doble clic en el borde restaura
           el ancho predeterminado. El tamaño de su texto sigue a <strong>Paneles</strong> en los ajustes de lectura.
@@ -133,6 +156,7 @@
 
         <h3>Recarga automática</h3>
         <p>El archivo abierto se vigila en el disco. Cuando cambia, la vista se actualiza sola y conserva tu posición de lectura, útil mientras un documento se regenera. En el modo de edición la actualización solo ocurre mientras tu búfer no tenga cambios sin guardar.</p>
+        <p><kbd>F5</kbd> o <kbd>Ctrl</kbd>+<kbd>R</kbd> vuelve a leer el archivo cuando quieras, manteniendo tu posición; con cambios sin guardar no hace nada.</p>
 
         <h3>Representación</h3>
         <ul>
@@ -149,7 +173,8 @@
           <li>El front matter YAML entre líneas <code>---</code> se pliega en un bloque <em>Front matter</em> al principio: haz clic para ver los campos en una tabla.</li>
           <li>Un párrafo que solo contiene <code>[TOC]</code> se convierte en un índice de los títulos que siguen, que también va a la impresión, al HTML y al DOCX.</li>
           <li>Las imágenes con ruta relativa se resuelven respecto a la carpeta del documento.</li>
-          <li>Los enlaces a páginas web se abren en tu navegador predeterminado; los enlaces a otros archivos Markdown se abren en el visor.</li>
+          <li>Los enlaces a páginas web se abren en tu navegador predeterminado y los <code>mailto:</code> en tu aplicación de correo; los enlaces a otros archivos Markdown se abren en el visor, a imágenes en la vista previa y a una carpeta en el panel de archivos. Un enlace a cualquier otro archivo (un PDF, una hoja de cálculo) ofrece abrirlo con su aplicación.</li>
+          <li>El HTML sencillo en el texto funciona: <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, las imágenes (también <code>&lt;picture&gt;</code> y <code>srcset</code>), el vídeo y el audio de la carpeta del documento. Como en GitHub, una etiqueta que no es HTML, como <code>&lt;nombre&gt;</code>, no se ve: para mostrarla, escríbela entre acentos graves (<code>`&lt;nombre&gt;`</code>) o con una barra invertida delante (<code>\&lt;nombre&gt;</code>). Las etiquetas que cambiarían la página, como <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> e <code>&lt;iframe&gt;</code>, aparecen como texto.</li>
         </ul>
 
         <h3>Compartir y exportar</h3>

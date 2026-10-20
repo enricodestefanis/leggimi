@@ -64,6 +64,16 @@ export function get(path: string): Draft | null {
   return d && typeof d.text === "string" ? d : null;
 }
 
+// the file was renamed while being edited: its draft goes with it
+export function rename(from: string, to: string): void {
+  const store = load();
+  const draft = store[norm(from)];
+  if (!draft || norm(from) === norm(to)) return;
+  delete store[norm(from)];
+  store[norm(to)] = draft;
+  save(store);
+}
+
 export function remove(path: string): void {
   const store = load();
   if (norm(path) in store) {

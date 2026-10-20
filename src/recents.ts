@@ -37,6 +37,14 @@ export function push(doc: { path: string; dir: string }): void {
   save([{ path: doc.path, name, dir: doc.dir, openedAt: Date.now() }, ...rest].slice(0, MAX));
 }
 
+// renamed while open: the entry follows, keeping its place in the list
+export function rename(from: string, to: string): void {
+  const name = to.split(/[\\/]/).pop() ?? to;
+  // an entry already under the new name gives way: one entry per path
+  const rest = samePath(from, to) ? list() : list().filter((r) => !samePath(r.path, to));
+  save(rest.map((r) => (samePath(r.path, from) ? { ...r, path: to, name } : r)));
+}
+
 export function remove(path: string): void {
   save(list().filter((r) => !samePath(r.path, path)));
 }

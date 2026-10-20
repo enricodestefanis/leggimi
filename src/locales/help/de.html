@@ -6,7 +6,16 @@
           <li>Eine Datei auf das Fenster ziehen.</li>
           <li><kbd>Strg</kbd>+<kbd>O</kbd> drücken oder die Ordner-Schaltfläche in der Symbolleiste verwenden.</li>
         </ul>
-        <p>Wird eine zweite Datei geöffnet, während die App läuft, nutzt sie dasselbe Fenster.</p>
+        <p>
+          Eine Datei, die von außen geöffnet wird, während die App läuft (Doppelklick, <em>Öffnen mit</em>,
+          <code>leggimi datei.md</code>), bekommt ein <strong>eigenes Fenster</strong>; ist sie schon geöffnet,
+          kommt ihr Fenster in den Vordergrund. Innerhalb der App öffnen Dateien im selben Fenster:
+          <kbd>Strg</kbd>+Klick (oder die mittlere Maustaste) auf eine Datei, ein zuletzt geöffnetes Dokument,
+          ein Suchergebnis oder einen Link öffnet sie stattdessen in einem neuen Fenster, ebenso <em>In neuem
+          Fenster öffnen</em> im Kontextmenü, und <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>N</kbd> öffnet ein
+          leeres. Mehrere zusammen geöffnete Dateien (<kbd>Strg</kbd>+<kbd>O</kbd> oder gezogen) kommen in je
+          ein Fenster.
+        </p>
         <p>
           Ohne geöffnetes Dokument listet das Fenster die zuletzt geöffneten Dateien: ein Klick öffnet sie
           wieder. Jedes Dokument <strong>merkt sich außerdem, wo Sie aufgehört haben</strong>, und
@@ -35,6 +44,16 @@
           Outlook, und zugleich als reinen Text. Das Dokument lässt sich auch wie ein Blatt Papier ziehen:
           mit der mittleren Maustaste überall, mit der linken auf der freien Fläche neben dem Text.
         </p>
+        <p>
+          Ein Rechtsklick auf das Dokument öffnet sein Menü: die Auswahl kopieren (formatiert oder als reiner
+          Text) oder im Dokument bzw. im Ordner suchen; einen Link öffnen oder kopieren; ein Bild oder Diagramm
+          öffnen, einen Codeblock oder eine Tabelle kopieren; <strong>einen Link zum Abschnitt kopieren</strong>,
+          <code>[Überschrift](datei.md#überschrift)</code>, der aus jedem anderen Dokument funktioniert;
+          <strong>ab dieser Stelle bearbeiten</strong>; drucken oder als PDF speichern.
+        </p>
+        <p>
+          Wie in einem Browser kehrt <kbd>Alt</kbd>+<kbd>←</kbd> (oder die seitliche <em>Zurück</em>-Taste der Maus) dorthin zurück, wo Sie vor einem Link zu einem Abschnitt, einem Klick in der Gliederung oder dem Wechsel zu einem anderen Dokument waren; <kbd>Alt</kbd>+<kbd>→</kbd> (oder die <em>Vorwärts</em>-Taste) geht den Weg wieder vor. <strong>Zurück</strong> und <strong>Vorwärts</strong> stehen auch oben im Kontextmenü. Jedes Fenster hat seinen eigenen Verlauf.
+        </p>
 
         <h3>Tastenkürzel</h3>
         <table class="help-keys">
@@ -53,6 +72,10 @@
             <tr><td><kbd>Strg</kbd>+<kbd>=</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd></td><td>Größerer / kleinerer Text</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>0</kbd></td><td>Textgröße zurücksetzen</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd></td><td>Fenster im Vordergrund halten</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>Datei neu vom Datenträger laden</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>N</kbd></td><td>Neues Fenster</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>W</kbd></td><td>Fenster schließen</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Zurück / vorwärts</td></tr>
             <tr><td><kbd>?</kbd></td><td>Kurzübersicht der Tasten</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Suchleiste, Vorschau oder diese Hilfe schließen</td></tr>
@@ -93,7 +116,7 @@
         <p>
           <strong>Werkzeuge</strong> (die Schieberegler-Schaltfläche rechts in der Leiste) sammelt Suchen und
           Ersetzen, die Zeilenbefehle und die <strong>Rechtschreibprüfung</strong>, die falsch geschriebene
-          Wörter mit dem Windows-Wörterbuch Ihrer Anzeigesprache unterstreicht.
+          Wörter mit dem Wörterbuch der Oberflächensprache unterstreicht und per Rechtsklick Korrekturen vorschlägt (nach einem Sprachwechsel in den Leseeinstellungen ab dem nächsten Start).
         </p>
         <p>
           <strong>Wiederherstellung:</strong> solange Sie ungespeicherte Änderungen haben, wird eine Kopie des
@@ -116,6 +139,7 @@
           Eingeklappte Ordner bleiben eingeklappt – beim Navigieren und über Neustarts hinweg.
         </p>
         <p>Ordner ohne Markdown-Dateien werden ausgeblendet, ebenso versteckte und Build-Ordner wie <code>node_modules</code>.</p>
+        <p>Die Liste aktualisiert sich von selbst, wenn im Ordner Dateien hinzugefügt, umbenannt oder gelöscht werden. Benennen Sie das geöffnete Dokument um, folgt ihm das Fenster; löschen oder verschieben Sie es, bleibt sein Text auf dem Bildschirm, und ein Hinweis bietet an, ihn erneut zu speichern.</p>
         <p>
           Beide Seitenbereiche lassen sich an der Innenkante breiter ziehen – ein Doppelklick auf die Kante stellt
           die Standardbreite wieder her. Ihre Textgröße folgt <strong>Bereiche</strong> in den Leseeinstellungen.
@@ -136,6 +160,7 @@
 
         <h3>Automatisches Neuladen</h3>
         <p>Die geöffnete Datei wird auf der Festplatte beobachtet. Ändert sie sich, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
+        <p><kbd>F5</kbd> oder <kbd>Strg</kbd>+<kbd>R</kbd> liest die Datei auf Wunsch neu ein und behält die Leseposition; bei ungespeicherten Änderungen geschieht nichts.</p>
 
         <h3>Darstellung</h3>
         <ul>
@@ -152,7 +177,8 @@
           <li>YAML-Front-Matter zwischen <code>---</code>-Zeilen wird zu einem <em>Front Matter</em>-Block am Anfang gefaltet: ein Klick zeigt die Felder als Tabelle.</li>
           <li>Ein Absatz, der nur <code>[TOC]</code> enthält, wird zu einem Inhaltsverzeichnis der folgenden Überschriften, das auch in Druck, HTML und DOCX landet.</li>
           <li>Bilder mit relativem Pfad werden relativ zum Ordner des Dokuments aufgelöst.</li>
-          <li>Links auf Webseiten öffnen sich im Standardbrowser; Links auf andere Markdown-Dateien im Viewer.</li>
+          <li>Links auf Webseiten öffnen sich im Standardbrowser, <code>mailto:</code>-Links in der Mail-App; Links auf andere Markdown-Dateien öffnen sich im Viewer, auf Bilder in der Vorschau, auf einen Ordner in der Dateiliste. Ein Link auf eine andere Datei (ein PDF, eine Tabelle) bietet an, sie mit ihrer App zu öffnen.</li>
+          <li>Einfaches HTML im Text funktioniert: <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, Bilder (auch <code>&lt;picture&gt;</code> und <code>srcset</code>), Videos und Audio aus dem Ordner des Dokuments. Wie auf GitHub wird ein Tag, das kein HTML ist, etwa <code>&lt;name&gt;</code>, nicht angezeigt: Um es zu zeigen, schreiben Sie es zwischen Backticks (<code>`&lt;name&gt;`</code>) oder mit einem Backslash davor (<code>\&lt;name&gt;</code>). Tags, die die Seite verändern würden, wie <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> und <code>&lt;iframe&gt;</code>, erscheinen als Text.</li>
         </ul>
 
         <h3>Teilen und exportieren</h3>

@@ -58,6 +58,16 @@ export function recall(path: string): ScrollAnchor | null {
   return { id: typeof e.id === "string" ? e.id : "", offset: Number(e.offset) || 0 };
 }
 
+// the file was renamed: its place goes with it
+export function rename(from: string, to: string): void {
+  const store = load();
+  const entry = store[norm(from)];
+  if (!entry || norm(from) === norm(to)) return;
+  delete store[norm(from)];
+  store[norm(to)] = entry;
+  save(store);
+}
+
 export function forget(path: string): void {
   const store = load();
   if (norm(path) in store) {

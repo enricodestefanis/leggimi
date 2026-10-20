@@ -66,8 +66,50 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
     el.removeAttribute("role");
     el.removeAttribute("aria-label");
   }
+  // An image's other candidates (srcset, a <picture>'s sources) are asset
+  // URLs that only work in the app, and would win over the src inlined
+  // below: output keeps the plain src (of a light/dark pair, the light one,
+  // for white paper), or a candidate when the src itself was never found
+  for (const img of clone.querySelectorAll("img")) {
+    if (!isAssetUrl(img.getAttribute("src") ?? "")) {
+      const sets = [img.getAttribute("srcset"), ...[...(img.closest("picture")?.querySelectorAll("source") ?? [])].map((s) => s.getAttribute("srcset"))];
+      const found = sets.flatMap((s) => (s ?? "").split(/,\s+/).map((c) => c.trim().split(/\s+/)[0])).find(isAssetUrl);
+      if (found) img.setAttribute("src", found);
+    }
+    img.removeAttribute("srcset");
+    img.removeAttribute("sizes");
+  }
+  for (const el of clone.querySelectorAll("picture > source")) el.remove();
+  // video, audio, subtitles, posters: their files, by file URL (an exported
+  // page still plays them on this PC). No CORS there: a file:// page asking
+  // for one would be refused it.
+  for (const el of clone.querySelectorAll("video, audio, source, track")) {
+    el.removeAttribute("crossorigin");
+    for (const attr of ["src", "poster"]) {
+      const v = el.getAttribute(attr);
+      if (v && isAssetUrl(v)) el.setAttribute(attr, assetToFileUrl(v));
+    }
+  }
   absolutizeLinks(clone, docDir);
   return clone;
+}
+
+// http://asset.localhost/<encoded path>#frag (convertFileSrc's) as
+// file:///C:/path#frag, each folder name encoded whole ("C#" stays a name)
+function assetToFileUrl(url: string): string {
+  const hash = url.indexOf("#");
+  const fragment = hash >= 0 ? url.slice(hash) : "";
+  const encoded = url.slice(0, hash >= 0 ? hash : undefined).replace(/^(?:asset:\/\/localhost|https?:\/\/asset\.localhost)\//i, "");
+  let path = encoded;
+  try {
+    path = decodeURIComponent(encoded);
+  } catch {
+    /* keep it encoded */
+  }
+  const parts = path.split(/[\\/]+/).filter(Boolean);
+  const segs = parts.map((p, i) => (i === 0 && /^[a-z]:$/i.test(p) ? p : encodeURIComponent(p)));
+  // a network path (\\server\share\…) keeps its server as the URL's host
+  return `${/^[\\/]{2}/.test(path) ? "file://" : "file:///"}${segs.join("/")}${fragment}`;
 }
 
 // Relative links (other .md files, mostly) only resolve inside the app;
@@ -137,6 +179,25 @@ async function preparePortableClone(
 ): Promise<HTMLElement> {
   const clone = cleanedClone(source, docDir);
   await inlineImages(clone);
+  // Word and Outlook drop video and audio: a link to the file stands in
+  for (const media of clone.querySelectorAll("video, audio")) {
+    const src = media.getAttribute("src") ?? media.querySelector("source[src]")?.getAttribute("src") ?? "";
+    if (!src) {
+      media.remove();
+      continue;
+    }
+    const a = document.createElement("a");
+    a.href = src;
+    const name = src.replace(/[?#].*$/, "").split("/").pop() || src;
+    try {
+      a.textContent = decodeURIComponent(name);
+    } catch {
+      a.textContent = name;
+    }
+    const p = document.createElement("p");
+    p.append(a);
+    media.replaceWith(p);
+  }
   for (const el of clone.querySelectorAll(".katex-html")) el.remove();
   // Word has no <details>: the folded front matter would paste as loose text
   for (const el of clone.querySelectorAll(".front-matter")) el.remove();

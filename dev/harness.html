@@ -17,7 +17,7 @@
   </head>
   <body>
     <script type="module">
-      import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+      import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
       import { emit } from "@tauri-apps/api/event";
 
       // Automation tabs flip to visibilityState "hidden", where rAF callbacks
@@ -76,9 +76,19 @@
         async open(path, line = null) {
           await emit("open-file", { path, line });
         },
+        /** the folder watch's event: files came or went */
+        async treeChanged() {
+          await emit("tree-changed", null);
+        },
+        /** the document watch's event: kind "changed", "renamed" (with `to`) or "removed" */
+        async fileChanged(kind, path, to = null) {
+          await emit("file-changed", { kind, path, to });
+        },
       });
 
       mockWindows("main");
+      // local files become http://asset.localhost/… URLs, as on Windows (nothing serves them here)
+      mockConvertFileSrc("windows");
       mockIPC(
         (cmd, args) => {
           harness.calls.push({ cmd, args });
@@ -86,7 +96,8 @@
             case "get_initial_file":
               return src === "none" ? null : { path: PATH, line: params.has("line") ? Number(params.get("line")) : null };
             case "read_markdown":
-              if (!harness.files.has(args.path)) throw `Cannot open ${args.path}: not found`;
+              // the Rust command's sentinel for a file that is not there
+              if (!harness.files.has(args.path)) throw "not-found";
               return { path: args.path, dir: DIR, content: harness.files.get(args.path) ?? "", modified: harness.modified };
             case "write_markdown":
               // simulates the save guard: harness.conflict makes the next write refuse once
@@ -102,10 +113,17 @@
             case "parent_dir":
               return DIR;
             case "list_tree":
-              return { name: "harness", path: DIR, isDir: true, children: [{ name: "test.md", path: PATH, isDir: false, children: [] }] };
+              return {
+                name: "harness",
+                path: DIR,
+                isDir: true,
+                children: [...harness.files.keys()].map((p) => ({ name: p.slice(DIR.length + 1), path: p, isDir: false, children: [] })),
+              };
             case "search_in_tree":
               return [];
             case "resolve_path":
+              // names in harness.missing are files that do not exist
+              if (harness.missing?.has(args.rel)) throw `Cannot resolve ${args.rel}`;
               return `${DIR}\\${args.rel}`;
             case "resolve_doc": {
               // like the Rust command: the path itself, then .md, then index.md / README.md inside it
@@ -121,8 +139,18 @@
               return null;
             case "plugin:dialog|save":
               return harness.savePath || null;
+            case "plugin:dialog|open":
+              // the files "picked" in the open dialog (an array when several)
+              return harness.openPaths || null;
             case "plugin:window|set_always_on_top":
             case "plugin:opener|reveal_item_in_dir":
+              return null;
+            case "open_window":
+              // a new window cannot open here: the request is only logged in `calls`
+              if (args.path && !harness.files.has(args.path)) throw "not-found";
+              return null;
+            case "watch_tree":
+              // the folder watch: harness.treeChanged() plays its event
               return null;
             case "is_store_install":
               return params.has("store"); // ?store=1 behaves like the Store build

@@ -94,6 +94,16 @@ export function init(): void {
   apply(get());
 }
 
+/**
+ * Another window changed the preferences (they share localStorage): apply
+ * them here too. `wrap` runs the change, so the caller can keep its place.
+ */
+export function syncAcrossWindows(wrap: (fn: () => void) => void): void {
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY || e.key === null) wrap(() => apply(get()));
+  });
+}
+
 function apply(p: ReaderPrefs): void {
   const root = document.documentElement;
   root.style.setProperty("--reader-font-size", `${p.size}px`);

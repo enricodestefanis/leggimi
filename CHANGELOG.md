@@ -7,6 +7,91 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.15.0] - 2026-10-20
+
+More than one document at a time, a right-click menu that belongs to the app, Back and Forward
+like a browser, and a file browser that keeps up with the disk.
+
+### Added
+- **More windows**: a file opened from outside while Leggimi runs (a double-click in File
+  Explorer, *Open with*, `leggimi file.md`, the jump list) gets a window of its own; if it is
+  already open, its window comes to the front, and a window still on the home is reused.
+  Inside the app, Ctrl+click or the middle button on a file, a recent document, a search result
+  or a link opens it in a new window, as does **Open in a new window** in the file menu;
+  Ctrl+Shift+N opens an empty window. Several files picked together in the open dialog, or
+  dropped together, open one per window. New windows cascade from the one they come from; text
+  settings and the theme follow along in every open window.
+- **Right-click menu of the document**: copy the selection (with its formatting or as plain
+  text) or search for it in the document or the folder; open, copy or open in a new window a
+  link; open an image or a diagram, copy a code block or a table; **copy a link to the
+  section** (`[Heading](file.md#heading)`, which Leggimi follows from any other document);
+  **edit from here** (the editor opens at that line); copy the whole document, print, save as
+  PDF. It also opens from the keyboard (Shift+F10 or the menu key).
+- Ctrl+F and Ctrl+Shift+F start from the text selected in the document.
+- **Back and Forward**, as in a browser: Alt+← and Alt+→, the mouse's side buttons, or the
+  first entries of the right-click menu go back to where you were before a link to a section, a
+  click in the outline or a move to another document, and forward again. Each window keeps its
+  own history.
+- **Ctrl+W and Ctrl+F4 close the window**, asking first about unsaved edits; closing the last
+  one ends the app.
+- **The file browser keeps up with the disk**: files added, renamed or deleted in the folder
+  (in File Explorer, by another program) show up at once, without losing the collapsed folders
+  or the scroll position. A document renamed while open is followed, unsaved edits included;
+  one deleted or moved away stays on screen, with a notice offering to save it again.
+- **Video and audio** from the document's folder play (`<video>`, `<audio>`, with their
+  `<source>` and subtitles), and images with `srcset` or `<picture>` (the light and dark logos
+  of many GitHub READMEs) show.
+
+### Changed
+- **F5 and Ctrl+R reload the file** from disk and keep the reading position; with unsaved edits
+  they do nothing. They used to reload the whole app, which closed the document.
+- The right-click menu of WebView2 (Back, Refresh, Save as, Print, Share, Copy link to
+  highlight) no longer appears: its entries acted on the app's own page, not on the document. It
+  stays in text fields and in the editor, for the spelling suggestions and cut/copy/paste, and
+  there too it loses what does not edit the text: More tools (Share), Print, Writing direction
+  and Edge's Import passwords. The spelling suggestions stay.
+
+- **Browser keys are off**: Ctrl+G and Ctrl+J opened Edge's own find bar and downloads panel
+  inside the window, and F7 offered caret browsing; with the help or the preview open, Ctrl+F
+  and Ctrl+P could reach Edge's find bar and print dialog. Leggimi's own shortcuts are unchanged.
+- **Links to other files**: a link to an image opens it in the preview, to a folder in the
+  file browser, and to any other file (a PDF, a spreadsheet) a notice offers to open it in its
+  own app (programs and scripts are only shown in File Explorer). It used to show an English
+  read error, or open a CSV or text file as if it were Markdown. `mailto:` and `tel:` links open
+  the mail and phone apps instead of doing nothing.
+- The text stays as typed: `README.md` or `main.rs` written in a sentence no longer becomes a
+  web link (only real addresses do), and `(c)`, `(tm)`, `--` and `...` are no longer turned into
+  ©, ™, – and …; quotes still curl.
+- `Ctrl+A` while reading selects the document, not the whole window.
+- The "unsaved changes" questions have their buttons in the app's language (Discard, Cancel)
+  instead of Windows' Yes / No.
+- **Spellcheck in the app's language**: WebView2's own parts (the spelling dictionary and its
+  suggestions, the menu in text fields and the editor, the print preview) follow Leggimi's
+  language instead of Windows' display language: Italian text on an English Windows is no
+  longer all underlined. After a language change in the reading settings they follow from the
+  next start.
+- **Tags that change the page show as text**, as on GitHub: `<style>`, `<script>`, `<title>`,
+  `<textarea>`, `<iframe>` and the like. A `<style>` block restyled the whole app, and a
+  `<title>` or `<textarea>` named in a sentence hid or swallowed the rest of the document. An
+  `<iframe>` (a YouTube embed) was never shown and now appears as its code. Other unknown tags
+  (`<name>`) stay hidden, as on GitHub; the help says how to write them.
+
+### Fixed
+- The middle button did nothing on a recent file of the home; it opens it in a new window, as
+  Ctrl+click does.
+- A file renamed or deleted outside the app kept its old row in the file browser, and clicking
+  it showed a raw "Cannot open … (os error 2)" in place of the document; now the browser
+  updates, and a file that is gone gets a "Not found" notice while the document on screen stays.
+- Headings named like a part of the app ("Toolbar", "App", "Find bar", "Read progress"…) took
+  that part's styles: one vanished, others stuck to the top or filled the window, and some
+  disappeared from print.
+- Headings such as "Links", "Images", "Title", "Name" or "Timeline" had no anchor: they were
+  missing from the outline and from `[TOC]`, and links to them went nowhere.
+- Links to a heading with accented letters (`#attività`) did not scroll to it.
+- A document could take the window out of the app: an HTML form, an image map or a link inside
+  an SVG or a Mermaid diagram navigated it to the web page, and Leggimi was gone from that
+  window. Now a window always stays on the app; web addresses open in the browser.
+
 ## [1.14.0] - 2026-10-15
 
 The Italian release: the interface speaks six languages, and the app answers from the

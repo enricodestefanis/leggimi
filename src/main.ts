@@ -8,6 +8,7 @@ import "./styles/print.css";
 import "katex/dist/katex.min.css";
 
 import { getVersion } from "@tauri-apps/api/app";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
@@ -28,6 +29,8 @@ import * as recents from "./recents";
 import * as rating from "./rating";
 import * as drafts from "./drafts";
 import * as i18n from "./i18n";
+import * as contextMenu from "./contextMenu";
+import * as navHistory from "./navHistory";
 import { t } from "./i18n";
 import { captureScrollAnchor, restoreScrollAnchor, type ScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
@@ -62,7 +65,6 @@ const recentSection = $("#recent-section");
 const recentList = $("#recent-list");
 const rateToast = $("#rate-toast");
 const btnPin = $<HTMLButtonElement>("#btn-pin");
-const fileMenu = $("#file-menu");
 const zoomDialog = $<HTMLDialogElement>("#zoom-dialog");
 const zoomHint = $<HTMLButtonElement>("#zoom-hint");
 const editorPane = $("#editor-pane");
@@ -84,6 +86,10 @@ let currentDoc: ipc.MarkdownDoc | null = null;
 // file from a subfolder does not make the rest of the tree disappear.
 let browseRoot: string | null = null;
 let opening = false;
+// the article holds an error card, not the document
+let errorShown = false;
+// the document was deleted or moved away while on screen (see onDocRemoved)
+let docGone = false;
 
 let editing = false;
 let storeInstall = false;
@@ -107,37 +113,58 @@ interface OpenOptions {
   anchor?: string;
   /** 1-based source line to show at the top (`--line N`) */
   line?: number;
+  /** a place to go back to (Back, Forward): shown as it was, at once */
+  restore?: ScrollAnchor;
 }
 
-async function openFile(path: string, opts: OpenOptions = {}): Promise<void> {
-  if (opening) return;
+// a request that arrives while another document is opening waits for it (the
+// latest one wins), so a file routed here by a second launch is never lost
+let queuedOpen: { path: string; opts: OpenOptions } | null = null;
+
+// "shown": the document is on screen; "kept": not now (the unsaved edits were
+// kept, or another document opens first and this one waits for it);
+// "failed": it could not be read (a notice said why).
+type OpenResult = "shown" | "kept" | "failed";
+
+async function openFile(path: string, opts: OpenOptions = {}): Promise<OpenResult> {
+  if (opening) {
+    queuedOpen = { path, opts };
+    return "kept";
+  }
   opening = true;
   try {
-    if (editing && editorMod?.isDirty() && currentDoc && !samePath(path, currentDoc.path)) {
-      if (!(await confirmDiscard())) return;
-    }
+    // read before asking: a file that is gone never costs the unsaved edits
     const doc = await ipc.readMarkdown(path);
+    if (editing && editorMod?.isDirty() && currentDoc && !samePath(doc.path, currentDoc.path)) {
+      if (!(await confirmDiscard())) return "kept";
+    }
     const prevPath = currentDoc?.path ?? null;
     const sameDoc = prevPath !== null && samePath(prevPath, doc.path);
+    // the place on screen before it goes (never an error card's): for the
+    // reading position, a reload, and Back
+    const here = currentDoc && !article.hidden && !errorShown ? captureScrollAnchor(contentPane, article) : null;
     // reopening the document already on screen (a reload, or the same file
     // double-clicked again) keeps the place being read
-    const anchor =
-      (opts.preserveScroll || sameDoc) && currentDoc && !article.hidden
-        ? captureScrollAnchor(contentPane, article)
-        : null;
+    const anchor = opts.preserveScroll || sameDoc ? here : null;
     // leaving a document: keep its reading position before it goes
-    if (currentDoc && !sameDoc && !editing && !article.hidden) {
-      positions.remember(currentDoc.path, captureScrollAnchor(contentPane, article));
-    }
+    if (currentDoc && here && !sameDoc && !editing) positions.remember(currentDoc.path, here);
+    // the place Back returns to; reloads and Back itself leave none
+    const from = here && prevPath !== null && !opts.preserveScroll && !opts.restore ? { path: prevPath, pos: here } : null;
     currentDoc = doc;
 
     if (editing && prevPath !== null && !samePath(prevPath, doc.path)) exitEditMode();
 
     await render(doc, article);
+    errorShown = false;
+    if (docGone) {
+      docGone = false;
+      hideNotice(true); // the "no longer on disk" notice of the document before
+    }
     lightbox.markAll(article);
     emptyState.hidden = true;
     article.hidden = false;
-    if (!opts.preserveScroll) {
+    // a place restored by Back appears at once, as in a browser
+    if (!opts.preserveScroll && !opts.restore) {
       article.classList.remove("doc-enter");
       void article.offsetWidth; // restart the entrance animation
       article.classList.add("doc-enter");
@@ -150,11 +177,12 @@ async function openFile(path: string, opts: OpenOptions = {}): Promise<void> {
     panes.refresh();
     updateDocMeta();
 
-    const target = anchor ?? (sameDoc ? null : positions.recall(doc.path));
+    const target = opts.restore ?? anchor ?? (sameDoc ? null : positions.recall(doc.path));
     // an explicit destination (link anchor, --line) beats the remembered place
     const jump = (): boolean =>
       opts.anchor !== undefined ? scrollToId(opts.anchor) : opts.line !== undefined ? scrollToSourceLine(opts.line - 1) : false;
-    if (!jump() && !restoreRemembered(target)) contentPane.scrollTop = 0;
+    const jumped = jump();
+    if (!jumped && !restoreRemembered(target)) contentPane.scrollTop = 0;
     updateProgress();
     const applied = contentPane.scrollTop;
 
@@ -167,7 +195,7 @@ async function openFile(path: string, opts: OpenOptions = {}): Promise<void> {
         updateProgress();
       })
       .catch(() => {});
-    if (!sameDoc) offerDraft(doc);
+    if (!sameDoc) void offerDraft(doc);
     search.onContentChanged();
 
     const rootChanged = !browseRoot || !isInside(browseRoot, doc.dir);
@@ -182,11 +210,31 @@ async function openFile(path: string, opts: OpenOptions = {}): Promise<void> {
       rating.noteOpen();
       scheduleRatePrompt();
     }
+    // a new place: the one left goes on the Back list (a reopen of the same
+    // document counts only when it jumped somewhere, a --line or an anchor)
+    if (from && (!sameDoc || jumped)) navHistory.record(from);
+    return "shown";
   } catch (err) {
-    recents.remove(path); // a vanished file must not keep its place on the home
-    showError(String(err));
+    // what is on screen stays (the document, or the home): a notice says it
+    const onScreen = currentDoc !== null && !article.hidden && !errorShown;
+    if (String(err) === ipc.NOT_FOUND) {
+      // the document on screen, deleted meanwhile (F5): its way back stays at hand
+      if (docGone && currentDoc && samePath(path, currentDoc.path)) showGoneNotice();
+      else {
+        if (!onScreen) showEmpty(); // at start, or over an error card: the home
+        reportMissing(path);
+      }
+    } else if (onScreen) {
+      showNotice(String(err));
+    } else {
+      showError(String(err));
+    }
+    return "failed";
   } finally {
     opening = false;
+    const next = queuedOpen;
+    queuedOpen = null;
+    if (next) void openFile(next.path, next.opts);
   }
 }
 
@@ -219,7 +267,9 @@ async function toggleEditMode(): Promise<void> {
   exitEditMode();
 }
 
-async function enterEditMode(): Promise<void> {
+// `line` (0-based) puts the caret there; without it the editor opens at the
+// section being read
+async function enterEditMode(line?: number): Promise<void> {
   if (editing || !currentDoc) return;
   try {
     editorMod ??= await import("./editor");
@@ -261,11 +311,24 @@ async function enterEditMode(): Promise<void> {
   hideRateToast();
   editorMod.focus();
 
+  if (line !== undefined) {
+    editorMod.scrollToLine(line);
+    return;
+  }
   // open the editor at the section being read: first anchor visible in the preview
   collectPreviewAnchors();
   const paneTop = contentPane.getBoundingClientRect().top;
   const first = previewAnchors.find((a) => a.el.getBoundingClientRect().top - paneTop >= -1);
   if (first && first.line > 0) editorMod.scrollToLine(first.line);
+}
+
+// "Edit from here": the editor at that source line, entering edit mode first
+async function editAt(line: number | null): Promise<void> {
+  if (!editing) await enterEditMode(line ?? undefined);
+  else if (line !== null && editorMod) {
+    editorMod.scrollToLine(line);
+    editorMod.focus();
+  }
 }
 
 function exitEditMode(): void {
@@ -323,9 +386,12 @@ async function insertDroppedImage(path: string): Promise<void> {
 }
 
 const confirmDiscard = async (): Promise<boolean> => {
+  // labelled buttons: without them Windows writes Yes/No in its own language
   const ok = await ask(t("msg.discardQ"), {
     title: t("msg.discardTitle"),
     kind: "warning",
+    okLabel: t("msg.discard"),
+    cancelLabel: t("msg.cancel"),
   }).catch(() => false);
   // a deliberate discard also drops the recovery draft of that buffer
   if (ok && currentDoc) drafts.remove(currentDoc.path);
@@ -350,10 +416,37 @@ function scheduleDraft(): void {
   }, 1000);
 }
 
+// The windows share localStorage, drafts included: before offering one, ask
+// the others whether it is the live, unsaved buffer of one of them.
+const peers = new BroadcastChannel("leggimi-windows");
+peers.addEventListener("message", (e: MessageEvent) => {
+  const m = e.data as { type?: string; path?: string; id?: number };
+  if (m.type !== "editing?" || !m.path || !currentDoc || !editing || !editorMod?.isDirty()) return;
+  if (samePath(currentDoc.path, m.path)) peers.postMessage({ type: "editing!", id: m.id });
+});
+
+function editedElsewhere(path: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const id = Math.random();
+    const onReply = (e: MessageEvent) => {
+      if ((e.data as { type?: string; id?: number }).type !== "editing!" || e.data.id !== id) return;
+      peers.removeEventListener("message", onReply);
+      resolve(true);
+    };
+    peers.addEventListener("message", onReply);
+    peers.postMessage({ type: "editing?", path, id });
+    setTimeout(() => {
+      peers.removeEventListener("message", onReply);
+      resolve(false);
+    }, 250);
+  });
+}
+
 // a draft left by a crash or a killed process is offered, never applied
-function offerDraft(doc: ipc.MarkdownDoc): void {
+async function offerDraft(doc: ipc.MarkdownDoc): Promise<void> {
   const draft = drafts.get(doc.path);
   if (!draft) return;
+  if ((await editedElsewhere(doc.path)) || currentDoc !== doc) return;
   if (draft.text === doc.content.replace(/\r\n/g, "\n")) {
     drafts.remove(doc.path);
     return;
@@ -575,8 +668,12 @@ function syncPreviewToEditor(reveal = false, retry = true): void {
 // changed on disk since it was read. null: the user kept the other version.
 async function writeDocument(doc: ipc.MarkdownDoc, content: string): Promise<number | null> {
   suppressReloadUntil = Date.now() + 1500;
+  // a document deleted while open is written again: that is what saving it means
+  const create = docGone;
   try {
-    return await ipc.writeMarkdown(doc.path, content, doc.modified);
+    const modified = await ipc.writeMarkdown(doc.path, content, doc.modified, create);
+    if (create) onDocBack();
+    return modified;
   } catch (err) {
     if (String(err) !== ipc.WRITE_CONFLICT) throw err;
     // someone else wrote the file since it was read: overwrite only on request
@@ -631,6 +728,11 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
     editorMod.replaceLine(line, next);
     return;
   }
+  // a file deleted meanwhile is not written back by a tick (its notice says so)
+  if (docGone) {
+    box.checked = !box.checked;
+    return;
+  }
   lines[line] = next;
   const content = lines.join(eol);
   try {
@@ -675,6 +777,97 @@ async function reloadFromDisk(): Promise<void> {
   } catch (err) {
     showNotice(t("msg.reloadFailed", { err: String(err) }));
   }
+}
+
+/* ---- the document renamed or deleted on disk ---- */
+
+// Renamed in File Explorer while on screen: the window follows the file,
+// with the unsaved edits, the place being read and everything kept by path.
+function onDocRenamed(to: string): void {
+  if (!currentDoc) return;
+  const from = currentDoc.path;
+  // in place: a save or a ticked checkbox in flight still holds this very
+  // object, and must not take it for another document
+  currentDoc.path = to;
+  // a focus check that came first took the old name for a deletion
+  if (docGone) {
+    docGone = false;
+    hideNotice(true);
+  }
+  recents.rename(from, to);
+  positions.rename(from, to);
+  drafts.rename(from, to);
+  navHistory.renamePath(from, to);
+  updateTitles();
+  ipc.watchFile(to).catch(() => {});
+  if (!tree.setActive(treeRoot, to)) refreshTree();
+  showNotice(t("msg.renamedTo", { name: fileName(to) }));
+}
+
+// Deleted, or moved out of its folder: the text stays on screen, and the
+// notice offers to write it back (so does saving, in edit mode)
+function onDocRemoved(): void {
+  if (!currentDoc || docGone) return;
+  docGone = true;
+  showGoneNotice();
+  refreshTree();
+}
+
+function showGoneNotice(): void {
+  if (!currentDoc) return;
+  showNotice(t("msg.goneFromDisk", { name: fileName(currentDoc.path) }), {
+    sticky: true,
+    action: { label: t("msg.saveAgain"), fn: () => void restoreGoneDoc() },
+  });
+}
+
+// the file is there again (written back, or restored by an Undo in File Explorer)
+function onDocBack(): void {
+  if (!docGone) return;
+  docGone = false;
+  hideNotice(true);
+  refreshTree();
+}
+
+// "Save again": the text on screen (the editor's, while editing) back to its file
+async function restoreGoneDoc(): Promise<void> {
+  if (!currentDoc || !docGone) return;
+  const doc = currentDoc;
+  const content = editing && editorMod ? editorMod.getContent() : doc.content;
+  try {
+    const modified = await writeDocument(doc, content);
+    if (modified === null || currentDoc !== doc) return;
+    currentDoc = { ...doc, content, modified };
+    if (editing) editorMod?.markSaved();
+    drafts.remove(doc.path);
+    updateTitles();
+  } catch (err) {
+    showNotice(t("msg.saveFailed", { err: String(err) }));
+  }
+}
+
+// The document's own watch goes with its folder (renamed or deleted): the
+// file itself is looked for whenever the pane's folder changes, and on focus.
+// Missing, it is looked for once more after the watch's own delay: a rename
+// it is about to report must not pass for a deletion.
+async function checkDocOnDisk(): Promise<void> {
+  if (!currentDoc || docGone || errorShown) return;
+  const doc = currentDoc;
+  const path = doc.path;
+  const missing = async () => (await ipc.existingPaths([path]).catch(() => [path])).length === 0;
+  if (!(await missing())) return;
+  await new Promise((r) => setTimeout(r, 800));
+  if (currentDoc === doc && doc.path === path && !docGone && (await missing())) onDocRemoved();
+}
+
+// a file picked from a list (the pane, the home, a search, Back) that is no
+// longer there: say so, and let the lists catch up
+function reportMissing(path: string): void {
+  recents.remove(path);
+  if (!emptyState.hidden) renderRecents().catch(() => {});
+  refreshTree();
+  if (treeSearch.value.trim()) void runFolderSearch();
+  showNotice(t("msg.notFound", { name: fileName(path) }));
 }
 
 /* ---- sharing: rich-text copy, print, HTML export ---- */
@@ -796,6 +989,7 @@ function toggleShareMenu(): void {
   }
   if (!currentDoc) return;
   readingMenu.hidden = true;
+  contextMenu.close();
   positionMenu(shareMenu, btnShare);
   shareMenu.hidden = false;
   shareMenu.querySelector<HTMLButtonElement>(".menu-item")?.focus();
@@ -807,6 +1001,7 @@ function toggleReadingMenu(): void {
     return;
   }
   shareMenu.hidden = true;
+  contextMenu.close();
   syncReadingMenu();
   positionMenu(readingMenu, btnReading);
   readingMenu.hidden = false;
@@ -822,7 +1017,7 @@ function syncReadingMenu(): void {
     width: p.width,
     sideSize: p.sideSize,
     theme: theme.currentPref(),
-    lang: i18n.pref(),
+    lang: i18n.activePref(),
   };
   for (const seg of readingMenu.querySelectorAll<HTMLElement>(".rs-seg")) {
     const key = seg.id === "rs-theme" ? "theme" : seg.id === "rs-lang" ? "lang" : (seg.dataset.pref ?? "");
@@ -917,11 +1112,35 @@ function hideNotice(force = false): void {
 
 /* ---- jumping to a heading or a source line ---- */
 
-function scrollToId(id: string): boolean {
-  const el = article.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`);
+const uriSafe = (fn: (s: string) => string, s: string): string => {
+  try {
+    return fn(s);
+  } catch {
+    return s; // a stray "%" or a lone surrogate stays as it is
+  }
+};
+const decodeSafe = (s: string): string => uriSafe(decodeURIComponent, s);
+
+// markdown-it-anchor percent-encodes the ids ("Attività" → "attivit%C3%A0")
+// while a link's anchor arrives decoded: look for every spelling. An id the
+// app's own UI uses is renamed in the document (see renderer.ts), keeping
+// the name it was written with in data-anchor.
+function elementById(id: string): HTMLElement | null {
+  for (const v of new Set([id, uriSafe(encodeURIComponent, id), decodeSafe(id)])) {
+    const q = CSS.escape(v);
+    const el = article.querySelector<HTMLElement>(`[id="${q}"], [data-anchor="${q}"]`);
+    if (el) return el;
+  }
+  return null;
+}
+
+function scrollToId(id: string, smooth = false): boolean {
+  const el = elementById(id);
   if (!el) return false;
   const paneTop = contentPane.getBoundingClientRect().top;
-  contentPane.scrollTop += el.getBoundingClientRect().top - paneTop - 24;
+  const top = contentPane.scrollTop + el.getBoundingClientRect().top - paneTop - 24;
+  if (smooth) contentPane.scrollTo({ top, behavior: "smooth" });
+  else contentPane.scrollTop = top;
   return true;
 }
 
@@ -940,6 +1159,74 @@ function scrollToSourceLine(line: number): boolean {
   return true;
 }
 
+/* ---- Back and Forward ---- */
+
+// the place on screen, for Back: none over the home or an error card
+function currentPlace(): navHistory.Place | null {
+  if (!currentDoc || article.hidden || errorShown) return null;
+  return { path: currentDoc.path, pos: captureScrollAnchor(contentPane, article) };
+}
+
+// Before a jump inside the document (a #link, the outline): the place being
+// left goes on the Back list, unless the jump goes nowhere: the target
+// already sits where a jump puts it (24 px below the top), or, near the end,
+// the page cannot scroll any further toward it.
+function noteJump(target: HTMLElement): void {
+  const here = currentPlace();
+  if (!here) return;
+  const max = contentPane.scrollHeight - contentPane.clientHeight;
+  const dest = contentPane.scrollTop + target.getBoundingClientRect().top - contentPane.getBoundingClientRect().top - 24;
+  if (Math.abs(Math.max(0, Math.min(max, dest)) - contentPane.scrollTop) < 8) return;
+  navHistory.record(here);
+}
+
+// a #link in the document: there, smoothly, with the place left kept for Back
+function jumpToAnchor(id: string): void {
+  const el = elementById(id);
+  if (!el) return;
+  noteJump(el);
+  scrollToId(id, true);
+}
+
+// Back (-1) or Forward (1). The place comes off its list only once it is on
+// screen: opening it can be cancelled (unsaved edits), or its file be gone.
+async function travel(dir: -1 | 1): Promise<void> {
+  if (opening) return;
+  const place = dir < 0 ? navHistory.peekBack() : navHistory.peekForward();
+  if (!place) return;
+  const here = currentPlace();
+  const commit = () => (dir < 0 ? navHistory.commitBack(here) : navHistory.commitForward(here));
+  if (here && samePath(place.path, here.path)) {
+    commit();
+    if (!restoreRemembered(place.pos)) contentPane.scrollTop = 0;
+    // while editing the editor goes there too, or its next scroll would pull
+    // the preview back
+    if (editing && place.pos.id) {
+      const line = Number(elementById(place.pos.id)?.dataset.sourceLine);
+      if (Number.isFinite(line)) editorMod?.scrollToLine(line);
+    }
+    toc.unpin();
+    updateProgress();
+    return;
+  }
+  const alive = await ipc.existingPaths([place.path]).catch(() => [place.path]);
+  // another document started opening meanwhile: it goes first, and this
+  // move would only be queued behind it and then undo it
+  if (opening) return;
+  if (alive.length === 0) {
+    navHistory.drop(dir);
+    showNotice(t("msg.notFound", { name: fileName(place.path) }));
+    return;
+  }
+  const result = await openFile(place.path, { restore: place.pos });
+  if (result === "shown") commit();
+  // unreadable (no permission, not text): no use stopping there again
+  else if (result === "failed") navHistory.drop(dir);
+}
+
+const goBack = (): Promise<void> => travel(-1);
+const goForward = (): Promise<void> => travel(1);
+
 /* ---- always on top ---- */
 
 let pinnedOnTop = false;
@@ -955,20 +1242,452 @@ function togglePin(): void {
     });
 }
 
-/* ---- file context menu: reveal, copy path, copy link ---- */
+/* ---- more windows: a document per window ---- */
 
-let fileMenuPath = "";
+// a new window for a file, or (path null) on the home; its Rust side cascades it
+function openInNewWindow(path: string | null, opts: OpenOptions = {}): void {
+  ipc.openWindow(path, { line: opts.line, anchor: opts.anchor }).catch((err) => {
+    if (path && String(err) === ipc.NOT_FOUND) reportMissing(path);
+    else showNotice(t("msg.windowFailed", { err: String(err) }));
+  });
+}
 
-function openFileMenu(path: string, x: number, y: number): void {
-  fileMenuPath = path;
+// Ctrl+click or the middle button asks for a new window, as in a browser
+const wantsNewWindow = (e: MouseEvent): boolean => e.ctrlKey || e.button === 1;
+
+// a file picked inside a window opens there, or in a new window on request
+function openFrom(path: string, e: MouseEvent, opts: OpenOptions = {}): void {
+  if (wantsNewWindow(e)) openInNewWindow(path, opts);
+  else void openFile(path, opts);
+}
+
+// rows of the home and of the folder search: the middle button opens too
+function onMiddleClick(el: HTMLElement, fn: (e: MouseEvent) => void): void {
+  el.addEventListener("mousedown", (e) => {
+    if (e.button === 1) e.preventDefault(); // no autoscroll
+  });
+  el.addEventListener("auxclick", (e) => {
+    if (e.button === 1) fn(e);
+  });
+}
+
+/* ---- right-click menus: the document and the files ---- */
+
+// 24-px stroke icons, drawn at 16 px like the toolbar's
+const MENU_ICON = {
+  back: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+  forward: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  text: '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>',
+  find: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  folderFind:
+    '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><circle cx="12" cy="13.5" r="2.5"/><line x1="16" y1="17.5" x2="14" y2="15.5"/>',
+  open: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+  web: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+  window:
+    '<rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="8" x2="22" y2="8"/><line x1="12" y1="11" x2="12" y2="18"/><line x1="8.5" y1="14.5" x2="15.5" y2="14.5"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  zoom: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+  code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+  table:
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>',
+  hash: '<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>',
+  edit: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  clipboard:
+    '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
+  print:
+    '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  pdf: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="11"/><polyline points="9 15 12 18 15 15"/>',
+  folder: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+};
+
+// a shortcut in the words of the interface ("Strg+Umschalt+C" in German)
+const keyLabel = (combo: string): string =>
+  combo
+    .split("+")
+    .map((k) => (k === "Ctrl" ? t("key.ctrl") : k === "Shift" ? t("key.shift") : k))
+    .join("+");
+
+function closeMenus(): void {
   shareMenu.hidden = true;
   readingMenu.hidden = true;
-  fileMenu.style.left = `${Math.min(x, window.innerWidth - 260)}px`;
-  fileMenu.style.top = `${Math.min(y, window.innerHeight - 130)}px`;
-  fileMenu.style.right = "auto";
-  fileMenu.hidden = false;
-  fileMenu.querySelector<HTMLButtonElement>(".menu-item")?.focus();
+  contextMenu.close();
 }
+
+function openFileMenu(path: string, x: number, y: number, opts: { isDir?: boolean; keyboard?: boolean } = {}): void {
+  closeMenus();
+  contextMenu.openAt(
+    [
+      !opts.isDir && {
+        label: t("file.openNewWindow"),
+        icon: MENU_ICON.window,
+        kbd: t("file.ctrlClick"),
+        run: () => openInNewWindow(path),
+      },
+      "sep",
+      {
+        label: t("file.reveal"),
+        icon: MENU_ICON.folder,
+        run: () => void revealItemInDir(path).catch((err) => showNotice(t("msg.revealFailed", { err: String(err) }))),
+      },
+      {
+        label: t("file.copyPath"),
+        icon: MENU_ICON.copy,
+        run: () => void navigator.clipboard.writeText(path).catch(() => {}),
+      },
+      {
+        label: t("file.copyLink"),
+        hint: t("file.copyLinkHint"),
+        icon: MENU_ICON.link,
+        run: () => {
+          const rel = currentDoc ? relativePath(currentDoc.dir, path) : path;
+          const name = fileName(path).replace(MD_EXT_RE, "");
+          navigator.clipboard.writeText(`[${name}](${encodeURI(rel)})`).catch(() => {});
+        },
+      },
+    ],
+    x,
+    y,
+    { keyboard: opts.keyboard },
+  );
+}
+
+// where WebView2's own menu stays, for the spelling suggestions and
+// cut/copy/paste: text fields and the editor's text, not checkboxes or buttons
+const TEXT_INPUTS = new Set(["text", "search", "url", "email", "tel", "password", "number"]);
+const isTextEditable = (el: Element | null): boolean =>
+  !!el &&
+  ((el instanceof HTMLInputElement && TEXT_INPUTS.has(el.type)) ||
+    el instanceof HTMLTextAreaElement ||
+    (el as HTMLElement).isContentEditable);
+
+// The selection inside the article, for a search: its first line, trimmed
+// and capped. null when there is none.
+function selectionQuery(): string | null {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+  if (!article.contains(sel.getRangeAt(0).commonAncestorContainer)) return null;
+  const q = sel.toString().trim().split(/\r?\n/)[0].trim().slice(0, 100);
+  return q || null;
+}
+
+// a selection of the article, copied like Ctrl+C: the Word-friendly HTML of
+// the Share copy for that part, plus the plain text
+async function copyRange(range: Range, plain: string): Promise<void> {
+  if (!currentDoc) return;
+  try {
+    await copySelectionAsRichText(article, currentDoc.dir, range);
+  } catch {
+    await navigator.clipboard.writeText(plain).catch(() => {});
+  }
+}
+
+// the heading of the section at viewport height y: the last one starting above it
+function sectionHeadingAt(y: number): HTMLElement | null {
+  let found: HTMLElement | null = null;
+  for (const h of article.querySelectorAll<HTMLElement>("h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]")) {
+    if (h.getBoundingClientRect().top > y + 2) break;
+    found = h;
+  }
+  return found;
+}
+
+// 0-based source line of what is under the pointer: the innermost block that
+// knows its line, else the last block starting above y
+function sourceLineAt(target: Element, y: number): number | null {
+  const el = target.closest<HTMLElement>("[data-source-line]");
+  if (el && article.contains(el)) return Number(el.dataset.sourceLine);
+  collectPreviewAnchors();
+  let line: number | null = null;
+  for (const a of previewAnchors) {
+    if (a.el.getBoundingClientRect().top > y) break;
+    line = a.line;
+  }
+  return line;
+}
+
+// `[Heading](file.md#id)`: the same link as "Copy as Markdown link", to the section
+function sectionLink(h: HTMLElement): string {
+  const text = (h.textContent ?? "").trim().replace(/([[\]\\])/g, "\\$1");
+  // the anchor as written, which also works on GitHub and in other viewers
+  return `[${text}](${encodeURI(fileName(currentDoc?.path ?? ""))}#${h.dataset.anchor ?? h.id})`;
+}
+
+const isLocalDocLink = (href: string): boolean => !href.startsWith("#") && !/^[a-z][a-z0-9+.-]*:/i.test(href);
+
+/**
+ * The right-click menu of the document: what is selected, then what is under
+ * the pointer (a link, an image, code, a table), then the section and the
+ * whole document. Outside the document, only a selection gets a menu (Copy).
+ */
+function buildDocMenu(target: HTMLElement, y: number): contextMenu.MenuSpec {
+  const sel = window.getSelection();
+  const range = sel && !sel.isCollapsed && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+  const selText = range ? (sel?.toString() ?? "") : "";
+  const inDoc =
+    currentDoc !== null && !article.hidden && (article.contains(target) || target === contentPane);
+  if (!inDoc) {
+    if (!range || !selText.trim() || editorPane.contains(range.commonAncestorContainer)) return [];
+    return [
+      {
+        label: t("ctx.copy"),
+        icon: MENU_ICON.copy,
+        kbd: keyLabel("Ctrl+C"),
+        run: () => void navigator.clipboard.writeText(selText).catch(() => {}),
+      },
+    ];
+  }
+
+  const selected = range !== null && selText.trim() !== "" && article.contains(range.commonAncestorContainer);
+  const query = selected ? selectionQuery() : null;
+  const link = target.closest("a, area");
+  const href = link && article.contains(link) ? linkHref(link) : "";
+  const zoomable = target.closest<HTMLElement>("[data-zoomable]");
+  const code = target.closest<HTMLElement>(".code-block");
+  const table = target.closest<HTMLElement>(".table-scroll");
+  const heading = sectionHeadingAt(y);
+  const line = sourceLineAt(target, y);
+
+  return [
+    // first, as in a browser; a selection's menu is about the selection
+    !selected &&
+      navHistory.canBack() && { label: t("ctx.back"), icon: MENU_ICON.back, kbd: "Alt+←", run: () => void goBack() },
+    !selected &&
+      navHistory.canForward() && {
+        label: t("ctx.forward"),
+        icon: MENU_ICON.forward,
+        kbd: "Alt+→",
+        run: () => void goForward(),
+      },
+    "sep",
+    selected && {
+      label: t("ctx.copy"),
+      icon: MENU_ICON.copy,
+      kbd: keyLabel("Ctrl+C"),
+      run: () => void copyRange(range!, selText),
+    },
+    selected && {
+      label: t("ctx.copyPlain"),
+      icon: MENU_ICON.text,
+      run: () => void navigator.clipboard.writeText(selText).catch(() => {}),
+    },
+    query !== null &&
+      !editing && {
+        label: t("ctx.findInDoc"),
+        icon: MENU_ICON.find,
+        kbd: keyLabel("Ctrl+F"),
+        run: () => search.openWith(query),
+      },
+    query !== null && {
+      label: t("ctx.findInFolder"),
+      icon: MENU_ICON.folderFind,
+      kbd: keyLabel("Ctrl+Shift+F"),
+      run: () => openFolderSearch(query),
+    },
+    "sep",
+    href !== "" && {
+      label: t("ctx.openLink"),
+      icon: isLocalDocLink(href) ? MENU_ICON.open : MENU_ICON.web,
+      run: () => followLink(href),
+    },
+    href !== "" &&
+      isLocalDocLink(href) && {
+        label: t("ctx.openNewWindow"),
+        icon: MENU_ICON.window,
+        kbd: t("file.ctrlClick"),
+        run: () => followLink(href, true),
+      },
+    href !== "" && {
+      label: t("ctx.copyLinkAddress"),
+      icon: MENU_ICON.link,
+      run: () => void navigator.clipboard.writeText(href).catch(() => {}),
+    },
+    zoomable && {
+      label: t("ctx.zoom"),
+      icon: MENU_ICON.zoom,
+      run: () => void lightbox.openFor(zoomable),
+    },
+    code && {
+      label: t("ctx.copyCode"),
+      icon: MENU_ICON.code,
+      run: () => code.querySelector<HTMLButtonElement>(".code-copy")?.click(),
+    },
+    table && {
+      label: t("render.copyTable"),
+      icon: MENU_ICON.table,
+      run: () => table.querySelector<HTMLButtonElement>(".table-copy")?.click(),
+    },
+    "sep",
+    heading && {
+      label: t("ctx.copySectionLink"),
+      hint: (heading.textContent ?? "").trim(),
+      icon: MENU_ICON.hash,
+      run: () => void navigator.clipboard.writeText(sectionLink(heading)).catch(() => {}),
+    },
+    line !== null && {
+      label: t("ctx.editHere"),
+      icon: MENU_ICON.edit,
+      kbd: editing ? undefined : keyLabel("Ctrl+E"),
+      run: () => void editAt(line),
+    },
+    "sep",
+    !selected && {
+      label: t("ctx.copyDoc"),
+      icon: MENU_ICON.clipboard,
+      kbd: keyLabel("Ctrl+Shift+C"),
+      run: () => void copyDocAsRichText(),
+    },
+    { label: t("share.print"), icon: MENU_ICON.print, kbd: keyLabel("Ctrl+P"), run: () => void printDoc() },
+    { label: t("share.pdf"), icon: MENU_ICON.pdf, run: () => void exportDocAsPdf() },
+  ];
+}
+
+// Shift+F10 and the menu key raise contextmenu too, with no pointer; a
+// PointerEvent says so with an empty pointerType
+const fromKeyboard = (e: MouseEvent): boolean => {
+  const type = (e as Partial<PointerEvent>).pointerType;
+  return type !== undefined ? type === "" : e.button !== 2;
+};
+
+// where a menu for `el` opens: at the pointer, or under `el` from the keyboard
+function menuPoint(e: MouseEvent, el: HTMLElement): { x: number; y: number } {
+  if (!fromKeyboard(e)) return { x: e.clientX, y: e.clientY };
+  const r = el.getBoundingClientRect();
+  return { x: r.left + 12, y: r.bottom + 2 };
+}
+
+// Shift+F10 or the menu key in the document: the menu opens at the
+// selection, or at the top of the document
+function keyboardMenuPoint(): { x: number; y: number } {
+  const p = contentPane.getBoundingClientRect();
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+    const r = sel.getRangeAt(0).getBoundingClientRect();
+    // a selection scrolled out of sight does not anchor it
+    if ((r.width || r.height) && r.bottom > p.top && r.top < p.bottom) return { x: r.left, y: r.bottom + 4 };
+  }
+  return { x: p.left + 24, y: p.top + 24 };
+}
+
+/* ---- the folder search box ---- */
+
+// Ctrl+Shift+F: the file pane comes back and its search box takes the keys,
+// with `query` searched right away when given
+function openFolderSearch(query?: string | null): void {
+  app.classList.remove("tree-hidden");
+  localStorage.setItem("tree-hidden", "0");
+  panes.refresh();
+  if (query) {
+    treeSearch.value = query;
+    void runFolderSearch();
+  }
+  treeSearch.focus();
+  treeSearch.select();
+}
+
+/* ---- links in the document ---- */
+
+// in-article links: hash → in-page scroll, web → default browser, local →
+// open in the viewer (or, on request, in a new window). Local links resolve
+// like a wiki: `doc`, `doc.md`, `folder/` (its index.md or README.md), with
+// an optional `#heading`.
+function followLink(href: string, newWindow = false): void {
+  const hashAt = href.indexOf("#");
+  const target = hashAt >= 0 ? href.slice(0, hashAt) : href;
+  const anchor = hashAt >= 0 ? decodeSafe(href.slice(hashAt + 1)) : undefined;
+  if (!target) {
+    if (anchor) jumpToAnchor(anchor);
+  } else if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
+    // web pages to the browser, mail and phone links to their apps
+    if (/^(https?|mailto|tel):/i.test(href)) openUrl(href).catch(() => {});
+  } else if (currentDoc) {
+    void openLocalLink(currentDoc.dir, decodeSafe(target), anchor, newWindow);
+  }
+}
+
+// What a link may hand to its default app; keep in sync with OPEN_EXTERNALLY
+// in src-tauri/src/commands.rs (which is the one that decides)
+const OPEN_EXTERNALLY =
+  /\.(pdf|txt|csv|tsv|json|xml|ya?ml|log|rtf|docx?|xlsx?|pptx?|od[tsp]|vsdx|drawio|msg|eml|png|jpe?g|gif|webp|svg|bmp|avif|tiff?|mp3|wav|m4a|mp4|mov|webm|zip|7z|html?)$/i;
+
+// A local link: a Markdown document opens in the viewer (or a new window), an
+// image in the preview, a folder in the file pane. Any other file is never
+// read as text: a notice offers it to its default app, or shows it in File
+// Explorer when it is not a document (a program, a script).
+async function openLocalLink(dir: string, rel: string, anchor: string | undefined, newWindow: boolean): Promise<void> {
+  const p = await ipc.resolveDoc(dir, rel).catch(() => null);
+  if (p && isMarkdownPath(p)) {
+    if (newWindow) openInNewWindow(p, { anchor });
+    // a link to the document on screen moves within it: reading the file
+    // again would put the disk's text over the live preview while editing
+    else if (currentDoc && samePath(p, currentDoc.path) && !article.hidden && !errorShown) {
+      if (anchor) jumpToAnchor(anchor);
+    } else void openFile(p, { anchor });
+    return;
+  }
+  if (p && isImagePath(p)) {
+    const img = new Image();
+    img.alt = fileName(p);
+    img.src = convertFileSrc(p);
+    if (await img.decode().then(() => true, () => false)) {
+      void lightbox.openFor(img);
+      return;
+    }
+  }
+  if (p) {
+    const open = OPEN_EXTERNALLY.test(p);
+    showNotice(t("msg.notMarkdown", { name: fileName(p) }), {
+      action: open
+        ? { label: t("msg.openFile"), fn: () => void ipc.openExternally(p).catch((err) => showNotice(String(err))) }
+        : { label: t("msg.showInFolder"), fn: () => void revealItemInDir(p).catch(() => {}) },
+    });
+    return;
+  }
+  // no file by that name: a folder with Markdown files roots the file pane
+  const folder = await ipc.resolvePath(dir, rel).catch(() => null);
+  if (folder && (await ipc.listTree(folder).then(() => true, () => false))) {
+    browseRoot = folder;
+    refreshTree();
+    app.classList.remove("tree-hidden");
+    localStorage.setItem("tree-hidden", "0");
+    panes.refresh();
+    return;
+  }
+  showNotice(t("msg.notFound", { name: rel }));
+}
+
+const XLINK = "http://www.w3.org/1999/xlink";
+// the address of a link: an <a>, an image-map <area>, an SVG link (xlink:href)
+const linkHref = (a: Element): string => a.getAttribute("href") ?? a.getAttributeNS(XLINK, "href") ?? "";
+
+/* ---- F5: the file again, not the app ---- */
+
+// WebView2's reload would restart the app and close the document. F5 and
+// Ctrl+R read the file from disk instead, keeping the place; never over
+// unsaved edits.
+function reloadCurrentDoc(): void {
+  if (!currentDoc) return;
+  if (editing) {
+    if (!editorMod?.isDirty()) void reloadFromDisk();
+  } else {
+    void openFile(currentDoc.path, { preserveScroll: true });
+  }
+}
+
+// A letter shortcut by the letter it types, so Ctrl+W stays the W on AZERTY
+// or Dvorak (where that key types Z or a comma); by the key's position only
+// when it types no plain character at all (Greek, Cyrillic), never matching
+// otherwise.
+const keyIs = (e: KeyboardEvent, letter: string): boolean =>
+  e.key.toLowerCase() === letter || (!/^[\x20-\x7e]$/.test(e.key) && e.code === `Key${letter.toUpperCase()}`);
+
+const isReloadKey = (e: KeyboardEvent): boolean =>
+  e.key === "F5" || e.key === "BrowserRefresh" || (e.ctrlKey && !e.altKey && keyIs(e, "r"));
+
+// Ctrl+W, Ctrl+F4: this window, as its X button does (asking about unsaved
+// edits); the last one ends the app
+const isCloseKey = (e: KeyboardEvent): boolean =>
+  e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && (e.key === "F4" || keyIs(e, "w"));
 
 // `to` relative to `fromDir`, with forward slashes, for a Markdown link
 function relativePath(fromDir: string, to: string): string {
@@ -983,59 +1702,114 @@ function relativePath(fromDir: string, to: string): string {
 /* ---- drag to scroll ---- */
 
 // The middle button drags anywhere, like a PDF reader; the left button only
-// on the pane outside the text column, so selecting text stays untouched.
+// on the pane outside the text column, so selecting text stays untouched. A
+// middle click that does not drag, on a link, opens it in a new window.
 function wireDragScroll(): void {
-  let drag: { id: number; y: number; top: number; moved: boolean } | null = null;
+  let drag: { id: number; buttons: number; y: number; top: number; moved: boolean; link: Element | null } | null = null;
+  let middleLink: Element | null = null;
   contentPane.addEventListener("pointerdown", (e) => {
     const margin = e.button === 0 && e.target === contentPane;
     if (!(e.button === 1 || margin) || lightbox.isOpen()) return;
     if (e.button === 1) e.preventDefault(); // no autoscroll icon
-    drag = { id: e.pointerId, y: e.clientY, top: contentPane.scrollTop, moved: false };
-    try {
-      contentPane.setPointerCapture(e.pointerId);
-    } catch {
-      /* synthetic pointer: capture is a nicety */
-    }
+    // the target now: once a drag captures the pointer, the pane is the target
+    const link = e.button === 1 ? (e.target as HTMLElement).closest("#article a, #article area") : null;
+    // the button's bit in PointerEvent.buttons: 1 left, 4 middle
+    drag = { id: e.pointerId, buttons: e.button === 1 ? 4 : 1, y: e.clientY, top: contentPane.scrollTop, moved: false, link };
   });
   contentPane.addEventListener("pointermove", (e) => {
     if (!drag || e.pointerId !== drag.id) return;
+    // released where the pane could not hear it (before the drag captured the
+    // pointer): the drag is over, or hovering would go on scrolling
+    if (!(e.buttons & drag.buttons)) {
+      end(e);
+      return;
+    }
     const dy = e.clientY - drag.y;
     if (!drag.moved && Math.abs(dy) < 3) return;
     if (!drag.moved) {
       drag.moved = true;
       contentPane.classList.add("dragging");
+      // Captured only once it is a drag: a click that stays put keeps its
+      // target, so the middle button still opens a recent file of the home
+      // (its auxclick would otherwise go to the pane).
+      try {
+        contentPane.setPointerCapture(e.pointerId);
+      } catch {
+        /* synthetic pointer: capture is a nicety */
+      }
     }
     contentPane.scrollTop = drag.top - dy;
   });
-  const end = (e: PointerEvent) => {
+  function end(e: PointerEvent): void {
     if (!drag || e.pointerId !== drag.id) return;
     contentPane.classList.remove("dragging");
+    middleLink = e.type === "pointerup" && !drag.moved ? drag.link : null;
     drag = null;
-  };
-  contentPane.addEventListener("pointerup", end);
-  contentPane.addEventListener("pointercancel", end);
+  }
+  // on the window: a button can come up outside the pane before any capture
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", end, true);
   // Chromium's middle-click autoscroll would fight the drag
   contentPane.addEventListener("auxclick", (e) => {
-    if (e.button === 1) e.preventDefault();
+    if (e.button !== 1) return;
+    e.preventDefault();
+    const href = middleLink ? linkHref(middleLink) : "";
+    middleLink = null;
+    if (href) followLink(href, true);
   });
 }
 
 /* ---- file browser ---- */
 
-function refreshTree(): void {
-  if (!browseRoot) return;
+let treeGen = 0;
+// the listing on screen, to redraw only what changed
+let treeJson = "";
+let watchedRoot = "";
+
+// Lists the pane's folder again (a file opened, a change on disk, the window
+// back in front). The rows are rebuilt only when the listing differs, so an
+// unrelated change costs no flicker and the focused row keeps the focus.
+// Resolves to whether the listing changed.
+function refreshTree(): Promise<boolean> {
+  if (!browseRoot) return Promise.resolve(false);
   const root = browseRoot;
+  const gen = ++treeGen;
   btnUp.disabled = isDriveRoot(root);
-  ipc
+  // watched even with no Markdown file in it yet, so the first one shows up
+  if (!samePath(root, watchedRoot)) {
+    watchedRoot = root;
+    ipc.watchTree(root).catch(() => {});
+  }
+  return ipc
     .listTree(root)
     .then((node) => {
+      if (gen !== treeGen) return false; // a newer listing is on its way
+      const json = JSON.stringify(node);
+      if (json === treeJson) {
+        if (currentDoc) tree.setActive(treeRoot, currentDoc.path);
+        return false;
+      }
+      treeJson = json;
       treeRootName.textContent = node.name;
       treeRootName.title = root;
-      tree.render(treeRoot, node, currentDoc?.path ?? "", (p) => openFile(p));
+      const focused = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("#tree-root [data-path]");
+      tree.render(treeRoot, node, currentDoc?.path ?? "", (p, e) => openFrom(p, e));
+      if (focused?.dataset.path) {
+        const again = treeRoot.querySelector<HTMLElement>(`[data-path="${CSS.escape(focused.dataset.path)}"]`);
+        // a folder's data-path sits on its wrapper, the button inside takes the focus
+        (again?.matches(".tree-row") ? again : again?.querySelector<HTMLElement>(":scope > .tree-row"))?.focus({
+          preventScroll: true,
+        });
+      }
+      return true;
     })
     .catch(() => {
+      if (gen !== treeGen) return false;
+      const had = treeJson !== "";
+      treeJson = "";
       treeRootName.textContent = "";
       treeRoot.replaceChildren();
+      return had;
     });
 }
 
@@ -1092,7 +1866,8 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       name.textContent = hit.name;
       name.title = hit.path;
       file.append(name);
-      file.addEventListener("click", () => openHit(hit.path, q));
+      file.addEventListener("click", (e) => openHit(hit.path, q, e));
+      onMiddleClick(file, (e) => openHit(hit.path, q, e));
       searchResults.append(file);
     }
     if (hit.line > 0) {
@@ -1101,7 +1876,8 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       row.className = "search-hit";
       row.title = t("pane.lineN", { n: hit.line });
       row.append(...highlightMatch(hit.preview, q));
-      row.addEventListener("click", () => openHit(hit.path, q));
+      row.addEventListener("click", (e) => openHit(hit.path, q, e, hit.line));
+      onMiddleClick(row, (e) => openHit(hit.path, q, e, hit.line));
       searchResults.append(row);
     }
   }
@@ -1120,7 +1896,13 @@ function highlightMatch(preview: string, q: string): Node[] {
   ];
 }
 
-async function openHit(path: string, q: string): Promise<void> {
+// `line` (1-based): a new window opens the file there, since the query
+// itself cannot travel with it
+async function openHit(path: string, q: string, e: MouseEvent, line?: number): Promise<void> {
+  if (wantsNewWindow(e)) {
+    openInNewWindow(path, { line });
+    return;
+  }
   await openFile(path);
   // carry the query into the document so the match is highlighted in place
   if (currentDoc && samePath(currentDoc.path, path)) search.openWith(q);
@@ -1354,12 +2136,14 @@ async function renderRecents(): Promise<void> {
     time.className = "recent-time";
     time.textContent = recents.relativeTime(r.openedAt, now);
     row.append(name, dir, time);
-    row.addEventListener("click", () => openFile(r.path));
+    row.addEventListener("click", (e) => openFrom(r.path, e));
+    onMiddleClick(row, (e) => openFrom(r.path, e));
     recentList.append(row);
   }
 }
 
 function showError(message: string): void {
+  errorShown = true;
   emptyState.hidden = true;
   article.hidden = false;
   article.replaceChildren();
@@ -1370,6 +2154,7 @@ function showError(message: string): void {
 }
 
 function showEmpty(): void {
+  errorShown = false;
   article.hidden = true;
   emptyState.hidden = false;
   docMeta.hidden = true;
@@ -1377,12 +2162,17 @@ function showEmpty(): void {
   renderRecents().catch(() => {});
 }
 
+// Several files picked at once: the first one here, the others in windows
+// of their own
 async function chooseFile(): Promise<void> {
   const picked = await openDialog({
-    multiple: false,
+    multiple: true,
     filters: [{ name: t("filter.markdown"), extensions: MD_EXTENSIONS }],
   }).catch(() => null);
-  if (typeof picked === "string") await openFile(picked);
+  const paths = Array.isArray(picked) ? picked : typeof picked === "string" ? [picked] : [];
+  if (paths.length === 0) return;
+  await openFile(paths[0]);
+  for (const p of paths.slice(1)) openInNewWindow(p);
 }
 
 function toggleSidebar(cls: "tree-hidden" | "toc-hidden"): void {
@@ -1415,33 +2205,42 @@ function wireUi(): void {
   btnPin.addEventListener("click", togglePin);
   wireDragScroll();
 
-  // right-click on a file (tree or title): reveal, copy path, copy link
+  // right-click on a file (tree or title): new window, reveal, copy path, copy link
   treeRoot.addEventListener("contextmenu", (e) => {
     const row = (e.target as HTMLElement).closest<HTMLElement>(".tree-row");
     if (!row) return;
-    const path = row.classList.contains("dir") ? row.parentElement?.dataset.path : row.dataset.path;
+    const isDir = row.classList.contains("dir");
+    const path = isDir ? row.parentElement?.dataset.path : row.dataset.path;
     if (!path) return;
     e.preventDefault();
-    openFileMenu(path, e.clientX, e.clientY);
+    const p = menuPoint(e, row);
+    openFileMenu(path, p.x, p.y, { isDir, keyboard: fromKeyboard(e) });
   });
   docTitle.addEventListener("contextmenu", (e) => {
     if (!currentDoc) return;
     e.preventDefault();
-    openFileMenu(currentDoc.path, e.clientX, e.clientY);
+    const p = menuPoint(e, docTitle);
+    openFileMenu(currentDoc.path, p.x, p.y, { keyboard: fromKeyboard(e) });
   });
-  $("#file-reveal").addEventListener("click", () => {
-    fileMenu.hidden = true;
-    revealItemInDir(fileMenuPath).catch((err) => showNotice(t("msg.revealFailed", { err: String(err) })));
-  });
-  $("#file-copy-path").addEventListener("click", () => {
-    fileMenu.hidden = true;
-    navigator.clipboard.writeText(fileMenuPath).catch(() => {});
-  });
-  $("#file-copy-link").addEventListener("click", () => {
-    fileMenu.hidden = true;
-    const rel = currentDoc ? relativePath(currentDoc.dir, fileMenuPath) : fileMenuPath;
-    const name = fileName(fileMenuPath).replace(MD_EXT_RE, "");
-    navigator.clipboard.writeText(`[${name}](${encodeURI(rel)})`).catch(() => {});
+
+  // Every other right-click: Leggimi's menu in the document (and Copy for a
+  // selection elsewhere), WebView2's own only in text fields and the editor.
+  // Its Back, Refresh, Save as and Share act on the app's page, not the file.
+  document.addEventListener("contextmenu", (e) => {
+    if (e.defaultPrevented) return; // the file menu took it
+    let target = e.target as HTMLElement;
+    if (isTextEditable(target)) return;
+    e.preventDefault();
+    const keyboard = fromKeyboard(e);
+    // from the keys with nothing focused, Chromium aims at the top-left corner
+    // (the toolbar): the document is what the menu is for
+    if (keyboard && currentDoc && !article.hidden && !contentPane.contains(target) && !editorPane.contains(target) && !target.closest("dialog")) {
+      target = article;
+    }
+    const p = keyboard ? keyboardMenuPoint() : { x: e.clientX, y: e.clientY };
+    shareMenu.hidden = true;
+    readingMenu.hidden = true;
+    contextMenu.openAt(buildDocMenu(target, p.y), p.x, p.y, { keyboard });
   });
 
   // Ctrl+C on a selection: the same Word-friendly HTML as the Share copy,
@@ -1453,10 +2252,7 @@ function wireUi(): void {
     const range = sel.getRangeAt(0);
     if (!article.contains(range.commonAncestorContainer)) return;
     e.preventDefault();
-    const plain = sel.toString();
-    copySelectionAsRichText(article, currentDoc.dir, range).catch(() => {
-      navigator.clipboard.writeText(plain).catch(() => {});
-    });
+    void copyRange(range, sel.toString());
   });
   $("#recent-clear").addEventListener("click", () => {
     recents.clear();
@@ -1464,6 +2260,9 @@ function wireUi(): void {
   });
   contentPane.addEventListener("scroll", onContentScroll, { passive: true });
   window.addEventListener("resize", updateProgress);
+
+  // a jump through the outline leaves a place to come back to
+  toc.onJump(noteJump);
 
   // outline filter
   tocFilter.addEventListener("input", () => {
@@ -1544,7 +2343,6 @@ function wireUi(): void {
     const t = e.target as Node;
     if (!shareMenu.hidden && !shareMenu.contains(t)) shareMenu.hidden = true;
     if (!readingMenu.hidden && !readingMenu.contains(t)) readingMenu.hidden = true;
-    if (!fileMenu.hidden && !fileMenu.contains(t)) fileMenu.hidden = true;
   });
 
   // reading settings: selections keep the popover open so choices compose
@@ -1570,12 +2368,19 @@ function wireUi(): void {
     const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
     if (!opt) return;
     const next = opt.dataset.value as i18n.LangPref;
-    if (next === i18n.pref()) return;
+    if (next === i18n.activePref()) return;
     if (editorMod?.isDirty()) {
-      const ok = await ask(t("msg.langReloadQ"), { title: t("msg.discardTitle"), kind: "warning" }).catch(() => false);
+      const ok = await ask(t("msg.langReloadQ"), {
+        title: t("msg.discardTitle"),
+        kind: "warning",
+        okLabel: t("msg.discard"),
+        cancelLabel: t("msg.cancel"),
+      }).catch(() => false);
       if (!ok) return;
     }
     i18n.setPref(next);
+    // WebView2's own parts (its menus, the spelling dictionary) follow at the next start
+    await ipc.rememberLanguage(next).catch(() => {});
     // get_initial_file was consumed at boot: carry the open document across
     if (currentDoc) sessionStorage.setItem("reopen", currentDoc.path);
     location.reload();
@@ -1630,6 +2435,46 @@ function wireUi(): void {
     btnClose: $("#find-close"),
   });
 
+  // F5, Ctrl+R: the file from disk, never WebView2's reload (which restarts
+  // the app on the home). In the capture phase, so no dialog or panel
+  // can let the key through to the browser.
+  // Ctrl+W and Ctrl+F4 close the window from anywhere, dialogs included; the
+  // keyboard's Back and Forward keys have no text to move through
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if (isCloseKey(e)) {
+        e.preventDefault();
+        // held down, it must not go on to close the next window too
+        if (!e.repeat) getCurrentWindow().close().catch(() => {});
+        return;
+      }
+      if (e.key === "BrowserBack" || e.key === "BrowserForward") {
+        e.preventDefault();
+        if (!e.repeat && !lightbox.isOpen() && !helpDialog.open && !keysDialog.open) {
+          void (e.key === "BrowserBack" ? goBack() : goForward());
+        }
+        return;
+      }
+      if (!isReloadKey(e)) return;
+      e.preventDefault();
+      if (e.repeat || lightbox.isOpen() || helpDialog.open || keysDialog.open) return;
+      reloadCurrentDoc();
+    },
+    true,
+  );
+
+  // the mouse's side buttons: Back and Forward, never WebView2's own history
+  // (it has none to go to: every link is handled here)
+  for (const type of ["mousedown", "mouseup"] as const) {
+    window.addEventListener(type, (e) => {
+      if (e.button !== 3 && e.button !== 4) return;
+      e.preventDefault();
+      if (type === "mousedown" || lightbox.isOpen() || helpDialog.open || keysDialog.open) return;
+      void (e.button === 3 ? goBack() : goForward());
+    });
+  }
+
   document.addEventListener("keydown", (e) => {
     // Esc closes it natively and +/-/0/arrows are handled inside it; F1 too,
     // so a help dialog cannot stack on top of a modal preview
@@ -1650,10 +2495,8 @@ function wireUi(): void {
     }
     // the editor already handled it (Ctrl+B/I format there, Ctrl+S saved once)
     if (e.defaultPrevented) return;
-    if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden || !fileMenu.hidden)) {
-      shareMenu.hidden = true;
-      readingMenu.hidden = true;
-      fileMenu.hidden = true;
+    if (e.key === "Escape" && (!shareMenu.hidden || !readingMenu.hidden || contextMenu.isOpen())) {
+      closeMenus();
       return;
     }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "t") {
@@ -1678,18 +2521,32 @@ function wireUi(): void {
         return;
       }
     }
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "n") {
       e.preventDefault();
-      app.classList.remove("tree-hidden");
-      localStorage.setItem("tree-hidden", "0");
-      panes.refresh();
-      treeSearch.focus();
-      treeSearch.select();
+      if (!e.repeat) openInNewWindow(null);
+    } else if (
+      e.altKey &&
+      !e.ctrlKey &&
+      !e.shiftKey &&
+      !e.metaKey &&
+      (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+      !isTextEditable(document.activeElement)
+    ) {
+      // Back and Forward; in the editor and in text fields Alt+arrows move the
+      // caret (a ticked checkbox keeps the focus, and is no text field)
+      e.preventDefault();
+      void (e.key === "ArrowLeft" ? goBack() : goForward());
+    } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
+      // a selection in the document is what to look for
+      e.preventDefault();
+      openFolderSearch(selectionQuery());
     } else if (e.ctrlKey && e.key.toLowerCase() === "f") {
       // while editing, find always means the editor's panel (case, word,
       // regexp, replace), wherever the focus is: never a second find bar
       e.preventDefault();
+      const query = selectionQuery();
       if (editing && editorMod) editorMod.openFind(false);
+      else if (query) search.openWith(query);
       else search.open();
     } else if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "h") {
       if (editing && editorMod) {
@@ -1702,6 +2559,12 @@ function wireUi(): void {
       if (editing && editorMod) editorMod.findStep(dir);
       else if (search.hasMatches()) search.step(dir);
       else if (currentDoc) search.open();
+    } else if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a" && !isTypingTarget(document.activeElement)) {
+      // the document, not the whole window: toolbar, file pane and outline stay out
+      if (currentDoc && !article.hidden) {
+        e.preventDefault();
+        window.getSelection()?.selectAllChildren(article);
+      }
     } else if (e.ctrlKey && e.key.toLowerCase() === "o") {
       e.preventDefault();
       chooseFile();
@@ -1781,32 +2644,15 @@ function wireUi(): void {
     openUrl(href).catch(() => {});
   });
 
-  // in-article links: hash → in-page scroll, web → default browser, local →
-  // open in the viewer. Local links resolve like a wiki: `doc`, `doc.md`,
-  // `folder/` (its index.md or README.md), with an optional `#heading`.
+  // in-article links (see followLink), image-map areas and SVG links included;
+  // Ctrl+click opens a document in a new window
   article.addEventListener("click", (e) => {
-    const a = (e.target as HTMLElement).closest("a");
+    const a = (e.target as HTMLElement).closest("a, area");
     if (!a) return;
-    const href = a.getAttribute("href") ?? "";
+    const href = linkHref(a);
     if (!href) return;
     e.preventDefault();
-    const hashAt = href.indexOf("#");
-    const target = hashAt >= 0 ? href.slice(0, hashAt) : href;
-    const anchor = hashAt >= 0 ? decodeURIComponent(href.slice(hashAt + 1)) : undefined;
-    if (!target) {
-      if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
-      if (/^https?:/i.test(href)) openUrl(href).catch(() => {});
-    } else if (currentDoc) {
-      const rel = decodeURIComponent(target);
-      ipc
-        .resolveDoc(currentDoc.dir, rel)
-        .then((p) => {
-          if (p) return openFile(p, { anchor });
-          showNotice(t("msg.notFound", { name: rel }));
-        })
-        .catch(() => showNotice(t("msg.notFound", { name: rel })));
-    }
+    followLink(href, e.ctrlKey);
   });
 
   // task-list checkboxes write the change back to the source
@@ -1838,27 +2684,58 @@ async function showStoreRating(): Promise<void> {
 
 async function boot(): Promise<void> {
   i18n.init();
+  // keep the language mirrored for the next start (a choice made before this
+  // version lives only in localStorage)
+  ipc.rememberLanguage(i18n.activePref()).catch(() => {});
   theme.init();
   prefs.init();
   showVersion().catch(() => {});
   showStoreRating().catch(() => {});
   theme.onChange((t) => rerenderForTheme(article, theme.schemeOf(t) === "dark").catch(() => {}));
+  // text settings changed in another window reflow this one: keep the place
+  prefs.syncAcrossWindows(withReadingAnchor);
   wireUi();
 
   // registering this handler makes JS responsible for closing the window,
-  // which needs the core:window:allow-destroy capability
+  // which needs the core:window:allow-destroy capability. One question at a
+  // time: a second Ctrl+W or click on X while it is asked changes nothing.
+  let askingToClose = false;
   await getCurrentWindow().onCloseRequested(async (e) => {
-    if (editorMod?.isDirty() && !(await confirmDiscard())) e.preventDefault();
+    if (!editorMod?.isDirty()) return;
+    if (askingToClose) {
+      e.preventDefault();
+      return;
+    }
+    askingToClose = true;
+    try {
+      if (!(await confirmDiscard())) e.preventDefault();
+    } finally {
+      askingToClose = false;
+    }
   });
 
   // listeners must be live before get_initial_file, or a double-click
   // arriving during startup would be lost
   await ipc.onOpenFile((l) => {
-    if (l.path) openFile(l.path, { line: l.line ?? undefined });
+    if (l.path) openFile(l.path, { line: l.line ?? undefined, anchor: l.anchor ?? undefined });
   });
-  await ipc.onFileChanged(() => {
-    if (!currentDoc) return;
+  await ipc.onFileChanged((change) => {
+    // a replaced watch can still deliver a last batch, about the file before
+    if (!currentDoc || !samePath(change.path, currentDoc.path)) return;
+    if (change.kind === "renamed" && change.to) {
+      onDocRenamed(change.to);
+      return;
+    }
+    if (change.kind === "removed") {
+      onDocRemoved();
+      return;
+    }
+    // there again after a deletion (an Undo in File Explorer): read it anew
+    if (docGone) onDocBack();
     if (Date.now() < suppressReloadUntil) return; // echo of our own save
+    // a document on its way replaces this one, or (a reload) reads it anew:
+    // a reload queued behind it would bring the old one back
+    if (opening) return;
     if (editing && editorMod?.isDirty()) {
       // never clobber a dirty buffer
       showNotice(t("msg.fileChanged"), {
@@ -1875,23 +2752,44 @@ async function boot(): Promise<void> {
     if (editing) reloadFromDisk();
     else openFile(currentDoc.path, { preserveScroll: true });
   });
+  // files coming and going in the pane's folder; the document may be among them
+  await ipc.onTreeChanged(() => {
+    void refreshTree().then((changed) => {
+      // the search reads every file: again only when files came or went
+      if (changed && treeSearch.value.trim()) void runFolderSearch();
+    });
+    void checkDocOnDisk();
+  });
+  // Back in front: what changed on disk meanwhile shows up, and the folder's
+  // watch is renewed, since Windows can drop one without a word
+  await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+    if (!focused) return;
+    if (browseRoot) ipc.watchTree(browseRoot, true).catch(() => {});
+    refreshTree();
+    void checkDocOnDisk();
+  });
   await getCurrentWebview().onDragDropEvent((event) => {
     const type = event.payload.type;
     if (type === "enter") app.classList.add("dropping");
     else if (type === "leave") app.classList.remove("dropping");
     else if (type === "drop") {
       app.classList.remove("dropping");
-      const md = event.payload.paths.find(isMarkdownPath);
+      // several documents: the first one here, the others in windows of their own
+      const mds = event.payload.paths.filter(isMarkdownPath);
       const img = event.payload.paths.find(isImagePath);
-      if (md) openFile(md);
-      else if (img && editing) insertDroppedImage(img);
+      if (mds.length > 0) {
+        openFile(mds[0]);
+        for (const p of mds.slice(1)) openInNewWindow(p);
+      } else if (img && editing) insertDroppedImage(img);
     }
   });
 
+  // Back and Forward survive the reload of a language change
+  navHistory.load();
   const initial = await ipc.getInitialFile().catch(() => null);
   const reopen = sessionStorage.getItem("reopen");
   sessionStorage.removeItem("reopen");
-  if (initial?.path) await openFile(initial.path, { line: initial.line ?? undefined });
+  if (initial?.path) await openFile(initial.path, { line: initial.line ?? undefined, anchor: initial.anchor ?? undefined });
   else if (reopen) await openFile(reopen);
   else showEmpty();
 

@@ -36,6 +36,10 @@ export function init(): void {
   media.addEventListener("change", () => {
     if (currentPref() === "system") apply();
   });
+  // a theme picked in another window (they share localStorage)
+  window.addEventListener("storage", (e) => {
+    if (e.key === "theme" || e.key === null) apply();
+  });
 }
 
 let animTimer: number | undefined;

@@ -169,19 +169,6 @@
       </button>
     </div>
 
-    <div id="file-menu" class="menu" role="menu" hidden>
-      <button id="file-reveal" class="menu-item" type="button" role="menuitem">
-        <span class="menu-title" data-i18n="file.reveal">Show in File Explorer</span>
-      </button>
-      <button id="file-copy-path" class="menu-item" type="button" role="menuitem">
-        <span class="menu-title" data-i18n="file.copyPath">Copy path</span>
-      </button>
-      <button id="file-copy-link" class="menu-item" type="button" role="menuitem">
-        <span class="menu-title" data-i18n="file.copyLink">Copy as Markdown link</span>
-        <span class="menu-hint" data-i18n="file.copyLinkHint">Relative to the open document</span>
-      </button>
-    </div>
-
     <div id="reading-menu" class="menu reading-menu" hidden>
       <div class="rs-size">
         <button id="rs-size-dec" class="rs-step" type="button" title="Smaller text (Ctrl+−)" data-i18n-title="rs.smaller">A</button>
@@ -262,12 +249,17 @@
             <div><dt><kbd>n</kbd> / <kbd>N</kbd></dt><dd data-i18n="keys.findMatch">Next / previous find match</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>F</kbd></dt><dd data-i18n="keys.find">Find in document</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>−</kbd> / <kbd>0</kbd></dt><dd data-i18n="keys.textSize">Text size</dd></div>
+            <div><dt><kbd>F5</kbd></dt><dd data-i18n="keys.reload">Reload the file from disk</dd></div>
+            <div><dt><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>→</kbd></dt><dd data-i18n="keys.backForward">Back / forward</dd></div>
           </dl>
         </section>
         <section>
           <h3 data-i18n="keys.app">App</h3>
           <dl>
             <div><dt><kbd>Ctrl</kbd>+<kbd>O</kbd></dt><dd data-i18n="keys.open">Open a file</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></dt><dd data-i18n="keys.newWindow">New window</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>W</kbd></dt><dd data-i18n="keys.closeWindow">Close the window</dd></div>
+            <div><dt data-i18n-html="keys.ctrlClickKeys"><kbd>Ctrl</kbd>+click</dt><dd data-i18n="keys.ctrlClick">Open in a new window</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>E</kbd></dt><dd data-i18n="keys.edit">Edit / back to reading</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd data-i18n="keys.save">Save</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></dt><dd data-i18n="keys.panels">File browser / outline</dd></div>

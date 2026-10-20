@@ -6,7 +6,9 @@
           <li>将文件拖到窗口上。</li>
           <li>按 <kbd>Ctrl</kbd>+<kbd>O</kbd>，或使用工具栏上的文件夹按钮。</li>
         </ul>
-        <p>应用运行时打开第二个文件，会复用同一个窗口。</p>
+        <p>
+          应用运行时从外部打开的文件（双击、<em>打开方式</em>、<code>leggimi 文件.md</code>）会有<strong>自己的窗口</strong>；如果该文件已经打开，它所在的窗口会切换到前台。在应用内，文件在同一窗口中打开：在文件、最近文档、搜索结果或链接上 <kbd>Ctrl</kbd>+单击（或按鼠标中键）会改为在新窗口中打开，右键菜单中的<em>在新窗口中打开</em>也一样；<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 打开一个空窗口。一次打开多个文件（<kbd>Ctrl</kbd>+<kbd>O</kbd> 或拖放）时，每个文件各占一个窗口。
+        </p>
         <p>
           没有打开文档时，窗口会列出最近打开的文件：单击即可重新打开。每个文档还会<strong>记住你上次读到的位置</strong>，再次打开时自动回到那里。
         </p>
@@ -30,6 +32,12 @@
         <p>
           在选中的文字上按 <kbd>Ctrl</kbd>+<kbd>C</kbd>，会连同格式一起复制（可直接粘贴到 Word 或 Outlook），同时也复制纯文本。文档还可以像纸张一样拖动：在任何位置按住鼠标中键，或在文字旁边的空白处按住左键。
         </p>
+        <p>
+          在文档上右键可打开其菜单：复制所选内容（带格式或纯文本），或在文档、文件夹中搜索它；打开或复制链接；打开图片或图表，复制代码块或表格；<strong>复制指向该章节的链接</strong> <code>[标题](文件.md#标题)</code>，可在任何其他文档中使用；<strong>从该处开始编辑</strong>；打印或保存为 PDF。
+        </p>
+        <p>
+          和浏览器一样，<kbd>Alt</kbd>+<kbd>←</kbd>（或鼠标侧面的<em>后退</em>键）会回到你点击章节链接、点击大纲或切换到另一个文档之前的位置；<kbd>Alt</kbd>+<kbd>→</kbd>（或<em>前进</em>键）再前进。右键菜单顶部也有<strong>后退</strong>和<strong>前进</strong>。每个窗口都有自己的历史记录。
+        </p>
 
         <h3>键盘快捷键</h3>
         <table class="help-keys">
@@ -48,6 +56,10 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>放大 / 缩小文字</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>重置文字大小</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>窗口保持置顶</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>从磁盘重新加载文件</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>新窗口</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>关闭窗口</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>后退 / 前进</td></tr>
             <tr><td><kbd>?</kbd></td><td>按键速查表</td></tr>
             <tr><td><kbd>F1</kbd></td><td>显示本帮助</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>关闭查找栏、预览或本帮助</td></tr>
@@ -77,7 +89,7 @@
           </tbody>
         </table>
         <p>
-          <strong>工具</strong>（格式栏右侧的滑块按钮）汇集了查找与替换、行命令和<strong>拼写检查</strong>；拼写检查会用你显示语言的 Windows 词典给拼错的单词加下划线。
+          <strong>工具</strong>（格式栏右侧的滑块按钮）汇集了查找与替换、行命令和<strong>拼写检查</strong>；拼写检查会用界面语言的词典给拼错的单词加下划线，右键可查看更正建议（在阅读设置中更改语言后，下次启动时生效）。
         </p>
         <p>
           <strong>恢复：</strong>只要有未保存的更改，文本副本就会被保留在一旁。如果应用未保存就关闭了（崩溃、强制关机），下次打开该文件时会有提示询问是否恢复。在你保存之前，文件本身绝不会被改动。
@@ -91,6 +103,7 @@
           左侧面板列出你打开的文件夹中的 Markdown 文件，最多四层子文件夹。从面板打开文件会保持同一个根文件夹，不会迷失方向；用<em>文件</em>旁的<strong>向上箭头</strong>把根移到上级文件夹。打开当前文件夹之外的文档会把面板移到那里。你折叠的文件夹在浏览期间保持折叠，重启后也是如此。
         </p>
         <p>没有 Markdown 文件的文件夹会被隐藏，隐藏文件夹和 <code>node_modules</code> 之类的构建文件夹也一样。</p>
+        <p>文件夹中添加、重命名或删除文件时，面板会自动更新。重命名当前打开的文档时，窗口会跟着它；删除或移走它时，文字仍留在屏幕上，并有提示可以重新保存。</p>
         <p>
           两个侧边面板都可以拖动内边缘加宽，双击边缘恢复默认宽度。它们的文字大小跟随阅读设置中的<strong>面板</strong>。
         </p>
@@ -105,6 +118,7 @@
 
         <h3>自动刷新</h3>
         <p>打开的文件会被监视。文件变化时，视图自动刷新并保持阅读位置——在文档被重新生成时很有用。编辑模式下，只有缓冲区没有未保存更改时才会刷新。</p>
+        <p>按 <kbd>F5</kbd> 或 <kbd>Ctrl</kbd>+<kbd>R</kbd> 可随时重新读取文件并保持阅读位置；有未保存的更改时不执行任何操作。</p>
 
         <h3>渲染</h3>
         <ul>
@@ -121,7 +135,8 @@
           <li><code>---</code> 行之间的 YAML front matter 会折叠成顶部的 <em>Front matter</em> 区块：单击可以表格形式查看字段。</li>
           <li>只包含 <code>[TOC]</code> 的段落会变成后续标题的目录，打印、HTML 和 DOCX 中也会保留。</li>
           <li>相对路径的图片相对于文档所在文件夹解析。</li>
-          <li>网页链接在默认浏览器中打开；指向其他 Markdown 文件的链接在查看器中打开。</li>
+          <li>网页链接在默认浏览器中打开，<code>mailto:</code> 链接在邮件应用中打开；指向其他 Markdown 文件的链接在查看器中打开，指向图片的链接在预览中打开，指向文件夹的链接在文件面板中打开。指向其他文件（PDF、电子表格）的链接会提示用其对应的应用打开。</li>
+          <li>文本中的简单 HTML 可以使用：<code>&lt;br&gt;</code>、<code>&lt;kbd&gt;</code>、<code>&lt;sup&gt;</code>、<code>&lt;details&gt;</code>、图片（包括 <code>&lt;picture&gt;</code> 和 <code>srcset</code>），以及文档所在文件夹中的视频和音频。和 GitHub 一样，不是 HTML 的标签（如 <code>&lt;name&gt;</code>）不会显示：要显示它，请用反引号括起来（<code>`&lt;name&gt;`</code>）或在前面加反斜杠（<code>\&lt;name&gt;</code>）。会改变页面的标签，如 <code>&lt;style&gt;</code>、<code>&lt;script&gt;</code>、<code>&lt;title&gt;</code> 和 <code>&lt;iframe&gt;</code>，会显示为文本。</li>
         </ul>
 
         <h3>分享与导出</h3>

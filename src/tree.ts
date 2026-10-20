@@ -40,11 +40,14 @@ function revealAncestorsInSet(path: string): void {
   if (changed) persist();
 }
 
+/** a file row was clicked; `e` tells a Ctrl+click or a middle click (a new window) */
+export type OnSelect = (path: string, e: MouseEvent) => void;
+
 export function render(
   container: HTMLElement,
   root: TreeNode,
   currentPath: string,
-  onSelect: (path: string) => void,
+  onSelect: OnSelect,
 ): void {
   if (currentPath && norm(currentPath) !== lastActivePath) {
     revealAncestorsInSet(currentPath);
@@ -81,7 +84,7 @@ export function setActive(container: HTMLElement, path: string): boolean {
   return true;
 }
 
-function buildNode(node: TreeNode, currentPath: string, onSelect: (path: string) => void): HTMLElement {
+function buildNode(node: TreeNode, currentPath: string, onSelect: OnSelect): HTMLElement {
   if (!node.isDir) {
     const row = document.createElement("button");
     row.type = "button";
@@ -92,7 +95,14 @@ function buildNode(node: TreeNode, currentPath: string, onSelect: (path: string)
     name.textContent = node.name;
     name.title = node.name;
     row.append(name);
-    row.addEventListener("click", () => onSelect(node.path));
+    row.addEventListener("click", (e) => onSelect(node.path, e));
+    // the middle button opens too (in a new window), without autoscroll
+    row.addEventListener("mousedown", (e) => {
+      if (e.button === 1) e.preventDefault();
+    });
+    row.addEventListener("auxclick", (e) => {
+      if (e.button === 1) onSelect(node.path, e);
+    });
     return row;
   }
 

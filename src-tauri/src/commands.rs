@@ -8,7 +8,7 @@ use std::{
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State, WebviewWindow};
 use walkdir::WalkDir;
 
 use crate::{watcher, AppState, Launch};
@@ -66,22 +66,65 @@ const SKIP_DIRS: &[&str] = &[
 const MAX_ENTRIES: usize = 2000;
 const MAX_DEPTH: usize = 4;
 
-/// The command line this process was started with, once; the path is
+/// A folder the file pane and the folder search leave out: hidden, build
+/// output, system folders.
+fn skipped_dir(name: &str) -> bool {
+    name.starts_with('.') || SKIP_DIRS.contains(&name.to_lowercase().as_str())
+}
+
+/// Whether `path` (under `root`, existing or just gone) can be in the file
+/// pane's listing: within the depth, outside skipped folders, and a Markdown
+/// file or a folder. A path that no longer exists may have been a folder.
+pub(crate) fn listed_path(root: &Path, path: &Path) -> bool {
+    let Ok(rel) = path.strip_prefix(root) else {
+        return false;
+    };
+    let parts: Vec<String> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    let Some((last, dirs)) = parts.split_last() else {
+        return false;
+    };
+    if parts.len() > MAX_DEPTH || dirs.iter().any(|d| skipped_dir(d)) {
+        return false;
+    }
+    let is_md = path
+        .extension()
+        .is_some_and(|e| is_markdown_ext(&e.to_string_lossy().to_lowercase()));
+    is_md || ((path.is_dir() || !path.exists()) && !skipped_dir(last))
+}
+
+/// Error from read_markdown and open_window when the file is not there (any
+/// more): the page says so in its own words.
+pub const NOT_FOUND: &str = "not-found";
+
+/// What this window opens with, once: the command line for the first window,
+/// the file a new window was made for. Its page calls this with its
+/// listeners live, so from now on launches may be routed to it. The path is
 /// canonicalized (None when it does not exist).
 #[tauri::command]
-pub fn get_initial_file(state: State<'_, AppState>) -> Option<Launch> {
-    let mut launch = state.initial.lock().unwrap().take()?;
-    launch.path = launch
-        .path
-        .as_deref()
-        .and_then(|p| dunce::canonicalize(p).ok())
-        .map(|p| p.to_string_lossy().into_owned());
+pub fn get_initial_file(window: WebviewWindow, state: State<'_, AppState>) -> Option<Launch> {
+    let mut windows = state.windows.lock().unwrap();
+    let slot = windows.entry(window.label().to_owned()).or_default();
+    slot.ready = true;
+    let mut launch = slot.launch.take()?;
+    let canon = launch.path.as_deref().and_then(|p| dunce::canonicalize(p).ok());
+    // busy until watch_file says the document is on screen
+    slot.opening = canon.clone();
+    launch.path = canon.map(|p| p.to_string_lossy().into_owned());
     Some(launch)
 }
 
 #[tauri::command]
 pub fn read_markdown(app: AppHandle, path: String) -> Result<MarkdownDoc, String> {
-    let canon = dunce::canonicalize(&path).map_err(|e| format!("Cannot open {path}: {e}"))?;
+    let canon = dunce::canonicalize(&path).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            NOT_FOUND.to_owned()
+        } else {
+            format!("Cannot open {path}: {e}")
+        }
+    })?;
     let raw = read_with_retry(&canon)?;
     let content = raw.strip_prefix('\u{feff}').unwrap_or(&raw).to_owned();
     let dir = canon
@@ -106,27 +149,55 @@ pub const CONFLICT: &str = "conflict";
 /// Writes the file and returns its new modification time. With
 /// `expected_modified`, refuses (Err(CONFLICT)) when the file changed on disk
 /// since it was read — unless it is 0/None, which means "overwrite anyway".
+/// A file that is gone is written again only with `create`: the page asks for
+/// it when its document was deleted or moved away while open, never for a
+/// save that merely raced a rename.
 #[tauri::command]
 pub fn write_markdown(
     path: String,
     content: String,
     expected_modified: Option<u64>,
+    create: Option<bool>,
 ) -> Result<u64, String> {
-    let canon = dunce::canonicalize(&path).map_err(|e| format!("Cannot save {path}: {e}"))?;
+    let canon = match dunce::canonicalize(&path) {
+        Ok(canon) => canon,
+        Err(e) if create == Some(true) && e.kind() == std::io::ErrorKind::NotFound => {
+            let p = Path::new(&path);
+            let name = p.file_name().ok_or_else(|| format!("Invalid path: {path}"))?;
+            let parent = p.parent().ok_or_else(|| format!("Invalid path: {path}"))?;
+            dunce::canonicalize(parent)
+                .map_err(|e| format!("Cannot save {path}: {e}"))?
+                .join(name)
+        }
+        Err(e) => return Err(format!("Cannot save {path}: {e}")),
+    };
     if let Some(expected) = expected_modified.filter(|&m| m > 0) {
         let now = modified_ms(&canon);
         if now > 0 && now != expected {
             return Err(CONFLICT.to_owned());
         }
     }
-    fs::write(&canon, content).map_err(|e| format!("Cannot save {}: {e}", canon.display()))?;
+    // without `create`, a file renamed away since the canonicalize above is not
+    // written back under its old name
+    use std::io::Write;
+    fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(create == Some(true))
+        .open(&canon)
+        .and_then(|mut f| f.write_all(content.as_bytes()))
+        .map_err(|e| format!("Cannot save {}: {e}", canon.display()))?;
     Ok(modified_ms(&canon))
 }
 
-/// The subset of `paths` that still exist as files (the recent-files list).
+/// The subset of `paths` that still exist as files (the recent-files list,
+/// the document on focus). Off the main thread: a file on a share that went
+/// away can take the network's timeout to answer.
 #[tauri::command]
-pub fn existing_paths(paths: Vec<String>) -> Vec<String> {
-    paths.into_iter().filter(|p| Path::new(p).is_file()).collect()
+pub async fn existing_paths(paths: Vec<String>) -> Vec<String> {
+    tauri::async_runtime::spawn_blocking(move || paths.into_iter().filter(|p| Path::new(p).is_file()).collect())
+        .await
+        .unwrap_or_default()
 }
 
 // unlike write_markdown, the target may not exist yet: canonicalize the parent
@@ -209,11 +280,17 @@ pub fn parent_dir(path: String) -> Option<String> {
     Some(parent.to_string_lossy().into_owned())
 }
 
+// a big folder takes a while to list: off the main thread, where it would
+// freeze every window (the pane lists again after every change on disk)
 #[tauri::command]
-pub fn list_tree(dir: String) -> Result<TreeNode, String> {
-    let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
-    let mut count = 0usize;
-    build_node(&root, 0, &mut count).ok_or_else(|| "No markdown files found".to_owned())
+pub async fn list_tree(dir: String) -> Result<TreeNode, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
+        let mut count = 0usize;
+        build_node(&root, 0, &mut count).ok_or_else(|| "No markdown files found".to_owned())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 fn build_node(path: &Path, depth: usize, count: &mut usize) -> Option<TreeNode> {
@@ -223,11 +300,7 @@ fn build_node(path: &Path, depth: usize, count: &mut usize) -> Option<TreeNode> 
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| path.to_string_lossy().into_owned());
     if path.is_dir() {
-        if depth >= MAX_DEPTH
-            || *count >= MAX_ENTRIES
-            || (depth > 0
-                && (name.starts_with('.') || SKIP_DIRS.contains(&name.to_lowercase().as_str())))
-        {
+        if depth >= MAX_DEPTH || *count >= MAX_ENTRIES || (depth > 0 && skipped_dir(&name)) {
             return None;
         }
         let mut children: Vec<TreeNode> = fs::read_dir(path)
@@ -278,9 +351,16 @@ pub struct SearchHit {
 
 const MAX_HITS: usize = 200;
 
+// reads every file: off the main thread, like list_tree
 #[tauri::command]
-pub fn search_in_tree(dir: String, query: String) -> Result<Vec<SearchHit>, String> {
-    let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
+pub async fn search_in_tree(dir: String, query: String) -> Result<Vec<SearchHit>, String> {
+    tauri::async_runtime::spawn_blocking(move || search_files(&dir, &query))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn search_files(dir: &str, query: &str) -> Result<Vec<SearchHit>, String> {
+    let root = dunce::canonicalize(dir).map_err(|e| e.to_string())?;
     let needle = query.trim().to_lowercase();
     if needle.is_empty() {
         return Ok(Vec::new());
@@ -290,11 +370,7 @@ pub fn search_in_tree(dir: String, query: String) -> Result<Vec<SearchHit>, Stri
         .max_depth(MAX_DEPTH)
         .into_iter()
         .filter_entry(|e| {
-            if e.depth() == 0 || !e.file_type().is_dir() {
-                return true;
-            }
-            let name = e.file_name().to_string_lossy().to_lowercase();
-            !name.starts_with('.') && !SKIP_DIRS.contains(&name.as_str())
+            e.depth() == 0 || !e.file_type().is_dir() || !skipped_dir(&e.file_name().to_string_lossy())
         });
     for entry in walker.filter_map(|e| e.ok()) {
         if hits.len() >= MAX_HITS {
@@ -434,21 +510,113 @@ pub fn import_image(dir: String, source: String) -> Result<String, String> {
     Ok(rel_assets_path(&target))
 }
 
+/// Watches the document a window shows (one watch per window) and records it
+/// as that window's document, so a second launch of the file finds it.
 #[tauri::command]
-pub fn watch_file(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<(), String> {
+pub fn watch_file(
+    app: AppHandle,
+    window: WebviewWindow,
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<(), String> {
     let canon = dunce::canonicalize(&path).map_err(|e| e.to_string())?;
-    let debouncer = watcher::watch(app, &canon)?;
+    let label = window.label().to_owned();
+    let mut windows = state.windows.lock().unwrap();
+    let slot = windows.entry(label.clone()).or_default();
+    slot.doc = Some(canon.clone());
+    slot.opening = None;
     // replacing the old debouncer drops it, which stops the previous watch
-    *state.watcher.lock().unwrap() = Some(debouncer);
+    slot.watcher = Some(watcher::watch(app, label, &canon)?);
     Ok(())
 }
 
+/// Watches the folder of the calling window's file pane (watcher::watch_tree).
+/// The same folder again is a no-op unless `rearm`: the page asks for that
+/// when its window comes back to the front, since Windows can drop a watch
+/// without a word (a burst of changes overflowing its buffer). A drive root
+/// is not watched, it is far too busy; the page checks it on focus instead.
+/// `seq` (the time of the request) orders the requests, which can run out of
+/// order: an older one changes nothing.
 #[tauri::command]
-pub fn show_window(app: AppHandle) {
-    if let Some(win) = app.get_webview_window("main") {
-        let _ = win.show();
-        let _ = win.set_focus();
+pub async fn watch_tree(
+    app: AppHandle,
+    window: WebviewWindow,
+    state: State<'_, AppState>,
+    root: String,
+    rearm: bool,
+    seq: u64,
+) -> Result<(), String> {
+    let label = window.label().to_owned();
+    let canon = dunce::canonicalize(&root).map_err(|e| e.to_string())?;
+    {
+        let mut windows = state.windows.lock().unwrap();
+        // a window closed meanwhile has no slot, and must not get one back
+        let Some(slot) = windows.get_mut(&label) else {
+            return Ok(());
+        };
+        if seq < slot.tree_seq {
+            return Ok(());
+        }
+        if !rearm && slot.tree_root.as_deref() == Some(canon.as_path()) && slot.tree.is_some() {
+            return Ok(());
+        }
+        slot.tree_seq = seq;
+        slot.tree_root = Some(canon.clone());
+        if canon.parent().is_none() {
+            slot.tree = None;
+            return Ok(());
+        }
     }
+    // built outside the lock, which the main thread takes on window events
+    let built = tauri::async_runtime::spawn_blocking({
+        let canon = canon.clone();
+        let label = label.clone();
+        move || watcher::watch_tree(app, label, &canon)
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let mut windows = state.windows.lock().unwrap();
+    let Some(slot) = windows.get_mut(&label) else {
+        return Ok(());
+    };
+    if slot.tree_seq != seq {
+        return Ok(()); // a newer request took over
+    }
+    match built {
+        Ok(debouncer) => {
+            slot.tree = Some(debouncer);
+            Ok(())
+        }
+        Err(e) => {
+            // no watch of the folder before: the next request must try again
+            slot.tree = None;
+            Err(e)
+        }
+    }
+}
+
+#[tauri::command]
+pub fn show_window(window: WebviewWindow) {
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
+/// A new window, for a file (Ctrl+click, "Open in a new window") or empty, on
+/// the home (Ctrl+Shift+N). Async because on Windows a window built from a
+/// sync command deadlocks WebView2 (tauri-apps/wry#583).
+#[tauri::command]
+pub async fn open_window(
+    app: AppHandle,
+    window: WebviewWindow,
+    path: Option<String>,
+    line: Option<u32>,
+    anchor: Option<String>,
+) -> Result<(), String> {
+    // a file renamed or deleted since it was listed: no window on the home
+    if path.as_deref().is_some_and(|p| !Path::new(p).is_file()) {
+        return Err(NOT_FOUND.to_owned());
+    }
+    crate::windowing::create_window(&app, Some(&window), Launch { path, line, anchor })
 }
 
 /// True when running from the Microsoft Store (MSIX) package, where the app has a
@@ -468,12 +636,12 @@ pub fn is_store_install() -> bool {
     false
 }
 
-/// Renders the current page to a PDF with WebView2's own printer
+/// Renders the calling window's page to a PDF with WebView2's own printer
 /// (`ICoreWebView2_7::PrintToPdf`): the `print` media styles apply, including
 /// the `@page` header and footer, exactly like the print dialog's "Save as
 /// PDF" but without the dialog. One job at a time; the file is overwritten.
 #[tauri::command]
-pub async fn print_to_pdf(app: AppHandle, path: String, landscape: bool) -> Result<(), String> {
+pub async fn print_to_pdf(window: WebviewWindow, path: String, landscape: bool) -> Result<(), String> {
     #[cfg(windows)]
     {
         use tokio::sync::oneshot;
@@ -484,9 +652,6 @@ pub async fn print_to_pdf(app: AppHandle, path: String, landscape: bool) -> Resu
         if let Some(dir) = target.parent() {
             fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         }
-        let window = app
-            .get_webview_window("main")
-            .ok_or_else(|| "No main window".to_owned())?;
         let (tx, rx) = oneshot::channel::<Result<(), String>>();
         let tx = std::sync::Arc::new(std::sync::Mutex::new(Some(tx)));
         let tx_sync = tx.clone();
@@ -545,9 +710,45 @@ pub async fn print_to_pdf(app: AppHandle, path: String, landscape: bool) -> Resu
     }
     #[cfg(not(windows))]
     {
-        let _ = (app, path, landscape);
+        let _ = (window, path, landscape);
         Err("PDF export is only available on Windows".to_owned())
     }
+}
+
+/// What a link in a document may hand to its default app: documents, sheets,
+/// slides, images, media, archives, web pages. Never a program or a script, so
+/// a document cannot launch one.
+const OPEN_EXTERNALLY: &[&str] = &[
+    "pdf", "txt", "csv", "tsv", "json", "xml", "yaml", "yml", "log", "rtf", "doc", "docx", "xls", "xlsx",
+    "ppt", "pptx", "odt", "ods", "odp", "vsdx", "drawio", "msg", "eml", "png", "jpg", "jpeg", "gif", "webp",
+    "svg", "bmp", "avif", "tif", "tiff", "mp3", "wav", "m4a", "mp4", "mov", "webm", "zip", "7z", "html", "htm",
+];
+
+/// Opens a file a document links to with the app Windows associates with it,
+/// for the kinds in OPEN_EXTERNALLY only.
+#[tauri::command]
+pub fn open_externally(path: String) -> Result<(), String> {
+    let canon = dunce::canonicalize(&path).map_err(|e| e.to_string())?;
+    let ext = canon
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if !canon.is_file() || !OPEN_EXTERNALLY.contains(&ext.as_str()) {
+        return Err(format!("Not opened: {}", canon.display()));
+    }
+    tauri_plugin_opener::open_path(canon, None::<&str>).map_err(|e| e.to_string())
+}
+
+/// Mirrors the language picked in the reading settings ("auto" or a code) for
+/// the next start, when WebView2's own parts take it.
+#[tauri::command]
+pub fn remember_language(app: AppHandle, pref: String) -> Result<(), String> {
+    if pref != "auto" && !crate::UI_LANGS.contains(&pref.as_str()) {
+        return Err(format!("Unknown language: {pref}"));
+    }
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    fs::write(crate::language_file(&dir), pref).map_err(|e| e.to_string())
 }
 
 const STORE_REVIEW_URL: &str = "ms-windows-store://review/?ProductId=9PG51TBZ2CB1";
@@ -555,4 +756,32 @@ const STORE_REVIEW_URL: &str = "ms-windows-store://review/?ProductId=9PG51TBZ2CB
 #[tauri::command]
 pub fn open_store_review() -> Result<(), String> {
     tauri_plugin_opener::open_url(STORE_REVIEW_URL, None::<&str>).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn listed_path_follows_the_file_pane() {
+        let root = std::env::temp_dir().join(format!("leggimi-listed-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("a").join("b").join("c")).unwrap();
+        fs::create_dir_all(root.join("node_modules").join("x")).unwrap();
+        fs::write(root.join("note.md"), "").unwrap();
+        fs::write(root.join("pic.png"), "").unwrap();
+
+        assert!(listed_path(&root, &root.join("note.md")));
+        assert!(listed_path(&root, &root.join(".draft.md")), "dot files are listed");
+        assert!(listed_path(&root, &root.join("a")), "a folder");
+        assert!(listed_path(&root, &root.join("gone")), "a path gone may have been a folder");
+        assert!(!listed_path(&root, &root.join("pic.png")), "a file that is not Markdown");
+        assert!(!listed_path(&root, &root.join("node_modules")), "a skipped folder");
+        assert!(!listed_path(&root, &root.join("node_modules").join("x").join("readme.md")));
+        assert!(!listed_path(&root, &root.join(".git").join("x.md")), "inside a hidden folder");
+        assert!(listed_path(&root, &root.join("a").join("b").join("c").join("deep.md")), "depth 4");
+        assert!(!listed_path(&root, &root.join("a").join("b").join("c").join("d").join("x.md")), "depth 5");
+        assert!(!listed_path(&root, Path::new(r"C:\elsewhere\x.md")), "outside the root");
+        let _ = fs::remove_dir_all(&root);
+    }
 }

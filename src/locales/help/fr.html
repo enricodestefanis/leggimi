@@ -6,7 +6,16 @@
           <li>Glissez un fichier sur la fenêtre.</li>
           <li>Appuyez sur <kbd>Ctrl</kbd>+<kbd>O</kbd> ou utilisez le bouton dossier de la barre d'outils.</li>
         </ul>
-        <p>Ouvrir un second fichier pendant que l'application tourne réutilise la même fenêtre.</p>
+        <p>
+          Un fichier ouvert depuis l'extérieur pendant que l'application tourne (double-clic, <em>Ouvrir
+          avec</em>, <code>leggimi fichier.md</code>) a <strong>sa propre fenêtre</strong> ; s'il est déjà
+          ouvert, sa fenêtre passe au premier plan. Dans l'application, les fichiers s'ouvrent dans la même
+          fenêtre : <kbd>Ctrl</kbd>+clic (ou le bouton du milieu) sur un fichier, un document récent, un
+          résultat de recherche ou un lien l'ouvre plutôt dans une nouvelle fenêtre, tout comme <em>Ouvrir
+          dans une nouvelle fenêtre</em> dans son menu contextuel, et <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>N</kbd>
+          en ouvre une vide. Plusieurs fichiers ouverts ensemble (<kbd>Ctrl</kbd>+<kbd>O</kbd> ou glissés)
+          vont chacun dans sa fenêtre.
+        </p>
         <p>
           Sans document ouvert, la fenêtre liste les fichiers ouverts récemment : cliquez sur l'un d'eux pour
           le rouvrir. Chaque document <strong>se souvient aussi de l'endroit où vous vous êtes arrêté</strong>
@@ -35,6 +44,16 @@
           Outlook, ainsi qu'en texte brut. Le document peut aussi être déplacé comme une feuille de papier :
           avec le bouton du milieu n'importe où, ou avec le bouton gauche sur l'espace vide à côté du texte.
         </p>
+        <p>
+          Un clic droit sur le document ouvre son menu : copier la sélection (mise en forme ou en texte brut)
+          ou la chercher dans le document ou le dossier ; ouvrir ou copier un lien ; ouvrir une image ou un
+          diagramme, copier un bloc de code ou un tableau ; <strong>copier le lien vers la section</strong>,
+          <code>[Titre](fichier.md#titre)</code>, qui fonctionne depuis n'importe quel autre document ;
+          <strong>modifier à partir de cet endroit</strong> ; imprimer ou enregistrer en PDF.
+        </p>
+        <p>
+          Comme dans un navigateur, <kbd>Alt</kbd>+<kbd>←</kbd> (ou le bouton latéral <em>précédent</em> de la souris) revient là où vous étiez avant un lien vers une section, un clic dans le plan ou le passage à un autre document ; <kbd>Alt</kbd>+<kbd>→</kbd> (ou le bouton <em>suivant</em>) refait le chemin. <strong>Précédent</strong> et <strong>Suivant</strong> sont aussi en haut du menu du clic droit. Chaque fenêtre a son propre historique.
+        </p>
 
         <h3>Raccourcis clavier</h3>
         <table class="help-keys">
@@ -53,6 +72,10 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Texte plus grand / plus petit</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Réinitialiser la taille du texte</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd></td><td>Garder la fenêtre au premier plan</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>Recharger le fichier depuis le disque</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>N</kbd></td><td>Nouvelle fenêtre</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Fermer la fenêtre</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Précédent / suivant</td></tr>
             <tr><td><kbd>?</kbd></td><td>Aide-mémoire des touches</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Afficher cette aide</td></tr>
             <tr><td><kbd>Échap</kbd></td><td>Fermer la barre de recherche, l'aperçu ou cette aide</td></tr>
@@ -93,7 +116,7 @@
         <p>
           <strong>Outils</strong> (le bouton à curseurs à droite de la barre) regroupe chercher et remplacer, les
           commandes de ligne et la <strong>correction orthographique</strong>, qui souligne les mots mal
-          orthographiés avec le dictionnaire Windows de votre langue d'affichage.
+          orthographiés avec le dictionnaire de la langue de l'interface et propose des corrections au clic droit (après un changement de langue dans les réglages de lecture, au prochain démarrage).
         </p>
         <p>
           <strong>Récupération :</strong> tant que vous avez des modifications non enregistrées, une copie du
@@ -116,6 +139,7 @@
           restent repliés pendant la navigation — et après un redémarrage.
         </p>
         <p>Les dossiers sans fichier Markdown sont masqués, comme les dossiers cachés et de build tels que <code>node_modules</code>.</p>
+        <p>Le panneau se met à jour tout seul quand des fichiers sont ajoutés, renommés ou supprimés dans le dossier. Renommez le document ouvert et la fenêtre le suit ; supprimez-le ou déplacez-le et son texte reste à l'écran, avec un avis qui propose de l'enregistrer à nouveau.</p>
         <p>
           Les deux panneaux latéraux s'élargissent en tirant leur bord intérieur — un double-clic sur le bord
           rétablit la largeur par défaut. La taille de leur texte suit <strong>Panneaux</strong> dans les réglages
@@ -138,6 +162,7 @@
 
         <h3>Rechargement automatique</h3>
         <p>Le fichier ouvert est surveillé sur le disque. Quand il change, la vue se rafraîchit d'elle-même en gardant votre position de lecture — utile pendant qu'un document est régénéré. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée.</p>
+        <p><kbd>F5</kbd> ou <kbd>Ctrl</kbd>+<kbd>R</kbd> relit le fichier à la demande en gardant votre position ; avec des modifications non enregistrées, rien ne se passe.</p>
 
         <h3>Rendu</h3>
         <ul>
@@ -154,7 +179,8 @@
           <li>Le front matter YAML entre des lignes <code>---</code> est replié dans un bloc <em>Front matter</em> en tête : cliquez pour voir les champs en tableau.</li>
           <li>Un paragraphe ne contenant que <code>[TOC]</code> devient une table des matières des titres qui suivent, présente aussi à l'impression, en HTML et en DOCX.</li>
           <li>Les images à chemin relatif sont résolues par rapport au dossier du document.</li>
-          <li>Les liens vers des pages web s'ouvrent dans votre navigateur par défaut ; les liens vers d'autres fichiers Markdown s'ouvrent dans la visionneuse.</li>
+          <li>Les liens vers des pages web s'ouvrent dans votre navigateur par défaut, les liens <code>mailto:</code> dans votre messagerie ; les liens vers d'autres fichiers Markdown s'ouvrent dans la visionneuse, vers des images dans l'aperçu, vers un dossier dans le panneau des fichiers. Un lien vers tout autre fichier (un PDF, un tableur) propose de l'ouvrir avec son application.</li>
+          <li>Le HTML simple dans le texte fonctionne : <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, les images (aussi <code>&lt;picture&gt;</code> et <code>srcset</code>), la vidéo et l'audio du dossier du document. Comme sur GitHub, une balise qui n'est pas du HTML, telle que <code>&lt;nom&gt;</code>, ne s'affiche pas : pour la montrer, écrivez-la entre accents graves (<code>`&lt;nom&gt;`</code>) ou précédée d'une barre oblique inverse (<code>\&lt;nom&gt;</code>). Les balises qui changeraient la page, comme <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> et <code>&lt;iframe&gt;</code>, s'affichent comme du texte.</li>
         </ul>
 
         <h3>Partage et export</h3>

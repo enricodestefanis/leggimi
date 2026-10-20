@@ -11,7 +11,7 @@ This document exercises every feature of the viewer.
 
 ## Basic formatting
 
-Text in **bold**, *italic*, ~~strikethrough~~, `inline code` and an [external link](https://www.anthropic.com).[^1] A second note follows the first.[^note] Quotes like "these" and dashes -- are converted by the typographer.
+Text in **bold**, *italic*, ~~strikethrough~~, `inline code` and an [external link](https://www.anthropic.com).[^1] A second note follows the first.[^note] Quotes like "these" curl, while dashes -- and (c) stay as typed, and README.md in prose stays text.
 
 > A blockquote with an accent border.
 > Spanning several lines, to check the rendering.

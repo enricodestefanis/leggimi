@@ -6,7 +6,15 @@
           <li>Drag a file onto the window.</li>
           <li>Press <kbd>Ctrl</kbd>+<kbd>O</kbd> or use the folder button in the toolbar.</li>
         </ul>
-        <p>Opening a second file while the app is running reuses the same window.</p>
+        <p>
+          A file opened from outside while the app is running (a double-click, <em>Open with</em>,
+          <code>leggimi file.md</code>) gets a <strong>window of its own</strong>; if it is already open, its
+          window comes to the front. Inside the app, files open in the same window: <kbd>Ctrl</kbd>+click
+          (or the middle button) on a file, a recent document, a search result or a link opens it in a new
+          window instead, as does <em>Open in a new window</em> in its right-click menu, and
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> opens an empty one. Several files opened together
+          (<kbd>Ctrl</kbd>+<kbd>O</kbd> or dragged) go one per window.
+        </p>
         <p>
           With no document open, the window lists the files you opened recently: click one to
           reopen it. Every document also <strong>remembers where you stopped reading</strong> and
@@ -36,6 +44,16 @@
           with the middle mouse button anywhere, or with the left button on the empty space beside
           the text.
         </p>
+        <p>
+          Right-click the document for its menu: copy the selection (with its formatting or as plain text)
+          or search for it in the document or the folder; open or copy a link; open an image or a diagram,
+          copy a code block or a table; <strong>copy a link to the section</strong>,
+          <code>[Heading](file.md#heading)</code>, which works from any other document; <strong>edit from
+          that point</strong>; print or save as PDF.
+        </p>
+        <p>
+          Like in a browser, <kbd>Alt</kbd>+<kbd>←</kbd> (or the mouse's side <em>back</em> button) returns to where you were before a link to a section, a click in the outline or a move to another document; <kbd>Alt</kbd>+<kbd>→</kbd> (or the <em>forward</em> button) goes forward again. <strong>Back</strong> and <strong>Forward</strong> are also at the top of the right-click menu. Each window has its own history.
+        </p>
 
         <h3>Keyboard shortcuts</h3>
         <table class="help-keys">
@@ -54,6 +72,10 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Larger / smaller text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Reset the text size</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Keep the window on top</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>Reload the file from disk</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>New window</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close the window</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Back / forward</td></tr>
             <tr><td><kbd>?</kbd></td><td>Quick reference of the keys</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Close the find bar, the preview or this help</td></tr>
@@ -93,7 +115,7 @@
         <p>
           <strong>Tools</strong> (the sliders button at the right of the bar) collects find &amp; replace,
           the line commands and <strong>Spellcheck</strong>, which underlines misspelled words with the
-          Windows dictionary of your display language.
+          dictionary of the interface language, with suggestions on a right-click (after a language change in the reading settings, from the next start).
         </p>
         <p>
           <strong>Recovery:</strong> while you have unsaved changes, a copy of the text is kept aside. If
@@ -115,6 +137,7 @@
           Folders you collapse stay collapsed while you navigate — and across restarts.
         </p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
+        <p>The pane updates by itself when files are added, renamed or deleted in the folder. Rename the open document and the window follows it; delete or move it and its text stays on screen, with a notice offering to save it again.</p>
         <p>
           Both side panels can be widened by dragging their inner edge — double-click the edge to
           restore the default width. Their text size follows <strong>Panels</strong> in the reading
@@ -136,6 +159,7 @@
 
         <h3>Live reload</h3>
         <p>The open file is watched on disk. When it changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
+        <p><kbd>F5</kbd> or <kbd>Ctrl</kbd>+<kbd>R</kbd> reads the file again on request, keeping your place; with unsaved edits it does nothing.</p>
 
         <h3>Rendering</h3>
         <ul>
@@ -152,7 +176,8 @@
           <li>YAML front matter between <code>---</code> lines is folded into a <em>Front matter</em> block at the top: click it to see the fields as a table.</li>
           <li>A paragraph containing only <code>[TOC]</code> becomes a table of contents of the headings that follow, which also goes to print, HTML and DOCX.</li>
           <li>Images with relative paths resolve against the document's folder.</li>
-          <li>Links to web pages open in your default browser; links to other Markdown files open in the viewer.</li>
+          <li>Links to web pages open in your default browser, <code>mailto:</code> links in your mail app; links to other Markdown files open in the viewer, to images in the preview, to a folder in the file browser. A link to any other file (a PDF, a spreadsheet) offers to open it in its own app.</li>
+          <li>Simple HTML in the text works: <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, images (<code>&lt;picture&gt;</code> and <code>srcset</code> too), video and audio from the document's folder. As on GitHub, a tag that is not HTML, such as <code>&lt;name&gt;</code>, does not show: to show it, write it between backticks (<code>`&lt;name&gt;`</code>) or with a backslash in front (<code>\&lt;name&gt;</code>). Tags that would change the page, such as <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> and <code>&lt;iframe&gt;</code>, show as text.</li>
         </ul>
 
         <h3>Sharing and export</h3>

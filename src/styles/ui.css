@@ -419,6 +419,109 @@ body.resizing * {
   margin: 8px 2px;
 }
 
+/* right-click menus (contextMenu.ts): compact one-line rows, icon on the
+   left, shortcut on the right, like the Windows 11 menus they replace */
+.ctx-menu {
+  /* a manual popover, so it sits in the top layer: undo the UA centring */
+  inset: auto;
+  margin: 0;
+  color: var(--text);
+  min-width: 232px;
+  max-width: min(380px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  outline: none;
+}
+
+.ctx-menu.flip-y {
+  animation-name: menu-enter-up;
+}
+
+@keyframes menu-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.ctx-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 9px;
+  color: var(--text);
+}
+
+/* --surface-2 is nearly the menu's own colour in the dark themes (1.03:1):
+   the row under the pointer or the keys takes a tint of the text instead */
+.ctx-item:hover,
+.ctx-item:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--text) 9%, var(--surface));
+}
+
+.ctx-item:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* the muted lines stay readable on the tinted row */
+.ctx-item:hover :is(.ctx-hint, .ctx-kbd),
+.ctx-item:focus-visible :is(.ctx-hint, .ctx-kbd) {
+  color: color-mix(in srgb, var(--text-muted) 75%, var(--text));
+}
+
+.ctx-icon {
+  flex: none;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  transition: color 0.12s var(--ease);
+}
+
+.ctx-item:hover .ctx-icon,
+.ctx-item:focus-visible .ctx-icon {
+  color: var(--accent);
+}
+
+.ctx-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ctx-label,
+.ctx-hint {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ctx-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ctx-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.ctx-kbd {
+  flex: none;
+  margin-left: 14px;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+.ctx-menu .menu-sep {
+  margin: 4px 8px;
+}
+
 /* reading settings (the Aa popover) */
 .reading-menu {
   min-width: 300px;

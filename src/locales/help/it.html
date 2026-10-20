@@ -6,7 +6,15 @@
           <li>Trascina un file sulla finestra.</li>
           <li>Premi <kbd>Ctrl</kbd>+<kbd>O</kbd> o usa il pulsante con la cartella nella barra degli strumenti.</li>
         </ul>
-        <p>Aprire un secondo file mentre l'app è in esecuzione riusa la stessa finestra.</p>
+        <p>
+          Un file aperto da fuori mentre l'app è in esecuzione (doppio clic, <em>Apri con</em>,
+          <code>leggimi file.md</code>) ha una <strong>finestra tutta sua</strong>; se è già aperto, viene in
+          primo piano la sua finestra. Dentro l'app i file si aprono nella stessa finestra: <kbd>Ctrl</kbd>+clic
+          (o il tasto centrale) su un file, un documento recente, un risultato della ricerca o un link lo apre
+          invece in una nuova finestra, come <em>Apri in una nuova finestra</em> nel suo menu del clic destro, e
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> ne apre una vuota. Più file aperti insieme
+          (<kbd>Ctrl</kbd>+<kbd>O</kbd> o trascinati) vanno uno per finestra.
+        </p>
         <p>
           Senza documenti aperti, la finestra elenca i file aperti di recente: fai clic su uno per
           riaprirlo. Ogni documento inoltre <strong>ricorda dove avevi smesso di leggere</strong> e
@@ -36,6 +44,16 @@
           con il tasto centrale del mouse ovunque, o con il tasto sinistro nello spazio vuoto accanto
           al testo.
         </p>
+        <p>
+          Il clic destro sul documento apre il suo menu: copia la selezione (formattata o come testo semplice)
+          o cercala nel documento o nella cartella; apri o copia un link; apri un'immagine o un diagramma,
+          copia un blocco di codice o una tabella; <strong>copia il link alla sezione</strong>,
+          <code>[Titolo](file.md#titolo)</code>, che funziona da qualsiasi altro documento; <strong>modifica
+          da quel punto</strong>; stampa o salva come PDF.
+        </p>
+        <p>
+          Come in un browser, <kbd>Alt</kbd>+<kbd>←</kbd> (o il tasto laterale <em>indietro</em> del mouse) torna dove eri prima di un link a una sezione, di un clic sull'indice o del passaggio a un altro documento; <kbd>Alt</kbd>+<kbd>→</kbd> (o il tasto <em>avanti</em>) rifà il percorso. <strong>Indietro</strong> e <strong>Avanti</strong> sono anche in cima al menu del clic destro. Ogni finestra ha la sua cronologia.
+        </p>
 
         <h3>Scorciatoie da tastiera</h3>
         <table class="help-keys">
@@ -54,6 +72,10 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Testo più grande / più piccolo</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Ripristina la dimensione del testo</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Mantieni la finestra in primo piano</td></tr>
+            <tr><td><kbd>F5</kbd></td><td>Ricarica il file dal disco</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>Nuova finestra</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Chiudi la finestra</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Indietro / avanti</td></tr>
             <tr><td><kbd>?</kbd></td><td>Promemoria dei tasti</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Mostra questa guida</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Chiudi la barra di ricerca, l'anteprima o questa guida</td></tr>
@@ -93,7 +115,7 @@
         <p>
           <strong>Strumenti</strong> (il pulsante con i cursori a destra della barra) raccoglie trova e
           sostituisci, i comandi di riga e il <strong>Controllo ortografico</strong>, che sottolinea le parole
-          errate con il dizionario di Windows della tua lingua.
+          errate con il dizionario della lingua dell'interfaccia e propone le correzioni con il clic destro (dopo un cambio di lingua nelle impostazioni di lettura, dal riavvio successivo).
         </p>
         <p>
           <strong>Recupero:</strong> finché hai modifiche non salvate, una copia del testo viene tenuta da
@@ -115,6 +137,7 @@
           Le cartelle che chiudi restano chiuse mentre navighi, e anche al riavvio.
         </p>
         <p>Le cartelle senza file Markdown sono nascoste, come le cartelle nascoste e di build tipo <code>node_modules</code>.</p>
+        <p>Il pannello si aggiorna da solo quando nella cartella aggiungi, rinomini o elimini file. Se rinomini il documento aperto, la finestra lo segue; se lo elimini o lo sposti, il testo resta sullo schermo e un avviso propone di salvarlo di nuovo.</p>
         <p>
           Entrambi i pannelli laterali si allargano trascinando il bordo interno; un doppio clic sul bordo
           ripristina la larghezza predefinita. La dimensione del loro testo segue <strong>Pannelli</strong>
@@ -136,6 +159,7 @@
 
         <h3>Ricarica automatica</h3>
         <p>Il file aperto viene osservato sul disco. Quando cambia, la vista si aggiorna da sola e mantiene la posizione di lettura: utile mentre un documento viene rigenerato. In modifica l'aggiornamento avviene solo finché il tuo buffer non ha modifiche non salvate.</p>
+        <p><kbd>F5</kbd> o <kbd>Ctrl</kbd>+<kbd>R</kbd> rilegge il file a richiesta e resta al punto di lettura; con modifiche non salvate non fa nulla.</p>
 
         <h3>Rendering</h3>
         <ul>
@@ -152,7 +176,8 @@
           <li>Il front matter YAML tra righe <code>---</code> viene ripiegato in un blocco <em>Front matter</em> in cima: fai clic per vedere i campi in tabella.</li>
           <li>Un paragrafo che contiene solo <code>[TOC]</code> diventa un indice dei titoli che seguono, presente anche in stampa, HTML e DOCX.</li>
           <li>Le immagini con percorso relativo vengono cercate rispetto alla cartella del documento.</li>
-          <li>I link alle pagine web si aprono nel browser predefinito; i link ad altri file Markdown si aprono nel visualizzatore.</li>
+          <li>I link alle pagine web si aprono nel browser predefinito, i link <code>mailto:</code> nell'app di posta; i link ad altri file Markdown si aprono nel visualizzatore, quelli alle immagini nell'anteprima, quelli a una cartella nel pannello dei file. Un link a qualsiasi altro file (un PDF, un foglio di calcolo) propone di aprirlo con la sua app.</li>
+          <li>L'HTML semplice nel testo funziona: <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, le immagini (anche <code>&lt;picture&gt;</code> e <code>srcset</code>), video e audio della cartella del documento. Come su GitHub, un tag che non è HTML, come <code>&lt;nome&gt;</code>, non si vede: per mostrarlo scrivilo tra apici inversi (<code>`&lt;nome&gt;`</code>) o con una barra rovesciata davanti (<code>\&lt;nome&gt;</code>). I tag che cambierebbero la pagina, come <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> e <code>&lt;iframe&gt;</code>, compaiono come testo.</li>
         </ul>
 
         <h3>Condivisione ed esportazione</h3>

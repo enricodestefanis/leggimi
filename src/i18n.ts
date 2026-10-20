@@ -52,7 +52,14 @@ export function pref(): LangPref {
   return isLang(saved) ? saved : "auto";
 }
 
-const lang: Lang = pref() === "auto" ? fromSystem() : (pref() as Lang);
+// the preference this window loaded with: another window may store a new one,
+// which this one only takes when it reloads
+const loadedPref = pref();
+const lang: Lang = loadedPref === "auto" ? fromSystem() : loadedPref;
+
+export function activePref(): LangPref {
+  return loadedPref;
+}
 const dict: Dict = DICTS[lang];
 
 export function current(): Lang {

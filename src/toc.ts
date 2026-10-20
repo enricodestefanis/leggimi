@@ -15,6 +15,20 @@ let items: HTMLButtonElement[] = [];
 let cursor = -1; // index into items, the keyboard-highlighted filter result
 // the reading keys' "next / previous heading", bound to the spy's state by build()
 let stepImpl: ((dir: 1 | -1) => boolean) | null = null;
+// drops the pinned highlight, so the spy follows the page again
+let releaseImpl: (() => void) | null = null;
+// told before a click (or Enter in the filter) jumps to a heading, so the
+// place being left can be kept for Back; the reading keys' steps are not jumps
+let jumpListener: ((target: HTMLElement) => void) | null = null;
+
+export function onJump(fn: (target: HTMLElement) => void): void {
+  jumpListener = fn;
+}
+
+// the page was moved by something else (Back, Forward): the highlight follows it
+export function unpin(): void {
+  releaseImpl?.();
+}
 
 // Where the activation line sits, measured from the pane's top edge. Far from the
 // bottom it is a fixed BASE_LINE; within the last viewport of scroll it slides down
@@ -33,6 +47,7 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
   spyCleanup?.();
   spyCleanup = null;
   stepImpl = null;
+  releaseImpl = null;
 
   heads = [...article.querySelectorAll<HTMLElement>(":is(h1,h2,h3,h4)[id]")];
   items = [];
@@ -61,6 +76,15 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
     settling = false;
     pinned = false;
   };
+  releaseImpl = release;
+
+  const jumpTo = (i: number) => {
+    pinned = true;
+    settling = true;
+    armSettle();
+    setActive(i);
+    heads[i].scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   heads.forEach((h, i) => {
     const item = document.createElement("button");
@@ -69,11 +93,8 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
     item.textContent = h.textContent ?? "";
     item.title = h.textContent ?? "";
     item.addEventListener("click", () => {
-      pinned = true;
-      settling = true;
-      armSettle();
-      setActive(i);
-      h.scrollIntoView({ behavior: "smooth", block: "start" });
+      jumpListener?.(h);
+      jumpTo(i);
     });
     list.append(item);
     items.push(item);
@@ -138,7 +159,7 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
         else for (let k = tops.length - 1; k >= 0; k--) if (tops[k] < -4) { i = k; break; }
       }
       if (i < 0 || i >= items.length) return false;
-      items[i].click();
+      jumpTo(i);
       return true;
     };
   }
