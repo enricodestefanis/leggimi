@@ -17,9 +17,11 @@
   Partner Center listing (the Store accepts it as well as zh-CN).
 
   New > Markdown document in File Explorer: ShellNewFileName is an empty file
-  that scripts/package-msix.ps1 stages in the package. Its name stays English
-  in every language: an ms-resource name needs the strings in resources.pri,
-  and the PRI that winapp generates indexes only the images.
+  that scripts/package-msix.ps1 stages in the package. Both names are
+  ms-resource strings from msix\Strings\<language>\Resources.resw, which the
+  script indexes into resources.pri (winapp's own PRI holds only the images).
+  They must be: File Explorer silently drops a New entry whose
+  ShellNewDisplayName is plain text (tested on Windows 11 25H2, 2026-10-22).
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -71,10 +73,10 @@
       <Extensions>
         <uap:Extension Category="windows.fileTypeAssociation">
           <uap:FileTypeAssociation Name="markdown">
-            <uap:DisplayName>Markdown document</uap:DisplayName>
+            <uap:DisplayName>ms-resource:Resources/FileTypeDisplayName</uap:DisplayName>
             <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
             <uap:SupportedFileTypes>
-              <uap:FileType uap4:ShellNewFileName="ShellNew\New.md" uap4:ShellNewDisplayName="Markdown document">.md</uap:FileType>
+              <uap:FileType uap4:ShellNewFileName="ShellNew\New.md" uap4:ShellNewDisplayName="ms-resource:Resources/ShellNewDisplayName">.md</uap:FileType>
               <uap:FileType>.markdown</uap:FileType>
               <uap:FileType>.mdown</uap:FileType>
               <uap:FileType>.mkd</uap:FileType>

@@ -7,6 +7,14 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.15.2] - 2026-10-22
+
+### Fixed
+- Microsoft Store version: **New → Markdown document** was missing from File Explorer's context
+  menu. Windows drops a packaged app's New entry whose name is plain text; the package now
+  carries its names as resources, so the entry appears, and the file type is named in the
+  Windows language (*Documento Markdown*, *Markdown-Dokument*…) as with the installer.
+
 ## [1.15.1] - 2026-10-22
 
 Finishing touches (*Rifiniture*): headings and links that behave as on GitHub, room for wide

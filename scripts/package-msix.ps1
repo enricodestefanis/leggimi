@@ -4,10 +4,11 @@
 
 .DESCRIPTION
   1. Runs the Tauri release build (skip with -SkipBuild when target\release\leggimi.exe is current).
-  2. Stages the exe, the MSIX assets and the template of File Explorer's New > Markdown document
-     in src-tauri\target\msix\layout.
+  2. Stages the exe, the MSIX assets, the manifest strings (src-tauri\msix\Strings) and the
+     template of File Explorer's New > Markdown document in src-tauri\target\msix\layout.
   3. Stamps the version from package.json into the manifest (x.y.z -> x.y.z.0).
-  4. Runs `winapp package`, which writes the .msix next to the layout folder.
+  4. Indexes images and strings into resources.pri with the Windows SDK's makepri.
+  5. Runs `winapp package`, which writes the .msix next to the layout folder.
 
   The Store re-signs the package during certification, so the default output is unsigned.
   Pass -Sign to also produce a locally installable package signed with a development
@@ -75,6 +76,8 @@ Copy-Item "$root\src-tauri\msix\Assets\*.png" "$layout\Assets"
 # document starts empty.
 New-Item -ItemType Directory -Force "$layout\ShellNew" | Out-Null
 [IO.File]::WriteAllBytes("$layout\ShellNew\New.md", [byte[]]@())
+# The manifest's ms-resource strings (the type's name and the New entry's), per language.
+Copy-Item "$root\src-tauri\msix\Strings" $layout -Recurse
 
 $manifest = Get-Content "$root\src-tauri\msix\Package.appxmanifest" -Raw
 # Only the Identity's Version attribute: MinVersion/MaxVersionTested also end in Version="...".
@@ -107,7 +110,20 @@ $identity = ([xml]$manifest).Package.Identity
 $msix = "$out\$($identity.Name)_${msixVersion}_$($identity.ProcessorArchitecture).msix"
 Get-ChildItem $out -Filter "$($identity.Name)_*.msix" -ErrorAction SilentlyContinue | Remove-Item -Force
 
-$args = @("package", $layout, "--manifest", "$layout\Package.appxmanifest", "--output", $msix, "--quiet")
+# resources.pri from makepri rather than winapp: winapp's indexes only the images, and the
+# manifest's ms-resource names need the strings too (File Explorer drops a New entry whose
+# name is plain text). One PRI for one package: no resource packs split per language or scale.
+$makepri = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makepri.exe" -ErrorAction SilentlyContinue |
+  Sort-Object { [version]$_.Directory.Parent.Name } | Select-Object -Last 1
+if (-not $makepri) { throw "makepri.exe not found: install the Windows SDK" }
+$priconfig = "$out\priconfig.xml"
+& $makepri.FullName createconfig /cf $priconfig /dq en-US /pv 10.0.0 /o | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "makepri createconfig failed" }
+[IO.File]::WriteAllText($priconfig, ([IO.File]::ReadAllText($priconfig) -replace '(?s)<packaging>.*?</packaging>', ''))
+& $makepri.FullName new /pr $layout /cf $priconfig /mn "$layout\Package.appxmanifest" /of "$layout\resources.pri" /o | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "makepri failed" }
+
+$args = @("package", $layout, "--manifest", "$layout\Package.appxmanifest", "--output", $msix, "--skip-pri", "--quiet")
 if ($Sign) {
   $cert = "$root\src-tauri\msix\devcert.pfx"
   if (-not (Test-Path $cert)) {

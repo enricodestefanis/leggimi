@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the package manifest (ms-resource:Resources/...), indexed into resources.pri
+     by scripts/package-msix.ps1. The same names as the installer's (src-tauri/nsis/hooks.nsh). -->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <!-- the type's name, in the Type column of File Explorer -->
+  <data name="FileTypeDisplayName" xml:space="preserve"><value>Document Markdown</value></data>
+  <!-- the entry of New in File Explorer's context menu -->
+  <data name="ShellNewDisplayName" xml:space="preserve"><value>Document Markdown</value></data>
+</root>
