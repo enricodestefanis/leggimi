@@ -102,7 +102,8 @@ pub const NOT_FOUND: &str = "not-found";
 /// What this window opens with, once: the command line for the first window,
 /// the file a new window was made for. Its page calls this with its
 /// listeners live, so from now on launches may be routed to it. The path is
-/// canonicalized (None when it does not exist).
+/// canonicalized; a file that is not there keeps the full path it came with,
+/// so the page shows the home and says the file is missing.
 #[tauri::command]
 pub fn get_initial_file(window: WebviewWindow, state: State<'_, AppState>) -> Option<Launch> {
     let mut windows = state.windows.lock().unwrap();
@@ -112,7 +113,9 @@ pub fn get_initial_file(window: WebviewWindow, state: State<'_, AppState>) -> Op
     let canon = launch.path.as_deref().and_then(|p| dunce::canonicalize(p).ok());
     // busy until watch_file says the document is on screen
     slot.opening = canon.clone();
-    launch.path = canon.map(|p| p.to_string_lossy().into_owned());
+    if let Some(canon) = canon {
+        launch.path = Some(canon.to_string_lossy().into_owned());
+    }
     Some(launch)
 }
 
@@ -756,6 +759,83 @@ const STORE_REVIEW_URL: &str = "ms-windows-store://review/?ProductId=9PG51TBZ2CB
 #[tauri::command]
 pub fn open_store_review() -> Result<(), String> {
     tauri_plugin_opener::open_url(STORE_REVIEW_URL, None::<&str>).map_err(|e| e.to_string())
+}
+
+/// Asks for a rating in the Store's own dialog, over the calling window:
+/// "succeeded" once the user has rated, "canceled" when they closed it.
+/// Without the dialog (the GitHub build has no package identity; no network;
+/// any error) the Store's review page opens instead, as with
+/// open_store_review, and the answer is "fallback". An error only when even
+/// that page cannot open.
+#[tauri::command]
+pub async fn request_store_rating(window: WebviewWindow) -> Result<&'static str, String> {
+    // never without package identity: there the request does not fail, it
+    // takes the whole process down (a null read on a worker thread of
+    // Windows.ApplicationModel.Store.dll, Windows 11 26200)
+    #[cfg(windows)]
+    if is_store_install() {
+        use windows::Services::Store::StoreRateAndReviewStatus as Status;
+        match rate_and_review(&window).await {
+            Ok(Status::Succeeded) => return Ok("succeeded"),
+            Ok(Status::CanceledByUser) => return Ok("canceled"),
+            _ => {}
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
+    open_store_review().map(|()| "fallback")
+}
+
+/// The Store's rating dialog (`StoreContext::RequestRateAndReviewAppAsync`)
+/// and what the user did with it. A desktop app has no CoreWindow for the
+/// Store to own the dialog by: the context takes the window's handle instead
+/// (IInitializeWithWindow), on the UI thread, where the dialog starts. The
+/// answer comes back here, off that thread, since the dialog stays open for
+/// as long as the user takes.
+#[cfg(windows)]
+async fn rate_and_review(
+    window: &WebviewWindow,
+) -> Result<windows::Services::Store::StoreRateAndReviewStatus, String> {
+    use std::sync::{Arc, Mutex};
+    use tokio::sync::oneshot;
+    use windows::core::Interface;
+    use windows::Services::Store::{StoreContext, StoreRateAndReviewResult, StoreRateAndReviewStatus};
+    use windows::Win32::UI::Shell::IInitializeWithWindow;
+    use windows_future::AsyncOperationCompletedHandler;
+
+    let (tx, rx) = oneshot::channel::<Result<StoreRateAndReviewStatus, String>>();
+    let tx = Arc::new(Mutex::new(Some(tx)));
+    let win = window.clone();
+    window
+        .run_on_main_thread(move || {
+            let done = tx.clone();
+            let started = win.hwnd().map_err(|e| e.to_string()).and_then(|hwnd| {
+                (|| {
+                    let context = StoreContext::GetDefault()?;
+                    unsafe { context.cast::<IInitializeWithWindow>()?.Initialize(hwnd)? };
+                    // the context lives as long as its dialog: the handler holds it
+                    let keep = context.clone();
+                    let handler = AsyncOperationCompletedHandler::<StoreRateAndReviewResult>::new(move |op, _| {
+                        let _ = &keep;
+                        // a failed or cancelled operation says so through GetResults
+                        let status = op.ok().and_then(|op| op.GetResults()).and_then(|r| r.Status());
+                        if let Some(tx) = done.lock().unwrap().take() {
+                            let _ = tx.send(status.map_err(|e| e.to_string()));
+                        }
+                        Ok(())
+                    });
+                    context.RequestRateAndReviewAppAsync()?.SetCompleted(&handler)
+                })()
+                .map_err(|e: windows::core::Error| e.to_string())
+            });
+            if let Err(e) = started {
+                if let Some(tx) = tx.lock().unwrap().take() {
+                    let _ = tx.send(Err(e));
+                }
+            }
+        })
+        .map_err(|e| e.to_string())?;
+    rx.await.map_err(|_| "The rating dialog was interrupted".to_owned())?
 }
 
 #[cfg(test)]

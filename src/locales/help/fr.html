@@ -45,11 +45,14 @@
           avec le bouton du milieu n'importe où, ou avec le bouton gauche sur l'espace vide à côté du texte.
         </p>
         <p>
-          Un clic droit sur le document ouvre son menu : copier la sélection (mise en forme ou en texte brut)
-          ou la chercher dans le document ou le dossier ; ouvrir ou copier un lien ; ouvrir une image ou un
-          diagramme, copier un bloc de code ou un tableau ; <strong>copier le lien vers la section</strong>,
-          <code>[Titre](fichier.md#titre)</code>, qui fonctionne depuis n'importe quel autre document ;
-          <strong>modifier à partir de cet endroit</strong> ; imprimer ou enregistrer en PDF.
+          Un clic droit sur le document — ou <kbd>Maj</kbd>+<kbd>F10</kbd> ou la touche Menu — ouvre son menu :
+          copier la sélection (mise en forme ou en texte brut) ou la chercher dans le document ou le dossier ;
+          ouvrir ou copier un lien ; ouvrir une image, un diagramme ou un tableau avec <strong>Ouvrir
+          l'aperçu</strong>, copier un bloc de code ou un tableau ; <strong>Copier le lien vers cette
+          section</strong> donne <code>[Titre](fichier.md#titre)</code>, un lien qui fonctionne depuis n'importe
+          quel autre document et aussi sur GitHub ; <strong>Modifier à partir d'ici</strong> ouvre l'éditeur à
+          cet endroit ; <strong>Copier tout le document</strong> le copie avec sa mise en forme, comme
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>C</kbd> ; imprimer ou enregistrer en PDF.
         </p>
         <p>
           Comme dans un navigateur, <kbd>Alt</kbd>+<kbd>←</kbd> (ou le bouton latéral <em>précédent</em> de la souris) revient là où vous étiez avant un lien vers une section, un clic dans le plan ou le passage à un autre document ; <kbd>Alt</kbd>+<kbd>→</kbd> (ou le bouton <em>suivant</em>) refait le chemin. <strong>Précédent</strong> et <strong>Suivant</strong> sont aussi en haut du menu du clic droit. Chaque fenêtre a son propre historique.
@@ -69,28 +72,46 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Imprimer ou enregistrer en PDF</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>C</kbd></td><td>Copier le document en texte enrichi</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>E</kbd></td><td>Ouvrir le menu Partager</td></tr>
+            <tr><td><kbd>Maj</kbd>+<kbd>F10</kbd></td><td>Ouvrir le menu contextuel (aussi la touche Menu)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Texte plus grand / plus petit</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Réinitialiser la taille du texte</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd></td><td>Garder la fenêtre au premier plan</td></tr>
-            <tr><td><kbd>F5</kbd></td><td>Recharger le fichier depuis le disque</td></tr>
+            <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Recharger le fichier depuis le disque</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>N</kbd></td><td>Nouvelle fenêtre</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Fermer la fenêtre</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Précédent / suivant</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / clic du milieu</td><td>Ouvrir un fichier, un document récent, un résultat de recherche ou un lien dans une nouvelle fenêtre</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Fermer la fenêtre</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Précédent / suivant (aussi les boutons latéraux de la souris)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Aide-mémoire des touches</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Afficher cette aide</td></tr>
             <tr><td><kbd>Échap</kbd></td><td>Fermer la barre de recherche, l'aperçu ou cette aide</td></tr>
           </tbody>
         </table>
+        <p>
+          Au clavier, <kbd>Tab</kbd> atteint les boutons de la barre d'outils et les réglages de lecture
+          <strong>Aa</strong>, et le focus reste toujours visible ; dans les menus (Partager, le menu
+          contextuel, le menu de copie de l'aperçu), <kbd>↑</kbd> / <kbd>↓</kbd> et <kbd>Début</kbd> /
+          <kbd>Fin</kbd> passent d'une entrée à l'autre, et <kbd>Échap</kbd> les ferme.
+        </p>
 
         <h3>Édition</h3>
         <p>
-          Appuyez sur <kbd>Ctrl</kbd>+<kbd>E</kbd> ou sur le bouton crayon pour modifier le document ouvert :
-          l'éditeur de texte apparaît à gauche, avec l'aperçu en direct à droite. Un point orange à côté du
-          nom du fichier signale des modifications non enregistrées — enregistrez avec
-          <kbd>Ctrl</kbd>+<kbd>S</kbd>. Quitter le mode édition ou ouvrir un autre document avec des
-          modifications non enregistrées demande d'abord confirmation. Si le fichier change sur le disque
-          pendant que vous avez des modifications non enregistrées, un avertissement apparaît au lieu d'écraser
-          votre travail, et enregistrer par-dessus un fichier modifié depuis son ouverture demande confirmation.
+          Appuyez sur <kbd>Ctrl</kbd>+<kbd>E</kbd> ou sur le bouton crayon (<strong>Modifier</strong>) pour
+          modifier le document ouvert : l'éditeur de texte apparaît à gauche, avec l'aperçu en direct à droite.
+          Pendant l'édition, le bouton montre un livre ouvert : <strong>Revenir à la lecture</strong>. Dans une
+          fenêtre de moins de 760 pixels environ, seul l'éditeur s'affiche ; l'aperçu revient quand la fenêtre
+          s'élargit ou quand vous revenez à la lecture.
+        </p>
+        <p>
+          Un point orange à côté du nom du fichier signale des modifications non enregistrées — enregistrez avec
+          <kbd>Ctrl</kbd>+<kbd>S</kbd>, et le point devient un instant une coche (les lecteurs d'écran annoncent
+          « Enregistré »). Quitter le mode édition ou ouvrir un autre document avec des modifications non
+          enregistrées demande d'abord confirmation. Si le fichier change sur le disque pendant que vous avez des
+          modifications non enregistrées, un avertissement apparaît au lieu d'écraser votre travail, et
+          enregistrer par-dessus un fichier modifié depuis son ouverture demande confirmation.
+        </p>
+        <p>
+          Pendant l'édition, un <strong>double-clic dans l'aperçu</strong> place le curseur de l'éditeur sur ce
+          mot, et l'aperçu ne bouge pas ; pendant la lecture, un double-clic sélectionne un mot comme d'habitude.
         </p>
         <p>
           <strong>Mise en forme :</strong> la barre au-dessus de l'éditeur met en forme la sélection — ou le mot
@@ -111,12 +132,29 @@
             <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Monter / descendre la ligne</td></tr>
             <tr><td><kbd>Maj</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Dupliquer la ligne</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>K</kbd></td><td>Supprimer la ligne</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Sélectionner la ligne</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Ajouter l'occurrence suivante à la sélection</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Ajouter un curseur au-dessus / en dessous</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Commenter / décommenter la ligne</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Aller à la ligne</td></tr>
+            <tr><td><kbd>Échap</kbd>, puis <kbd>Tab</kbd></td><td>Quitter l'éditeur au clavier</td></tr>
           </tbody>
         </table>
         <p>
           <strong>Outils</strong> (le bouton à curseurs à droite de la barre) regroupe chercher et remplacer, les
-          commandes de ligne et la <strong>correction orthographique</strong>, qui souligne les mots mal
-          orthographiés avec le dictionnaire de la langue de l'interface et propose des corrections au clic droit (après un changement de langue dans les réglages de lecture, au prochain démarrage).
+          commandes de ligne, <strong>Commenter la ligne</strong> et la <strong>Correction
+          orthographique</strong>. <strong>Commenter la ligne</strong> (<kbd>Ctrl</kbd>+<kbd>/</kbd>, c'est-à-dire
+          <kbd>Ctrl</kbd> avec les touches qui tapent <kbd>/</kbd> : sur un clavier italien ou allemand,
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>7</kbd>) place les lignes dans <code>&lt;!-- --&gt;</code>, si bien
+          qu'elles sont masquées à la lecture ; dans un bloc de code, il utilise le commentaire de ce langage, et
+          une seconde fois il le retire. La <strong>Correction orthographique</strong> souligne les mots mal
+          orthographiés avec le dictionnaire de la langue de l'interface et propose des corrections au clic
+          droit (après un changement de langue dans les réglages de lecture, au prochain démarrage).
+        </p>
+        <p>
+          <kbd>Tab</kbd> indente. Pour quitter l'éditeur au clavier, appuyez sur <kbd>Échap</kbd> puis sur
+          <kbd>Tab</kbd> dans les deux secondes ; si du texte est sélectionné ou si un panneau (comme chercher et
+          remplacer) ou un menu est ouvert, appuyez d'abord deux fois sur <kbd>Échap</kbd>.
         </p>
         <p>
           <strong>Récupération :</strong> tant que vous avez des modifications non enregistrées, une copie du
@@ -139,11 +177,24 @@
           restent repliés pendant la navigation — et après un redémarrage.
         </p>
         <p>Les dossiers sans fichier Markdown sont masqués, comme les dossiers cachés et de build tels que <code>node_modules</code>.</p>
-        <p>Le panneau se met à jour tout seul quand des fichiers sont ajoutés, renommés ou supprimés dans le dossier. Renommez le document ouvert et la fenêtre le suit ; supprimez-le ou déplacez-le et son texte reste à l'écran, avec un avis qui propose de l'enregistrer à nouveau.</p>
+        <p>Le panneau se met à jour tout seul quand des fichiers sont ajoutés, renommés ou supprimés dans le dossier. Renommez le document ouvert et la fenêtre le suit ; supprimez-le ou déplacez-le et son texte reste à l'écran, avec un avis qui propose <strong>Enregistrer à nouveau</strong>.</p>
+        <p>
+          Au clavier, la liste fonctionne comme une arborescence : <kbd>↑</kbd> / <kbd>↓</kbd> se déplacent,
+          <kbd>→</kbd> ouvre un dossier ou y entre, <kbd>←</kbd> le ferme ou remonte au dossier parent,
+          <kbd>Début</kbd> / <kbd>Fin</kbd> vont aux extrémités, <kbd>Entrée</kbd> ou <kbd>Espace</kbd> ouvre,
+          et <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> ouvre dans une nouvelle fenêtre.
+        </p>
         <p>
           Les deux panneaux latéraux s'élargissent en tirant leur bord intérieur — un double-clic sur le bord
           rétablit la largeur par défaut. La taille de leur texte suit <strong>Panneaux</strong> dans les réglages
           de lecture.
+        </p>
+        <p>
+          Une fenêtre peut descendre jusqu'à 480 pixels de large : la moitié d'un écran de portable, ou une
+          disposition d'ancrage de Windows 11. Quand la fenêtre devient étroite, le plan puis les fichiers se
+          replient d'eux-mêmes ; leurs boutons de la barre d'outils (ou <kbd>Ctrl</kbd>+<kbd>I</kbd> et
+          <kbd>Ctrl</kbd>+<kbd>B</kbd>) les ouvrent alors par-dessus le texte, et <kbd>Échap</kbd>, un clic
+          ailleurs ou un choix les referme.
         </p>
         <p>
           Le champ de recherche au-dessus de l'arborescence (<kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>F</kbd>) trouve du
@@ -159,6 +210,11 @@
           liste : tapez pour restreindre les titres, puis <kbd>↑</kbd> / <kbd>↓</kbd> et <kbd>Entrée</kbd> pour
           sauter à l'un d'eux ; <kbd>Échap</kbd> l'efface.
         </p>
+        <p>
+          Après un saut — depuis le plan, un lien vers une section, les touches <kbd>.</kbd> / <kbd>,</kbd> ou
+          <code>--line</code> — le titre ou le bloc où vous arrivez s'illumine un instant, pour que l'œil le
+          trouve. Précédent et Suivant ne l'illuminent pas.
+        </p>
 
         <h3>Rechargement automatique</h3>
         <p>Le fichier ouvert est surveillé sur le disque. Quand il change, la vue se rafraîchit d'elle-même en gardant votre position de lecture — utile pendant qu'un document est régénéré. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée.</p>
@@ -166,19 +222,20 @@
 
         <h3>Rendu</h3>
         <ul>
-          <li>Markdown à la GitHub : tableaux, listes de tâches, barré, liens automatiques.</li>
+          <li>Markdown à la GitHub : tableaux, listes de tâches, barré, liens automatiques. Les adresses web deviennent des liens, y compris celles qui commencent par <code>www.</code>, comme sur GitHub ; les noms de fichiers comme <code>README.md</code> restent du texte.</li>
           <li>Les blocs de code sont colorés et ont un bouton de copie au survol.</li>
           <li>Les blocs <code>mermaid</code> deviennent des diagrammes ; une syntaxe invalide retombe sur le bloc de code avec une note d'erreur.</li>
-          <li>Cliquez sur un diagramme ou une image pour l'ouvrir en plein écran : <kbd>+</kbd> / <kbd>−</kbd> ou la molette zooment, glisser déplace, <kbd>0</kbd> ajuste à la fenêtre et <kbd>Échap</kbd> ferme. Le bouton de copie propose l'image en PNG (normal ou grand), un diagramme aussi en SVG, et les deux peuvent être enregistrés dans un fichier.</li>
+          <li>Un tableau ou un diagramme plus large que la colonne de lecture s'élargit jusqu'à toute la largeur disponible, centré : pas de défilement horizontal, et le texte du diagramme garde sa taille.</li>
+          <li>Cliquez sur un diagramme ou une image pour l'ouvrir en plein écran : <kbd>+</kbd> / <kbd>−</kbd> ou la molette zooment, glisser déplace et <kbd>Échap</kbd> ferme. <strong>Ajuster</strong> (<kbd>0</kbd>) l'ajuste à la fenêtre, <strong>Largeur</strong> (<kbd>W</kbd>) à la largeur, en partant du haut, et <strong>100 %</strong> (<kbd>1</kbd>) l'affiche à sa taille réelle. Le bouton de copie propose l'image en PNG (normal ou grand), un diagramme aussi en SVG, et les deux peuvent être enregistrés dans un fichier.</li>
           <li>Les formules utilisent KaTeX : <code>$…$</code> en ligne, <code>$$…$$</code> ou un bloc de code <code>math</code> pour les formules centrées.</li>
           <li>Encadrés à la GitHub : une citation commençant par <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> ou <code>[!CAUTION]</code>.</li>
           <li>Notes de bas de page : <code>[^1]</code> dans le texte et <code>[^1]: …</code> n'importe où ; les notes sont rassemblées à la fin, avec des liens aller-retour.</li>
-          <li>Les listes de tâches sont actives : cliquer sur une case met aussitôt à jour <code>[ ]</code> / <code>[x]</code> dans le fichier (avec <em>Annuler</em> dans l'avis), ou dans le tampon de l'éditeur pendant l'édition.</li>
-          <li>Les tableaux ont un bouton au survol qui les copie dans le presse-papiers en texte séparé par des tabulations, prêt pour Excel ou Google Sheets.</li>
-          <li>Les liens vers d'autres documents fonctionnent comme dans un wiki : <code>[texte](autre)</code> trouve <code>autre.md</code>, <code>[texte](dossier/)</code> ouvre son <code>index.md</code> ou <code>README.md</code>, et <code>autre.md#section</code> saute à ce titre.</li>
+          <li>Les listes de tâches sont actives : cliquer sur une case met aussitôt à jour <code>[ ]</code> / <code>[x]</code> dans le fichier (avec <em>Annuler</em> dans l'avis), ou dans le tampon de l'éditeur pendant l'édition. Seule la case coche la tâche : cliquer ou double-cliquer sur son texte, pour sélectionner un mot, ne change rien.</li>
+          <li>Les tableaux ont deux boutons en haut à droite, visibles au survol ou quand vous les atteignez au clavier : <strong>Copier le tableau (pour Excel)</strong> le place dans le presse-papiers en texte séparé par des tabulations, prêt pour Excel ou Google Sheets, et <strong>Ouvrir l'aperçu</strong> l'affiche en plein écran, sur toute la largeur de la fenêtre (aussi depuis le menu contextuel).</li>
+          <li>Les liens vers d'autres documents fonctionnent comme dans un wiki : <code>[texte](autre)</code> trouve <code>autre.md</code>, <code>[texte](dossier/)</code> ouvre son <code>index.md</code> ou <code>README.md</code>, et <code>autre.md#section</code> saute à ce titre. Les titres ont les mêmes ancres que sur GitHub (<code>## 1. Introduction</code> → <code>#1-introduction</code>) : les tables des matières écrites pour GitHub ou par un assistant IA fonctionnent donc ici aussi, et les liens écrits pour les versions précédentes arrivent toujours à destination.</li>
           <li>Le front matter YAML entre des lignes <code>---</code> est replié dans un bloc <em>Front matter</em> en tête : cliquez pour voir les champs en tableau.</li>
           <li>Un paragraphe ne contenant que <code>[TOC]</code> devient une table des matières des titres qui suivent, présente aussi à l'impression, en HTML et en DOCX.</li>
-          <li>Les images à chemin relatif sont résolues par rapport au dossier du document.</li>
+          <li>Les images à chemin relatif sont résolues par rapport au dossier du document. Les logos prévus pour les thèmes clair et sombre de GitHub (marqués <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>, ou un <code>&lt;picture&gt;</code> avec une version claire et une version sombre) affichent celui du thème de Leggimi ; l'impression et les exports utilisent le clair.</li>
           <li>Les liens vers des pages web s'ouvrent dans votre navigateur par défaut, les liens <code>mailto:</code> dans votre messagerie ; les liens vers d'autres fichiers Markdown s'ouvrent dans la visionneuse, vers des images dans l'aperçu, vers un dossier dans le panneau des fichiers. Un lien vers tout autre fichier (un PDF, un tableur) propose de l'ouvrir avec son application.</li>
           <li>Le HTML simple dans le texte fonctionne : <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, les images (aussi <code>&lt;picture&gt;</code> et <code>srcset</code>), la vidéo et l'audio du dossier du document. Comme sur GitHub, une balise qui n'est pas du HTML, telle que <code>&lt;nom&gt;</code>, ne s'affiche pas : pour la montrer, écrivez-la entre accents graves (<code>`&lt;nom&gt;`</code>) ou précédée d'une barre oblique inverse (<code>\&lt;nom&gt;</code>). Les balises qui changeraient la page, comme <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> et <code>&lt;iframe&gt;</code>, s'affichent comme du texte.</li>
         </ul>
@@ -187,7 +244,7 @@
         <p>Le bouton <strong>Partager</strong> (<kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>E</kbd>) rassemble tout ce qui sort de l'application :</p>
         <ul>
           <li><strong>Copier en texte enrichi</strong> (<kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>C</kbd>) : place le document rendu dans le presse-papiers avec sa mise en forme, prêt à coller dans Outlook, Word ou Teams. Les images locales sont incorporées.</li>
-          <li><strong>Imprimer…</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>) : n'imprime que le document, mis en page pour le papier, toujours sur fond clair, avec le titre et la date en haut de chaque page et « page / pages » en bas.</li>
+          <li><strong>Imprimer…</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>) : n'imprime que le document, mis en page pour le papier, toujours sur fond clair, avec le titre et la date en haut de chaque page et « page / pages » en bas ; un tableau plus large que la page est réduit pour y tenir.</li>
           <li><strong>Enregistrer en PDF</strong> : la même mise en page écrite directement dans un fichier PDF, sans autre dialogue que le choix du fichier. <strong>Nouvelle page à chaque titre 1</strong> est une option du menu, mémorisée, pour les deux.</li>
           <li><strong>Exporter en HTML / DOCX</strong> : enregistre le document en une seule page <code>.html</code> autonome qui s'ouvre dans tout navigateur, ou en <code>.docx</code> optimisé pour Microsoft Word — les formules deviennent des équations Word natives, les diagrammes des images.</li>
         </ul>
@@ -203,13 +260,33 @@
           règle à part la taille du texte des fichiers et du plan — <kbd>Ctrl</kbd>+molette sur un panneau ne
           change que celui-ci. Chaque choix est mémorisé entre les redémarrages.
         </p>
+        <p>
+          Si les <strong>Effets d'animation</strong> de Windows sont désactivés (Paramètres &gt; Accessibilité
+          &gt; Effets visuels), le défilement saute au lieu de glisser et la mise en évidence après un saut n'est
+          pas animée.
+        </p>
         <h3>Intégration Windows</h3>
         <p>Les fichiers que vous ouvrez sont ajoutés aux Éléments récents de Windows et à la liste de raccourcis de l'application dans la barre des tâches. Double-cliquer sur un fichier <code>.md</code> dans l'Explorateur l'ouvre ici une fois l'association enregistrée par l'installateur.</p>
         <p>
+          Dans l'Explorateur, <strong>Nouveau</strong> → <strong>Document Markdown</strong> (clic droit dans un
+          dossier) crée un fichier <code>.md</code> vide. Avec l'installateur, ce nom — et celui du type de
+          fichier dans la colonne <em>Type</em> de l'Explorateur — suit la langue d'affichage de Windows ; dans
+          la version du Microsoft Store, l'entrée s'appelle toujours <em>Markdown document</em>.
+        </p>
+        <p>
           Clic droit sur un fichier dans le panneau, ou sur le nom du fichier dans la barre d'outils, pour
-          <strong>l'afficher dans l'Explorateur</strong>, copier son chemin ou copier un lien Markdown relatif au
-          document ouvert. Le bouton épingle (<kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd>) garde la fenêtre
-          au-dessus des autres.
+          <strong>Ouvrir dans une nouvelle fenêtre</strong>, <strong>Afficher dans l'Explorateur</strong>,
+          <strong>Copier le chemin</strong> ou <strong>Copier comme lien Markdown</strong> (relatif au document
+          ouvert). Le bouton épingle (<kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd>) garde la fenêtre au-dessus des
+          autres.
+        </p>
+        <p>
+          Dans la version du Microsoft Store, après quelques jours d'utilisation, une petite carte demande
+          <em>Leggimi vous plaît ?</em> : <strong>Noter</strong> ouvre la boîte de notation du Store par-dessus
+          Leggimi (ou la page du Store, si elle ne peut pas s'ouvrir), <strong>Plus tard</strong> redemande dans
+          un mois et <strong>Non merci</strong> plus jamais. La carte n'apparaît que dans une fenêtre à la fois
+          et, restée sans réponse, attend une semaine avant de revenir ; <strong>Noter sur le Store</strong>, en
+          bas de cette aide, fait la même chose que Noter.
         </p>
         <p>
           Une version <strong>portable</strong> est disponible sur GitHub sous forme de zip : décompressez-la

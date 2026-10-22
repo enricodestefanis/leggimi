@@ -3,6 +3,7 @@
 // same ones behind the keyboard shortcuts and the "/" menu.
 import { commandById, iconHtml } from "./editCommands";
 import { t } from "./i18n";
+import { handleMenuKey } from "./menuKeys";
 
 const GROUPS: string[][] = [
   ["bold", "italic", "strike", "code", "link"],
@@ -26,6 +27,7 @@ const TOOLS: [id: string, hint: string][] = [
   ["moveLineDown", ""],
   ["copyLineDown", ""],
   ["deleteLine", ""],
+  ["comment", t("tool.comment")],
   ["spell", t("tool.spell")],
 ];
 const SLIDERS =
@@ -97,18 +99,13 @@ export function mountFormatBar(bar: HTMLElement, run: (id: string) => void): (ac
       closeMenus();
       run(id);
     });
+    // the app's menu keys; Escape and Tab close it and give the focus back
+    // to its button, so the keyboard user stays in the format bar
     menu.addEventListener("keydown", (e) => {
-      const items = [...menu.querySelectorAll<HTMLButtonElement>(".menu-item")];
-      const i = items.indexOf(document.activeElement as HTMLButtonElement);
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        const next = (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
-        items[next].focus();
-      } else if (e.key === "Escape") {
-        e.stopPropagation();
+      handleMenuKey(e, menu, () => {
         closeMenus();
         btn.focus();
-      }
+      });
     });
     document.body.append(menu);
     menus.push(menu);

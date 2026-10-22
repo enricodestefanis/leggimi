@@ -1,9 +1,11 @@
-// Full-window preview for diagrams and images, in the spirit of GitHub's.
+// Full-window preview for diagrams, images and tables, in the spirit of GitHub's.
 //
-// The content is always re-rendered, never cloned: a cloned Mermaid SVG
+// A diagram is always re-rendered, never cloned: a cloned Mermaid SVG
 // duplicates every id in the document, so its url(#marker) references would
 // resolve to the article's copy — and silently break the moment edit mode
 // rebuilds that copy. Re-rendering also answers the theme switch for free.
+// A table is cloned, without its ids: HTML refers to nothing by id the way
+// SVG markers do, and the theme reaches the copy through the CSS variables.
 
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import * as ipc from "./ipc";
@@ -11,6 +13,8 @@ import { renderMermaidSvg } from "./mermaid";
 import { rasterizeSvg } from "./share";
 import * as theme from "./theme";
 import { t } from "./i18n";
+import { handleMenuKey } from "./menuKeys";
+import { tableToTsv } from "./tables";
 
 export interface LightboxOpts {
   article: HTMLElement;
@@ -28,6 +32,8 @@ const MARGIN = 40; // breathing room around the stage
 const BAR_SPACE = 64; // the toolbar at the bottom of the viewport
 const HINT_SIZE = 28;
 const HINT_GAP = 8;
+// a table is laid out as wide as the window allows, but never narrower than this
+const TABLE_MIN_WIDTH = 480;
 
 let o: LightboxOpts;
 let viewport: HTMLElement;
@@ -38,15 +44,23 @@ let btnIn: HTMLButtonElement;
 let btnOut: HTMLButtonElement;
 let btnCopy: HTMLButtonElement;
 let copyMenu: HTMLElement;
+let modeButtons: Record<Mode, HTMLButtonElement>;
 
-let kind: "mermaid" | "image" = "image";
+let kind: "mermaid" | "image" | "table" = "image";
 let source = "";
+// the document's table on screen, copied into the stage by build()
+let table: HTMLTableElement | null = null;
 let natW = 0;
 let natH = 0;
 let scale = 1;
 let fit = 1;
 let tx = 0;
 let ty = 0;
+// The view the last Fit / Width / 100% asked for, until a zoom leaves it
+// (panning keeps it). Shown as the pressed button; a resize keeps fitting.
+type Mode = "fit" | "width" | "actual";
+let mode: Mode | null = "fit";
+let shownMode: Mode | null | undefined;
 
 let raf = 0;
 let drag: { x: number; y: number; tx: number; ty: number } | null = null;
@@ -71,10 +85,18 @@ export function init(opts: LightboxOpts): void {
   btnOut = q<HTMLButtonElement>("#zoom-out");
   btnCopy = q<HTMLButtonElement>("#zoom-copy");
   copyMenu = q("#zoom-copy-menu");
+  const btnFit = q<HTMLButtonElement>("#zoom-fit");
+  modeButtons = {
+    fit: btnFit,
+    width: textButton("zoom-width", t("zoom.width"), t("zoom.widthLabel"), "W"),
+    actual: textButton("zoom-actual", t("zoom.actual"), t("zoom.actualLabel"), "1"),
+  };
+  btnFit.after(modeButtons.width, modeButtons.actual);
+  copyMenu.prepend(copyTableItem());
 
   btnIn.addEventListener("click", () => zoomBy(STEP));
   btnOut.addEventListener("click", () => zoomBy(1 / STEP));
-  q("#zoom-fit").addEventListener("click", resetFit);
+  for (const m of ["fit", "width", "actual"] as const) modeButtons[m].addEventListener("click", () => setMode(m));
   q("#zoom-close").addEventListener("click", close);
   btnCopy.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -87,9 +109,20 @@ export function init(opts: LightboxOpts): void {
     copyMenu.hidden = true;
     void runCopyAction(action);
   });
+  // the keys every menu of the app has (menuKeys.ts); Escape and Tab put it
+  // away and hand the focus back to its button, and none of its keys reaches
+  // the pan and zoom below
+  copyMenu.addEventListener("keydown", (e) => {
+    handleMenuKey(e, copyMenu, () => {
+      copyMenu.hidden = true;
+      btnCopy.focus();
+    });
+  });
   opts.dialog.addEventListener("click", () => {
     if (!copyMenu.hidden) copyMenu.hidden = true;
   });
+  // the focus elsewhere while the menu is open: Escape still closes the
+  // menu first, not the whole preview
   opts.dialog.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !copyMenu.hidden) {
       e.preventDefault();
@@ -107,6 +140,8 @@ export function init(opts: LightboxOpts): void {
     if (opts.dialog.open) return;
     stage.replaceChildren();
     source = "";
+    table = null;
+    copyMenu.hidden = true;
   });
   // the backdrop and the empty space around the stage dismiss the preview; a
   // pan that happens to end on empty space must not, hence the dragged guard
@@ -121,6 +156,13 @@ export function init(opts: LightboxOpts): void {
     if (!el) return;
     e.preventDefault();
     void openFor(el);
+  });
+  // a table's expand button (renderer.ts leaves it to this delegation)
+  opts.article.addEventListener("click", (e) => {
+    const block = (e.target as HTMLElement | null)?.closest(".table-expand")?.closest<HTMLElement>(".table-block");
+    if (!block) return;
+    e.preventDefault();
+    void openFor(block);
   });
 
   theme.onChange(() => {
@@ -137,12 +179,37 @@ export function init(opts: LightboxOpts): void {
   });
 
   window.addEventListener("resize", () => {
-    if (isOpen()) {
-      fit = computeFit();
-      schedule();
-    }
+    if (isOpen()) refit();
     if (hintTarget) positionHint(hintTarget);
   });
+}
+
+// Width and 100% sit beside Fit, made like it: the label names the button,
+// the title says what it does and its key.
+function textButton(id: string, title: string, label: string, key: string): HTMLButtonElement {
+  const b = document.createElement("button");
+  b.id = id;
+  b.type = "button";
+  b.className = "zoom-text-btn";
+  b.title = title;
+  b.textContent = label;
+  b.setAttribute("aria-keyshortcuts", key);
+  return b;
+}
+
+// the one thing a table offers: its text for a spreadsheet
+function copyTableItem(): HTMLButtonElement {
+  const item = document.createElement("button");
+  item.type = "button";
+  item.className = "menu-item";
+  item.setAttribute("role", "menuitem");
+  item.dataset.action = "copy-table";
+  item.dataset.kind = "table";
+  const title = document.createElement("span");
+  title.className = "menu-title";
+  title.textContent = t("render.copyTable");
+  item.append(title);
+  return item;
 }
 
 /* ---- marking the article ---- */
@@ -150,6 +217,8 @@ export function init(opts: LightboxOpts): void {
 // Idempotent: edit mode rebuilds the article every ~200 ms, so this runs often.
 // It only adds attributes — no wrappers, no new nodes — which is what keeps the
 // scroll-sync anchors and the positional diagram index in share.ts intact.
+// Tables are not marked: a role of button would hide them from screen
+// readers, so they open from their own expand button.
 export function markAll(root: HTMLElement): void {
   for (const el of root.querySelectorAll<HTMLElement>(
     ".mermaid-diagram[data-mmd-source]:not([data-zoomable])",
@@ -180,6 +249,15 @@ function mark(el: HTMLElement, label: string): void {
 
 /* ---- opening ---- */
 
+// A table's block, the table, or anything in them (the expand button): the
+// document's table to show.
+function tableIn(el: HTMLElement): HTMLTableElement | null {
+  const block = el.closest<HTMLElement>(".table-block");
+  if (block) return block.querySelector<HTMLTableElement>(":scope > .table-scroll > table");
+  return el.closest("table");
+}
+
+/** Opens the preview on a diagram, an image, or a table (its block, or anything in it). */
 export async function openFor(el: HTMLElement): Promise<void> {
   if (isOpen()) return;
   if (el instanceof HTMLImageElement) {
@@ -197,12 +275,19 @@ export async function openFor(el: HTMLElement): Promise<void> {
     natW = el.naturalWidth;
     natH = el.naturalHeight;
     caption.textContent = (el.getAttribute("alt") ?? "").trim() || t("zoom.image");
-  } else {
+  } else if (el.dataset.mmdSource !== undefined) {
     const src = el.dataset.mmdSource;
     if (!src) return;
     kind = "mermaid";
     source = src;
     caption.textContent = t("zoom.diagram");
+  } else {
+    const found = tableIn(el);
+    if (!found) return;
+    kind = "table";
+    table = found;
+    source = "";
+    caption.textContent = t("zoom.table");
   }
   positionHint(null);
   o.dialog.showModal();
@@ -210,7 +295,8 @@ export async function openFor(el: HTMLElement): Promise<void> {
     close();
     return;
   }
-  resetFit();
+  // a table is read from its top, across the window's width
+  setMode(kind === "table" ? "width" : "fit");
   viewport.focus();
 }
 
@@ -242,6 +328,9 @@ async function build(): Promise<boolean> {
     const box = svg.viewBox.baseVal;
     natW = Math.round(box?.width || svg.getBoundingClientRect().width || 800);
     natH = Math.round(box?.height || svg.getBoundingClientRect().height || 600);
+  } else if (kind === "table") {
+    if (!table?.isConnected) return false;
+    if (!buildTable(table)) return false;
   } else {
     const img = document.createElement("img");
     img.src = source;
@@ -255,6 +344,31 @@ async function build(): Promise<boolean> {
   stage.style.visibility = "hidden";
   stage.setAttribute("aria-label", caption.textContent ?? t("zoom.dialog"));
   return true;
+}
+
+// The copy sits on a sheet with the document's styles (markdown-body), laid
+// out as wide as the window allows: a table that fits wraps no more than it
+// must, and its own width becomes the stage's. Measured in layout pixels,
+// which the stage's transform does not touch.
+function buildTable(from: HTMLTableElement): boolean {
+  const copy = from.cloneNode(true) as HTMLTableElement;
+  // a second element with a document id would answer its links and lookups
+  for (const el of [copy, ...copy.querySelectorAll("[id]")]) el.removeAttribute("id");
+  const sheet = document.createElement("div");
+  sheet.className = "markdown-body zoom-table";
+  // a picture of the table: nothing in it takes the focus or a click
+  sheet.inert = true;
+  sheet.append(copy);
+  stage.style.width = "";
+  stage.style.height = "";
+  stage.replaceChildren(sheet);
+  sheet.style.width = `${Math.max(TABLE_MIN_WIDTH, Math.floor(area().w))}px`;
+  const frame = sheet.offsetWidth - sheet.clientWidth;
+  natW = copy.offsetWidth + frame;
+  if (natW <= frame) return false;
+  sheet.style.width = `${natW}px`;
+  natH = sheet.offsetHeight;
+  return natH > 0;
 }
 
 /* ---- zoom and pan ---- */
@@ -281,19 +395,43 @@ const centre = (a: { x: number; y: number; w: number; h: number }): { x: number;
   y: a.y + a.h / 2,
 });
 
-// A diagram is a vector, so filling the window costs nothing and is the whole
-// point of opening it; a raster image is capped at 1:1, where upscaling only
-// adds blur.
+// How far fitting may enlarge. A diagram is a vector, so filling the window
+// costs nothing and is the whole point of opening it; a raster image is
+// capped at 1:1, where upscaling only adds blur; a table's text grows a
+// little, no more.
+const fitCap = (): number => (kind === "mermaid" ? 4 : kind === "table" ? 2 : 1);
+
 function computeFit(): number {
   const a = area();
-  return Math.min(a.w / natW, a.h / natH, kind === "mermaid" ? 4 : 1);
+  return Math.min(a.w / natW, a.h / natH, fitCap());
 }
 
-function resetFit(): void {
+const widthScale = (): number => Math.min(area().w / natW, fitCap());
+
+// Fit (0): all of it, centred. Width (W): the window's width, from the top.
+// 100% (1): the natural size, around what is in the middle of the view; a
+// table from its top-left corner, where its rows and columns start.
+function setMode(m: Mode): void {
   fit = computeFit();
-  scale = fit;
-  tx = 0;
-  ty = 0;
+  const a = area();
+  if (m === "fit") {
+    scale = fit;
+    tx = 0;
+    ty = 0;
+  } else if (m === "width") {
+    scale = widthScale();
+    tx = 0;
+    ty = (scale * natH - a.h) / 2; // applyNow clamps it: the top edge, or centred when it all fits
+  } else if (kind === "table") {
+    scale = 1;
+    tx = (natW - a.w) / 2;
+    ty = (natH - a.h) / 2;
+  } else {
+    const c = centre(a);
+    const r = viewport.getBoundingClientRect();
+    zoomAt(1 / scale, r.left + c.x, r.top + c.y);
+  }
+  mode = m;
   // synchronously: the stage carries its own centring in the transform, so
   // until that lands it would flash at full size in the top-left corner
   if (raf) {
@@ -301,6 +439,23 @@ function resetFit(): void {
     raf = 0;
   }
   applyNow();
+}
+
+// The window resized: Fit and Width fit again (Width keeps the place being
+// read); a zoom of the user's own stays as it is.
+function refit(): void {
+  fit = computeFit();
+  if (mode === "fit") {
+    setMode("fit");
+    return;
+  }
+  if (mode === "width") {
+    const next = widthScale();
+    tx = 0;
+    ty *= next / scale;
+    scale = next;
+  }
+  schedule();
 }
 
 const scaleMin = (): number => Math.min(fit, SCALE_FLOOR);
@@ -316,6 +471,7 @@ function zoomAt(k: number, px: number, py: number): void {
   tx = (1 - factor) * (px - r.left - c.x) + factor * tx;
   ty = (1 - factor) * (py - r.top - c.y) + factor * ty;
   scale = next;
+  mode = null;
   schedule();
 }
 
@@ -350,7 +506,20 @@ function applyNow(): void {
   viewport.classList.toggle("fitted", w <= a.w + 0.5 && h <= a.h + 0.5);
   btnOut.disabled = scale <= scaleMin() + 1e-6;
   btnIn.disabled = scale >= SCALE_MAX - 1e-6;
+  if (mode !== shownMode) {
+    shownMode = mode;
+    for (const m of ["fit", "width", "actual"] as const) {
+      modeButtons[m].setAttribute("aria-pressed", String(mode === m));
+    }
+  }
 }
+
+// A digit by its key on the top row as well, where a French keyboard needs
+// Shift for it; a letter by its place only where the key types no Latin
+// character (Greek, Cyrillic), as main.ts's keyIs does.
+const isDigit = (e: KeyboardEvent, d: string): boolean => e.key === d || e.code === `Digit${d}`;
+const isLetter = (e: KeyboardEvent, l: string): boolean =>
+  e.key.toLowerCase() === l || (!/^[\x20-\x7e]$/.test(e.key) && e.code === `Key${l.toUpperCase()}`);
 
 function wireViewport(): void {
   viewport.addEventListener("pointerdown", (e) => {
@@ -391,10 +560,14 @@ function wireViewport(): void {
 
   o.dialog.addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
+    // the copy menu has the keys while it has the focus (menuKeys.ts)
+    if (copyMenu.contains(e.target as Node)) return;
     const pan = e.shiftKey ? 160 : 40;
     if (e.key === "+" || e.key === "=") zoomBy(STEP);
     else if (e.key === "-" || e.key === "_") zoomBy(1 / STEP);
-    else if (e.key === "0") resetFit();
+    else if (isDigit(e, "0")) setMode("fit");
+    else if (isLetter(e, "w")) setMode("width");
+    else if (isDigit(e, "1")) setMode("actual");
     else if (e.key === "ArrowLeft") tx += pan;
     else if (e.key === "ArrowRight") tx -= pan;
     else if (e.key === "ArrowUp") ty += pan;
@@ -405,15 +578,18 @@ function wireViewport(): void {
   });
 }
 
-/* ---- copy / save: PNG, PNG 2x, SVG ---- */
+/* ---- copy / save: PNG, PNG 2x, SVG; a table's text ---- */
 
 function toggleCopyMenu(): void {
   if (!copyMenu.hidden) {
     copyMenu.hidden = true;
     return;
   }
-  // SVG only exists for diagrams
-  for (const el of copyMenu.querySelectorAll<HTMLElement>("[data-kind=mermaid]")) el.hidden = kind !== "mermaid";
+  // SVG only exists for diagrams; a table offers its text alone, no picture
+  for (const el of copyMenu.querySelectorAll<HTMLElement>(":scope > .menu-item, :scope > .menu-sep")) {
+    const only = el.dataset.kind;
+    el.hidden = only ? only !== kind : kind === "table";
+  }
   const r = btnCopy.getBoundingClientRect();
   copyMenu.style.left = `${Math.max(8, r.right - 250)}px`;
   copyMenu.style.bottom = `${window.innerHeight - r.top + 8}px`;
@@ -424,6 +600,11 @@ function toggleCopyMenu(): void {
 async function runCopyAction(action: string): Promise<void> {
   try {
     switch (action) {
+      case "copy-table": {
+        const shown = stage.querySelector("table");
+        if (shown) await navigator.clipboard.writeText(tableToTsv(shown));
+        break;
+      }
       case "copy-png":
         await copyPng(2);
         break;
@@ -505,6 +686,7 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 async function toPng(scale: number): Promise<Blob | null> {
+  if (kind === "table") return null;
   if (kind === "mermaid") {
     const svg = stage.querySelector("svg");
     if (!svg) return null;
@@ -550,8 +732,8 @@ function dataUrlToBlob(url: string): Blob {
 
 /* ---- hover affordance ---- */
 
-// One shared button, declared outside #app: .doc-enter animates a transform on
-// #article, which would otherwise become the containing block of a fixed child.
+// One shared button, declared outside #app: the reading pane contains its
+// layout (layout.css), so a fixed child there would be placed against the pane.
 function wireHint(): void {
   o.pane.addEventListener("pointerover", (e) => {
     const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-zoomable]") ?? null;

@@ -59,7 +59,10 @@ pub struct Launch {
 
 /// `leggimi file.md`, `leggimi --line 40 file.md`, `leggimi file.md -l 40`,
 /// `--line=40`; `--` ends the options; unknown flags are ignored. A relative
-/// file is resolved against `cwd`, the directory of the shell that ran it.
+/// file is resolved against `cwd`, the directory of the shell that ran it,
+/// and `.` and `..` are resolved the way Windows does, without the disk: a
+/// file that is not there still has a full path, which the page names when
+/// it says so and which matches the document a window showed before it went.
 pub fn parse_args<I: IntoIterator<Item = String>>(args: I, cwd: Option<&std::path::Path>) -> Launch {
     let mut it = args.into_iter().skip(1);
     let mut launch = Launch::default();
@@ -77,6 +80,7 @@ pub fn parse_args<I: IntoIterator<Item = String>>(args: I, cwd: Option<&std::pat
                 } else {
                     p
                 };
+                let p = std::path::absolute(&p).unwrap_or(p);
                 launch.path = Some(p.to_string_lossy().into_owned());
             }
             _ => {}
@@ -412,8 +416,39 @@ pub fn run() {
             commands::resolve_path,
             commands::show_window,
             commands::is_store_install,
-            commands::open_store_review
+            commands::open_store_review,
+            commands::request_store_rating
         ])
         .run(context)
         .expect("error while running tauri application");
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        std::iter::once("leggimi").chain(list.iter().copied()).map(str::to_owned).collect()
+    }
+
+    #[test]
+    fn parse_args_gives_full_paths_that_need_not_exist() {
+        let cwd = Path::new(r"C:\nowhere\notes");
+        let l = parse_args(args(&[r"..\todo.md", "--line", "40"]), Some(cwd));
+        assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\todo.md"));
+        assert_eq!(l.line, Some(40));
+        let l = parse_args(args(&[r".\gone\x.md"]), Some(cwd));
+        assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\notes\gone\x.md"), "a missing file keeps a path");
+        let l = parse_args(args(&["a/b.md", "-l", "3"]), Some(cwd));
+        assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\notes\a\b.md"), "slashes as Windows reads them");
+        assert_eq!(l.line, Some(3));
+        let l = parse_args(args(&[r"D:\x\..\y.md", "--line=7"]), Some(cwd));
+        assert_eq!(l.path.as_deref(), Some(r"D:\y.md"));
+        assert_eq!(l.line, Some(7));
+        let l = parse_args(args(&["--unknown", "--", "-dash.md", "second.md"]), Some(cwd));
+        assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\notes\-dash.md"), "-- ends the options");
+        assert_eq!(l.line, None);
+        assert_eq!(parse_args(args(&[]), Some(cwd)).path, None);
+    }
 }

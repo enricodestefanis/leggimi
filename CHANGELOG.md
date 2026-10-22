@@ -7,6 +7,114 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [1.15.1] - 2026-10-22
+
+Finishing touches (*Rifiniture*): headings and links that behave as on GitHub, room for wide
+tables and diagrams, a window that fits half a screen, the editor's keys in plain sight, and
+contrast and keyboard access in every theme.
+
+### Added
+- **Wide tables and diagrams**: a table or a Mermaid diagram wider than the reading column
+  widens up to the width of the window, centred, so it no longer needs sideways scrolling and
+  the diagram's text is no longer shrunk. When printing or saving as PDF, a table wider than the
+  page is scaled down to fit it.
+- **Table buttons**: a small bar at the top right of every table, on hover or keyboard focus,
+  with **Copy table (for Excel)** and **Open preview** (the expand icon). The right-click menu
+  on a table has **Open preview** too.
+- **Fit modes in the full-window preview**: **Fit** (key `0`), **Width** (key `W`, starting
+  from the top; tables open this way) and **100%** (key `1`).
+- **Landing highlight**: after a jump (the outline, a `#link`, the `.` / `,` heading keys, a
+  `file.md#section` link, `leggimi file.md --line N`) the heading or block you land on lights
+  up briefly. Back and Forward do not light it up.
+- **Comment line** in the editor's Tools menu (Ctrl+/, which on Italian and German keyboards
+  is Ctrl+Shift+7): wraps the lines in `<!-- -->`, so they are hidden when reading; inside a
+  code block it uses that language's comment.
+- While editing, a **double-click on the preview** puts the editor's cursor on that word, and
+  the preview stays put. While reading, a double-click still selects a word.
+- **New → Markdown document** in File Explorer creates an empty `.md` file. With the installer
+  its name follows the Windows display language ("Documento Markdown" on an Italian Windows),
+  and so does the name of the file type in Explorer's Type column; the Store version says
+  "Markdown document".
+- **Narrow windows fold their panes**: when the window gets narrow, the outline and then the
+  file browser fold away by themselves; their toolbar buttons (and Ctrl+I / Ctrl+B) then open
+  them over the text, closed by Esc, a click elsewhere or a pick. Below about 760 px, edit mode
+  shows the editor alone; the preview comes back when the window is wider or when you go back to
+  reading.
+- **Saved**: after Ctrl+S the unsaved-changes dot next to the title turns into a small check
+  for a moment, and screen readers hear "Saved".
+- Addresses starting with `www.` become links, as on GitHub; file names such as `README.md`
+  still stay text.
+- **README logos** made for GitHub's themes: images marked `#gh-dark-mode-only` /
+  `#gh-light-mode-only` show only in the matching theme, and the light and dark sources of a
+  `<picture>` follow Leggimi's theme rather than Windows'. Printing and exports use the light
+  one.
+- The file browser is a real tree for the keyboard and screen readers: ↑ / ↓ move, → opens a
+  folder or enters it, ← closes it or goes up, Home / End reach the ends, Enter or Space opens,
+  Ctrl+Enter opens in a new window.
+- The Store package declares its six languages, so the Store page lists English, Italian,
+  German, French, Spanish and Chinese (Simplified).
+
+### Changed
+- **Heading anchors follow GitHub's rules**: "## 1. Introduzione" → `#1-introduzione`, "Q&A"
+  → `#qa`, "What's new?" → `#whats-new`, accents kept ("Attività" → `#attività`). Tables of
+  contents written for GitHub or by AI assistants now work when clicked, and **Copy link to
+  this section** gives a link that also works on GitHub. Old anchors, and the reading positions
+  remembered by older versions, still work.
+- **In task lists only the checkbox ticks the task**: clicking or double-clicking the text (to
+  select a word to copy, say) no longer changes the file.
+- **Windows can be as narrow as 480 px** (was 700): Leggimi fits half a laptop screen next to
+  Teams and works with the snap layouts of Windows 11.
+- The **Edit** button shows the mode: a pencil while reading (*Edit (Ctrl+E)*), an open book
+  while editing (*Back to reading (Ctrl+E)*). The editor fades in instead of snapping.
+- **Rating** (Store version): **Rate** opens the Store's own rating dialog over Leggimi instead
+  of switching to the Store app; if it cannot, the Store page opens as before. Once shown, the
+  "Enjoying Leggimi?" card does not come back for 7 days.
+- **Notices** have the icon that fits: success (PDF saved, task ticked), information (renamed,
+  recovered draft, not a Markdown document), warning (not found, changed on disk) and error
+  (save and export failures). Screen readers read them out.
+- **Contrast**: text and controls reach WCAG AA in all four themes — the muted text, the
+  accent used as text, primary buttons, code comments and callout titles in sepia, the hover of
+  menu items in dark and black, the edges of menus and dialogs in black.
+- **Keyboard**: the focus is visible everywhere (file browser, menus, copy buttons, the find
+  bar); the **Aa** reading settings are reachable with Tab; the Share menu and the preview's
+  copy menu work with the arrow keys, Home / End and Esc; toolbar buttons are named without
+  their shortcut for screen readers.
+- With Windows' **Animation effects** off, scrolls jump instead of gliding and the landing
+  highlight does not animate.
+- The **help (F1) and the keys overlay (?)** cover all of 1.15: Ctrl+F4, Ctrl+R, the mouse's
+  side buttons and middle click, Shift+F10 or the menu key for the right-click menu, **Copy the
+  whole document**, and the editor keys — Ctrl+D (next occurrence), Alt+L (select the line),
+  Ctrl+Alt+↑ / ↓ (add a cursor), Ctrl+Alt+G (go to line), Ctrl+Shift+K (delete the line), Esc
+  then Tab (leave the editor). The overlay writes the key names in the interface language
+  (Strg, Maj, Mayús…).
+- **Lighter start**: KaTeX (formulas), the DOCX exporter and the help pages load only when
+  first needed (the script loaded at startup is half the size), and the first document of a
+  window appears at once, without a fade-in on top of the window's own appearance: about 0.2 s
+  sooner on screen.
+
+### Fixed
+- Ctrl+M switched Tab from indenting to moving the focus, with nothing on screen to say so. It
+  no longer does: Tab always indents, and Esc then Tab leaves the editor (within 2 s; press Esc
+  twice if text is selected or a panel or menu is open).
+- **Go to line** (Ctrl+Alt+G) was hard to read in the dark and black themes.
+- Re-opening the file being edited (a double-click in File Explorer, `leggimi file.md`, a pick
+  in the file browser, a drop) replaced the preview with the version on disk and moved the
+  "file changed on disk" check. Unsaved edits now stay; if the file changed on disk, the usual
+  notice offers **Reload**.
+- `leggimi missing.md`, or a jump-list entry whose file is gone, opened an empty window; now
+  the window in front shows "Not found".
+- Exports and rich-text copy show a task's ticked state right away.
+- The "Enjoying Leggimi?" card could show in two windows at once, and a rating given from the
+  help (F1) did not count.
+- "Export failed" was not translated.
+- A jump into a document that was just opened (a `file.md#section` link, a remembered reading
+  place) landed 4 px off, measured during the document's entrance animation.
+- A "Not found" or "changed on disk" notice stayed on screen after another document opened.
+- A document could cover or imitate the app's interface: fixed-position elements are now kept
+  inside the reading pane, and popover and command attributes are removed.
+- With a long list of recent files in a short window, the top of the start screen ("No
+  document open" and the Open button) was cut off, out of the scroll's reach. It now scrolls.
+
 ## [1.15.0] - 2026-10-20
 
 More than one document at a time, a right-click menu that belongs to the app, Back and Forward

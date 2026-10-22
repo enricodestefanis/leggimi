@@ -4,7 +4,7 @@
 import { Compartment, EditorSelection, EditorState, Line, type ChangeSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { copyLineDown, deleteLine, moveLineDown, moveLineUp } from "@codemirror/commands";
+import { copyLineDown, deleteLine, moveLineDown, moveLineUp, toggleComment } from "@codemirror/commands";
 import { openSearchPanel } from "@codemirror/search";
 import { t, type Dict } from "./i18n";
 
@@ -384,6 +384,7 @@ const I = {
   lineDown: '<line x1="12" y1="5" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><line x1="5" y1="20" x2="19" y2="20"/>',
   duplicate: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 15V5a1 1 0 0 1 1-1h10"/>',
   deleteLine: '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="14" y2="17"/><line x1="17" y1="14" x2="22" y2="19"/><line x1="22" y1="14" x2="17" y2="19"/>',
+  comment: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="13" y2="12"/>',
   spell: '<path d="M4 15 8 5l4 10"/><path d="M5.5 11h5"/><path d="M14 11h3a2 2 0 0 1 0 4h-3V7h2.5a2 2 0 0 1 0 4"/><polyline points="4 20 8 23 13 18"/>',
 };
 
@@ -424,6 +425,10 @@ export const COMMANDS: CommandInfo[] = [
   { id: "moveLineDown", label: t("cmd.moveLineDown"), icon: I.lineDown, run: moveLineDown, shortcut: "Alt+↓", key: "Alt-ArrowDown" },
   { id: "copyLineDown", label: t("cmd.copyLineDown"), icon: I.duplicate, run: copyLineDown, shortcut: "Shift+Alt+↓", key: "Shift-Alt-ArrowDown" },
   { id: "deleteLine", label: t("cmd.deleteLine"), icon: I.deleteLine, run: deleteLine, shortcut: "Ctrl+Shift+K", key: "Mod-Shift-k" },
+  // Markdown's comment is the HTML one, so this wraps the lines in <!-- -->
+  // (inside a fenced code block, that language's own comment). The key
+  // matches the typed character: Ctrl+Shift+7 on an Italian or German layout.
+  { id: "comment", label: t("cmd.comment"), icon: I.comment, run: toggleComment, shortcut: "Ctrl+/" },
   { id: "spell", label: t("cmd.spell"), icon: I.spell, run: toggleSpellcheck, checked: spellcheckEnabled },
 ];
 

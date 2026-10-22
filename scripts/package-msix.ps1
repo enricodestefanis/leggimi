@@ -4,7 +4,8 @@
 
 .DESCRIPTION
   1. Runs the Tauri release build (skip with -SkipBuild when target\release\leggimi.exe is current).
-  2. Stages the exe and the MSIX assets in src-tauri\target\msix\layout.
+  2. Stages the exe, the MSIX assets and the template of File Explorer's New > Markdown document
+     in src-tauri\target\msix\layout.
   3. Stamps the version from package.json into the manifest (x.y.z -> x.y.z.0).
   4. Runs `winapp package`, which writes the .msix next to the layout folder.
 
@@ -19,19 +20,33 @@
 .PARAMETER Sign
   Sign the package with the development certificate for local testing.
 
+.PARAMETER DevIdentity
+  Build a signed test package that installs next to the Store copy, to try the manifest
+  (File Explorer's New menu, file types, languages) without touching it: identity
+  EnricoDeStefanis.Leggimi.Dev, display name "Leggimi Dev", no `leggimi` command (that stays
+  the Store copy's), its own .msix file. Both copies share the single-instance name, so close
+  the Store copy before starting this one, or the launch goes to it.
+  Install it with Add-AppxPackage <file>; remove it with
+  Get-AppxPackage EnricoDeStefanis.Leggimi.Dev | Remove-AppxPackage
+
 .EXAMPLE
   npm run package:msix
   npm run package:msix -- -SkipBuild -Sign
+  npm run package:msix -- -SkipBuild -DevIdentity
 #>
 [CmdletBinding()]
 param(
   [switch]$SkipBuild,
-  [switch]$Sign
+  [switch]$Sign,
+  [switch]$DevIdentity
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+
+# a package made to be installed must be signed
+if ($DevIdentity) { $Sign = $true }
 
 if (-not (Get-Command winapp -ErrorAction SilentlyContinue)) {
   throw "winapp CLI not found. Install it with: winget install Microsoft.WinAppCli"
@@ -56,15 +71,43 @@ if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 New-Item -ItemType Directory -Force "$layout\Assets" | Out-Null
 Copy-Item $exe $layout
 Copy-Item "$root\src-tauri\msix\Assets\*.png" "$layout\Assets"
+# What New > Markdown document in File Explorer copies (uap4:ShellNewFileName): a new
+# document starts empty.
+New-Item -ItemType Directory -Force "$layout\ShellNew" | Out-Null
+[IO.File]::WriteAllBytes("$layout\ShellNew\New.md", [byte[]]@())
 
 $manifest = Get-Content "$root\src-tauri\msix\Package.appxmanifest" -Raw
 # Only the Identity's Version attribute: MinVersion/MaxVersionTested also end in Version="...".
 $manifest = $manifest -replace '(?<=\s)Version="\d+\.\d+\.\d+\.\d+"', "Version=`"$msixVersion`""
+
+if ($DevIdentity) {
+  # Another name installs next to the Store copy (same publisher, so the same development
+  # certificate signs it); without the execution alias, `leggimi` in a terminal still
+  # starts the Store copy.
+  $doc = New-Object Xml.XmlDocument
+  $doc.PreserveWhitespace = $true
+  $doc.LoadXml($manifest)
+  $ns = New-Object Xml.XmlNamespaceManager $doc.NameTable
+  $ns.AddNamespace("m", "http://schemas.microsoft.com/appx/manifest/foundation/windows10")
+  $ns.AddNamespace("uap", "http://schemas.microsoft.com/appx/manifest/uap/windows10")
+  $ns.AddNamespace("uap5", "http://schemas.microsoft.com/appx/manifest/uap/windows10/5")
+  $doc.SelectSingleNode("/m:Package/m:Identity", $ns).SetAttribute("Name", "EnricoDeStefanis.Leggimi.Dev")
+  $doc.SelectSingleNode("/m:Package/m:Properties/m:DisplayName", $ns).InnerText = "Leggimi Dev"
+  $doc.SelectSingleNode("//uap:VisualElements", $ns).SetAttribute("DisplayName", "Leggimi Dev")
+  $alias = $doc.SelectSingleNode("//uap5:Extension[@Category='windows.appExecutionAlias']", $ns)
+  if (-not $alias) { throw "The manifest has no execution alias to remove" }
+  [void]$alias.ParentNode.RemoveChild($alias)
+  $manifest = $doc.OuterXml
+}
 [IO.File]::WriteAllText("$layout\Package.appxmanifest", $manifest, (New-Object Text.UTF8Encoding $false))
 
-Get-ChildItem $out -Filter *.msix -ErrorAction SilentlyContinue | Remove-Item -Force
+# Named as winapp names packages, after the identity: the Store package and the Dev one sit
+# side by side, and each run replaces only the packages of its own identity.
+$identity = ([xml]$manifest).Package.Identity
+$msix = "$out\$($identity.Name)_${msixVersion}_$($identity.ProcessorArchitecture).msix"
+Get-ChildItem $out -Filter "$($identity.Name)_*.msix" -ErrorAction SilentlyContinue | Remove-Item -Force
 
-$args = @("package", $layout, "--manifest", "$layout\Package.appxmanifest", "--quiet")
+$args = @("package", $layout, "--manifest", "$layout\Package.appxmanifest", "--output", $msix, "--quiet")
 if ($Sign) {
   $cert = "$root\src-tauri\msix\devcert.pfx"
   if (-not (Test-Path $cert)) {
@@ -75,7 +118,7 @@ if ($Sign) {
   $args += @("--cert", $cert)
 }
 
-Write-Host "Packaging Leggimi $msixVersion..." -ForegroundColor Cyan
+Write-Host "Packaging $($identity.Name) $msixVersion..." -ForegroundColor Cyan
 Push-Location $out
 try {
   & winapp @args
@@ -84,7 +127,11 @@ try {
   Pop-Location
 }
 
-$msix = Get-ChildItem $out -Filter *.msix | Select-Object -First 1
-if (-not $msix) { throw "No .msix produced in $out" }
-Write-Host "Done: $($msix.FullName) ($([math]::Round($msix.Length / 1MB, 1)) MB)" -ForegroundColor Green
-if (-not $Sign) { Write-Host "Unsigned package for Store submission. Use -Sign for a locally installable build." }
+if (-not (Test-Path $msix)) { throw "No .msix produced at $msix" }
+$size = (Get-Item $msix).Length
+Write-Host "Done: $msix ($([math]::Round($size / 1MB, 1)) MB)" -ForegroundColor Green
+if ($DevIdentity) {
+  Write-Host "Test package: Add-AppxPackage `"$msix`"  (remove: Get-AppxPackage $($identity.Name) | Remove-AppxPackage)"
+} elseif (-not $Sign) {
+  Write-Host "Unsigned package for Store submission. Use -Sign for a locally installable build."
+}

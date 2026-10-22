@@ -7,14 +7,37 @@
   --surface: #ffffff;
   --surface-2: #f0efe9;
   --text: #1a1915;
-  --text-muted: #6e6e69;
+  /* every theme's muted ink clears AA (4.5:1) on --bg, --surface and
+     --surface-2 (the segmented options and key caps sit on the last) */
+  --text-muted: #6b6b66;
   --border: #e8e6df;
   --accent: #c15f3c;
   --accent-soft: rgba(193, 95, 60, 0.1);
+  /* the band that marks where a jump landed (markdown.css, .landing): the
+     accent's tint, which the dark themes need much stronger to be seen */
+  --landing: var(--accent-soft);
   --code-bg: #f5f4ef;
   /* article link ink and inline-code chip: deeper than --accent / --code-bg
      to clear WCAG AA against the page (accent on --bg is only 4.0:1) */
   --link: #a84b2b;
+  /* the accent used as text (the active outline entry, dialog headings,
+     chips on --accent-soft): the link ink, which clears AA where the accent
+     itself does not; the dark theme lightens it a step for the chips */
+  --accent-text: var(--link);
+  /* primary buttons: a fill and an ink that clear AA together (white on the
+     light accent is 4.2:1, on the dark themes' accent 3.1:1) */
+  --accent-fill: #ad5434;
+  --on-accent: #ffffff;
+  /* errors and confirmations (notices, KaTeX errors) */
+  --danger: #b42318;
+  --success: #2b7a46;
+  /* hover and keyboard-focus fill of rows and buttons on a --surface (menus,
+     popovers, dialogs, the find and notice bars): a tint of the text, since
+     in the dark themes --surface-2 is nearly the surface itself (1.03:1) */
+  --surface-hover: color-mix(in srgb, var(--text) 9%, var(--surface));
+  /* the edge of floating surfaces (menus, popovers, dialogs, bars); only the
+     black theme needs more, where shadows and backdrops vanish on #000 */
+  --float-border: var(--border);
   --code-chip-bg: #eae8df;
   --code-chip-border: #d5d1c5;
   --shadow: 0 4px 24px rgba(26, 25, 21, 0.1);
@@ -43,8 +66,16 @@
   --border: #3f3e3a;
   --accent: #d97757;
   --accent-soft: rgba(217, 119, 87, 0.14);
+  /* 1.6:1 against the page, the text on it still 8:1 */
+  --landing: rgba(217, 119, 87, 0.3);
   --code-bg: #1b1a19;
   --link: #df8768;
+  /* the link ink is 4.05:1 on --accent-soft over --surface: one step lighter */
+  --accent-text: #e3987d;
+  --accent-fill: #d97757;
+  --on-accent: #1a1915;
+  --danger: #ff8f80;
+  --success: #7ccf98;
   --code-chip-bg: #3a3835;
   --code-chip-border: #4c4a44;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
@@ -57,12 +88,16 @@
   --surface: #faf3e4;
   --surface-2: #ebdfc8;
   --text: #3b2f22;
-  --text-muted: #7d6a55;
+  --text-muted: #6f5d49;
   --border: #dccdb2;
   --accent: #b2552f;
   --accent-soft: rgba(178, 85, 47, 0.12);
   --code-bg: #eee3cd;
   --link: #9a4322;
+  /* white on the sepia accent clears AA (4.96:1): the fill stays the accent */
+  --accent-fill: #b2552f;
+  --danger: #a2271c;
+  --success: #2a6e40;
   --code-chip-bg: #e6d9bf;
   --code-chip-border: #cfbf9f;
   --shadow: 0 4px 24px rgba(59, 47, 34, 0.14);
@@ -79,8 +114,15 @@
   --border: #262626;
   --accent: #d97757;
   --accent-soft: rgba(217, 119, 87, 0.16);
+  --landing: rgba(217, 119, 87, 0.34);
   --code-bg: #0c0c0c;
   --link: #df8768;
+  --accent-fill: #d97757;
+  --on-accent: #1a1915;
+  --danger: #ff8f80;
+  --success: #7ccf98;
+  /* 3.1:1 against the page: menus and dialogs keep an edge on #000 */
+  --float-border: #5c5c5c;
   --code-chip-bg: #1f1f1f;
   --code-chip-border: #333333;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
@@ -156,14 +198,30 @@ button {
   outline-offset: 2px;
 }
 
-/* color cross-fade, enabled by theme.ts only while the theme switches */
-:root.theme-anim,
-:root.theme-anim * {
-  transition:
-    background-color 0.2s var(--ease),
-    color 0.2s var(--ease),
-    border-color 0.2s var(--ease),
-    fill 0.2s var(--ease) !important;
+/* read by screen readers, never seen (the live regions of notices.ts) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* color cross-fade, enabled by theme.ts only while the theme switches; its
+   !important would beat the reduced-motion rule below, hence the guard */
+@media (prefers-reduced-motion: no-preference) {
+  :root.theme-anim,
+  :root.theme-anim * {
+    transition:
+      background-color 0.2s var(--ease),
+      color 0.2s var(--ease),
+      border-color 0.2s var(--ease),
+      fill 0.2s var(--ease) !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

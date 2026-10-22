@@ -10,7 +10,8 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--border);
+  /* the edge of a floating surface: shadows vanish on the black theme */
+  border: 1px solid var(--float-border);
   border-radius: 7px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(3px);
@@ -118,6 +119,24 @@
   box-shadow: var(--shadow);
 }
 
+/* A table: a copy on a sheet of the page, with the document's own styles
+   (lightbox.ts gives it .markdown-body and makes it inert), framed like the
+   table in the text. The pointer goes through it to the pan. */
+#zoom-stage > .zoom-table {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+/* as wide as its content asks, within the window's width: build() then
+   fits the sheet, and the stage, to it */
+#zoom-stage > .zoom-table table {
+  width: auto;
+}
+
 /* the copy/save menu sits inside the dialog: a body-level menu would be
    under the top layer */
 #zoom-copy-menu {
@@ -136,7 +155,7 @@
   gap: 4px;
   max-width: calc(100vw - 32px);
   padding: 5px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--float-border);
   border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -177,6 +196,9 @@
 }
 
 .zoom-text-btn {
+  /* "100 %" stays on one line: the caption is what gives way */
+  flex: none;
+  white-space: nowrap;
   height: 30px;
   padding: 0 9px;
   border-radius: 6px;
@@ -188,9 +210,25 @@
     color 0.12s var(--ease);
 }
 
+/* a narrow window: the controls keep their room, and a caption squeezed to
+   a letter or two says nothing anyway */
+@media (max-width: 560px) {
+  #zoom-caption,
+  #zoom-caption + .zoom-sep {
+    display: none;
+  }
+}
+
+/* on the bar's --surface, where --surface-2 vanishes in the dark themes */
 .zoom-text-btn:hover {
-  background: var(--surface-2);
+  background: var(--surface-hover);
   color: var(--text);
+}
+
+/* the view chosen last (Fit, Width, 100%), until a zoom leaves it */
+.zoom-text-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 #zoom-copy.done {

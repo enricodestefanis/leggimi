@@ -43,6 +43,9 @@ fn same_file(a: &Path, b: &Path) -> bool {
 /// single-instance plugin): to the window that already shows the file (or is
 /// opening it), else to a window on the home (the last used one first), else
 /// to a new window. Without a file it only brings the last used window forward.
+/// A file that is not there (a typo, a dead jump-list entry) never gets a
+/// window of its own, which would only show the home: an open window says
+/// it is missing.
 pub fn route_launch(app: &AppHandle, launch: Launch) {
     let state = app.state::<AppState>();
     let last = state.last_focused.lock().unwrap().clone();
@@ -58,25 +61,10 @@ pub fn route_launch(app: &AppHandle, launch: Launch) {
     // lock is gone before any window is built (the main thread takes it then)
     let route = {
         let mut windows = state.windows.lock().unwrap();
-        let showing = canon.as_deref().and_then(|c| {
-            windows
-                .iter()
-                .find(|(_, s)| {
-                    let shown = s.doc.as_deref().or(s.opening.as_deref());
-                    shown.is_some_and(|d| same_file(d, c))
-                })
-                .map(|(label, _)| label.clone())
-        });
-        // a window on the home: its page listens, and nothing is on its way to it
-        let idle = |s: &WindowSlot| s.ready && s.doc.is_none() && s.opening.is_none() && s.launch.is_none();
-        let target = showing.or_else(|| {
-            if launch.path.is_none() || windows.get(&last).is_some_and(idle) {
-                Some(last.clone())
-            } else {
-                windows.iter().find(|(_, s)| idle(s)).map(|(l, _)| l.clone())
-            }
-        });
-        match target {
+        // a missing file goes by the full path parse_args gave it, which is
+        // still the path of a document deleted while a window showed it
+        let file = canon.as_deref().or(launch.path.as_deref().map(Path::new));
+        match target(&windows, &last, file, canon.is_some()) {
             Some(label) => {
                 if let (Some(c), Some(slot)) = (&canon, windows.get_mut(&label)) {
                     if slot.doc.as_deref().is_none_or(|d| !same_file(d, c)) {
@@ -85,7 +73,7 @@ pub fn route_launch(app: &AppHandle, launch: Launch) {
                 }
                 Route::To(label)
             }
-            None if launch.path.is_some() => Route::New(reserve(&state, &mut windows, launch.clone())),
+            None if canon.is_some() => Route::New(reserve(&state, &mut windows, launch.clone())),
             None => Route::Front,
         }
     };
@@ -106,19 +94,54 @@ pub fn route_launch(app: &AppHandle, launch: Launch) {
             // still being built (reserved by a launch just before this one, which
             // it will open itself): nothing to add
             None if state.windows.lock().unwrap().contains_key(&label) => {}
-            // closed meanwhile: a new window for a file, any other for a bare launch
-            None if launch.path.is_some() => {
+            // closed meanwhile: a new window for a file, any other for a bare
+            // launch or a missing file
+            None if canon.is_some() => {
                 let from = app.webview_windows().into_values().next();
                 let _ = create_window(app, from.as_ref(), launch);
             }
-            None => bring_any(app),
+            None => bring_any(app, &launch),
         },
-        Route::Front => bring_any(app),
+        Route::Front => bring_any(app, &launch),
     }
 }
 
-fn bring_any(app: &AppHandle) {
+/// The window a launch goes to (see route_launch), None for a new one.
+/// `file` is the launch's file, canonical when it `exists`.
+fn target(windows: &HashMap<String, WindowSlot>, last: &str, file: Option<&Path>, exists: bool) -> Option<String> {
+    let showing = file.and_then(|f| {
+        windows
+            .iter()
+            .find(|(_, s)| {
+                let shown = s.doc.as_deref().or(s.opening.as_deref());
+                shown.is_some_and(|d| same_file(d, f))
+            })
+            .map(|(label, _)| label.clone())
+    });
+    // a window on the home: its page listens, and nothing is on its way to it
+    let idle = |s: &WindowSlot| s.ready && s.doc.is_none() && s.opening.is_none() && s.launch.is_none();
+    showing.or_else(|| {
+        if file.is_none() || windows.get(last).is_some_and(idle) {
+            Some(last.to_owned())
+        } else if !exists {
+            // the last used window, else any whose page listens
+            if windows.get(last).is_some_and(|s| s.ready) {
+                Some(last.to_owned())
+            } else {
+                windows.iter().find(|(_, s)| s.ready).map(|(l, _)| l.clone())
+            }
+        } else {
+            windows.iter().find(|(_, s)| idle(s)).map(|(l, _)| l.clone())
+        }
+    })
+}
+
+/// Some window to the front; it opens the launch's file, if any.
+fn bring_any(app: &AppHandle, launch: &Launch) {
     if let Some(win) = app.webview_windows().into_values().next() {
+        if launch.path.is_some() {
+            let _ = app.emit_to(win.label(), "open-file", launch);
+        }
         let _ = win.unminimize();
         let _ = win.set_focus();
     }
@@ -235,4 +258,56 @@ fn place(config: &mut WindowConfig, base: &WebviewWindow) {
     config.y = Some(y);
     config.width = width;
     config.height = height;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn slot(ready: bool, doc: Option<&str>) -> WindowSlot {
+        WindowSlot {
+            ready,
+            doc: doc.map(PathBuf::from),
+            ..Default::default()
+        }
+    }
+
+    fn windows(slots: Vec<(&str, WindowSlot)>) -> HashMap<String, WindowSlot> {
+        slots.into_iter().map(|(l, s)| (l.to_owned(), s)).collect()
+    }
+
+    #[test]
+    fn a_file_goes_where_it_is_shown_else_to_the_home_else_to_a_new_window() {
+        let w = windows(vec![("main", slot(true, Some(r"C:\docs\a.md"))), ("doc-1", slot(true, None))]);
+        let a = Some(Path::new(r"C:\docs\a.md"));
+        let b = Some(Path::new(r"C:\docs\b.md"));
+        assert_eq!(target(&w, "doc-1", a, true).as_deref(), Some("main"), "already open");
+        assert_eq!(target(&w, "main", b, true).as_deref(), Some("doc-1"), "a window on the home");
+        let busy = windows(vec![("main", slot(true, Some(r"C:\docs\a.md")))]);
+        assert_eq!(target(&busy, "main", b, true), None, "a new window");
+        assert_eq!(target(&busy, "main", None, false).as_deref(), Some("main"), "no file: the last used");
+    }
+
+    #[test]
+    fn a_missing_file_goes_to_a_window_that_is_open() {
+        let w = windows(vec![
+            ("main", slot(true, Some(r"C:\docs\a.md"))),
+            ("doc-1", slot(true, Some(r"C:\docs\b.md"))),
+            ("doc-2", slot(false, None)),
+        ]);
+        let gone = Some(Path::new(r"C:\docs\gone.md"));
+        assert_eq!(target(&w, "doc-1", gone, false).as_deref(), Some("doc-1"), "the last used, though busy");
+        assert_eq!(
+            target(&w, "doc-1", Some(Path::new(r"c:\DOCS\A.md")), false).as_deref(),
+            Some("main"),
+            "the window whose document was deleted"
+        );
+        let other = target(&w, "doc-9", gone, false);
+        assert!(matches!(other.as_deref(), Some("main" | "doc-1")), "the last used has closed: any that listens");
+        let other = target(&w, "doc-2", gone, false);
+        assert!(matches!(other.as_deref(), Some("main" | "doc-1")), "not one still loading");
+        let loading = windows(vec![("main", slot(false, None))]);
+        assert_eq!(target(&loading, "main", gone, false), None, "none listens: route_launch brings one forward");
+    }
 }

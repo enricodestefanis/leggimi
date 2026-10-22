@@ -9,10 +9,12 @@
   animation: doc-enter 0.2s var(--ease);
 }
 
+/* a fade only: a transform here would move the text while it is measured
+   (the jump to an anchor, the remembered place, the second jump once the
+   diagrams are drawn), so every one of them would land a few px off */
 @keyframes doc-enter {
   from {
     opacity: 0;
-    transform: translateY(4px);
   }
 }
 
@@ -64,6 +66,42 @@
   font-size: 1em;
   font-weight: 600;
   margin: 1.4em 0 0.4em;
+}
+
+/* Where a jump landed (motion.ts: the outline, a link): a tint of the accent
+   that fades out. A pseudo-element a little larger than the element draws
+   it, rounded and behind the text, so a heading reads as a highlighted band
+   and nothing moves (the element's own border, a heading's rule, keeps its
+   square ends). Under reduced motion the tint holds still for a moment. */
+.markdown-body .landing,
+.markdown-body .landing-static {
+  position: relative;
+}
+
+.markdown-body .landing::after,
+.markdown-body .landing-static::after {
+  content: "";
+  position: absolute;
+  inset: -0.15em -0.4em;
+  z-index: -1;
+  border-radius: 8px;
+  background: var(--landing);
+  pointer-events: none;
+}
+
+.markdown-body .landing::after {
+  animation: landing 1.2s var(--ease) forwards;
+}
+
+@keyframes landing {
+  0%,
+  35% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 .markdown-body p {
@@ -121,6 +159,14 @@
   border-radius: 6px;
 }
 
+/* GitHub's theme-specific images (an address ending in #gh-dark-mode-only or
+   #gh-light-mode-only) follow Leggimi's scheme, not Windows'; printing forces
+   the light one */
+:root:not([data-scheme="dark"]) .markdown-body img[src*="#gh-dark-mode-only"],
+:root[data-scheme="dark"] .markdown-body img[src*="#gh-light-mode-only"] {
+  display: none;
+}
+
 /* an image whose path did not resolve: never zoomable, and now visible */
 .markdown-body img.img-missing {
   padding: 10px 14px;
@@ -142,28 +188,76 @@
   outline-offset: 3px;
 }
 
-.markdown-body .table-scroll {
+/* A table (renderer.ts): its block holds the horizontal scroller and, beside
+   it, the hover actions, which therefore stay in the corner while a wide
+   table scrolls under them */
+.markdown-body .table-block {
   position: relative;
-  overflow-x: auto;
   margin: 0 0 1em;
+}
+
+.markdown-body .table-scroll {
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 
-/* hover button: copy the table for Excel */
-.markdown-body .table-copy {
+/* copy for Excel, open in the preview: a small bar over the top-right
+   corner, shown on hover, and to the keyboard, like a code block's button */
+.markdown-body .table-actions {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  opacity: 0;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  /* fallbacks: exports carry this sheet without the app's base.css */
+  border: 1px solid var(--float-border, var(--border));
+  border-radius: 8px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  transition: opacity 0.15s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  transition: opacity 0.15s var(--ease);
 }
 
-.markdown-body .table-scroll:hover .table-copy,
-.markdown-body .table-copy:focus-visible {
+.markdown-body .table-block:hover .table-actions,
+.markdown-body .table-actions:focus-within {
   opacity: 1;
+}
+
+.markdown-body .table-actions .icon-btn {
+  border-radius: 6px;
+}
+
+/* --surface-2 is nearly the bar's own surface in the dark themes */
+.markdown-body .table-actions .icon-btn:hover {
+  background: var(--surface-hover, var(--surface-2));
+  color: var(--text);
+}
+
+/* wide.ts reads a table's narrowest and widest layouts through these, all
+   tables in one batch, added and removed before anything is painted */
+.markdown-body .table-block.measure-min > .table-scroll > table {
+  width: min-content !important;
+}
+
+.markdown-body .table-block.measure-max > .table-scroll > table {
+  width: max-content !important;
+}
+
+/* A table or diagram too wide for the column (wide.ts: .wide, and its
+   natural width in --tw) leaves it: as wide as it needs, at most the pane
+   less the column's side padding, centred on the pane. 100cqi is the pane's
+   width (layout.css: its scrollbar gutter is stable, so the scrollbar is not
+   part of it). Only the article's own children carry it, so 100% is the
+   column. The screen's affair: paper and exports have their own widths. */
+@media screen {
+  .markdown-body > .wide {
+    --wide-width: min(var(--tw, 100%), 100cqi - 2 * var(--column-pad, 32px));
+    width: var(--wide-width);
+    max-width: none;
+    margin-inline: calc((100% - var(--wide-width)) / 2);
+  }
 }
 
 .markdown-body table {
@@ -202,15 +296,13 @@
   list-style: none;
 }
 
+/* only the box toggles (and writes the file): the item's text is text, to
+   select and to click through its links */
 .markdown-body .task-list-item-checkbox {
   width: 1em;
   margin: 0 0.2em 0 -1.45em;
   accent-color: var(--accent);
   transform: translateY(2px);
-  cursor: pointer;
-}
-
-.markdown-body .task-list-item > label {
   cursor: pointer;
 }
 
@@ -238,16 +330,40 @@
   --alert-color: #1a7f37;
 }
 
+/* important and warning a shade deeper than GitHub's, to clear AA on their
+   tinted boxes (4.49 and 4.34 with GitHub's values) */
 .markdown-alert-important {
-  --alert-color: #8250df;
+  --alert-color: #7e4ed8;
 }
 
 .markdown-alert-warning {
-  --alert-color: #9a6700;
+  --alert-color: #926200;
 }
 
 .markdown-alert-caution {
   --alert-color: #cf222e;
+}
+
+/* sepia's warmer page takes GitHub's light colours under AA for the titles
+   (3.8 to 4.1:1): deeper shades of the same hues, 4.7:1 on the tinted box */
+:root[data-theme="sepia"] .markdown-alert {
+  --alert-color: #085fc5;
+}
+
+:root[data-theme="sepia"] .markdown-alert-tip {
+  --alert-color: #177131;
+}
+
+:root[data-theme="sepia"] .markdown-alert-important {
+  --alert-color: #7447c8;
+}
+
+:root[data-theme="sepia"] .markdown-alert-warning {
+  --alert-color: #865a00;
+}
+
+:root[data-theme="sepia"] .markdown-alert-caution {
+  --alert-color: #bf1f2a;
 }
 
 :root[data-scheme="dark"] .markdown-alert {
@@ -266,8 +382,9 @@
   --alert-color: #d29922;
 }
 
+/* lighter than GitHub's #f85149, which falls to 4.29 on the tinted box */
 :root[data-scheme="dark"] .markdown-alert-caution {
-  --alert-color: #f85149;
+  --alert-color: #f9645d;
 }
 
 .markdown-alert .markdown-alert-title {
@@ -291,6 +408,12 @@
   overflow-x: auto;
   overflow-y: hidden;
   padding: 4px 0;
+}
+
+/* a formula KaTeX could not read: its message, in the theme's error ink
+   (!important: KaTeX itself may write an inline colour, #cc0000) */
+.markdown-body .katex-error {
+  color: var(--danger) !important;
 }
 
 .mermaid-diagram {
@@ -486,7 +609,7 @@
   padding: 0 0.5em;
   border-radius: 10px;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .markdown-body .front-matter > pre {

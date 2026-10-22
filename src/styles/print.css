@@ -83,9 +83,12 @@
     display: block;
   }
 
-  /* the scroll container must not clip the article to one viewport */
+  /* the scroll container must not clip the article to one viewport; nor may
+     the screen's containment (layout.css) hold the pages together */
   #content-pane {
     overflow: visible;
+    contain: none;
+    container-type: normal;
   }
 
   article {
@@ -111,8 +114,14 @@
   }
 
   .code-copy,
-  .table-copy {
+  .markdown-body .table-actions {
     display: none;
+  }
+
+  /* a jump's highlight caught by the print */
+  .markdown-body .landing::after,
+  .markdown-body .landing-static::after {
+    content: none;
   }
 
   /* wrap instead of clipping what a screen would scroll */
@@ -122,7 +131,65 @@
     word-break: break-word;
   }
 
+  /* A table prints whole: no scroller (one would also keep a long table
+     from breaking across pages), header cells free to wrap, a table that
+     left the column back in it. One still wider than the paper is scaled
+     down to fit by --print-zoom (wide.ts, preparePrint). */
+  .markdown-body .table-scroll {
+    overflow: visible;
+  }
+
+  .markdown-body thead th {
+    white-space: normal;
+  }
+
+  .markdown-body > .wide {
+    width: auto;
+    margin-inline: 0;
+  }
+
+  .markdown-body .table-block {
+    zoom: var(--print-zoom, 1);
+  }
+
+  /* too wide even at the smallest legible scale: its long words break */
+  .markdown-body .table-block.print-break :is(th, td) {
+    overflow-wrap: anywhere;
+  }
+
   .markdown-body .katex-display {
     overflow: visible;
   }
+}
+
+/* preparePrint (wide.ts) measures each table as it will print, on screen and
+   in one synchronous pass that is never painted: the paper's text settings
+   (as above), header cells free to wrap, wide blocks back in the column,
+   every table at its narrowest */
+:root.print-measure {
+  --reader-font-size: 16px !important;
+  --reader-font: var(--sans) !important;
+}
+
+:root.print-measure .markdown-body > .wide {
+  width: auto;
+  margin-inline: 0;
+}
+
+:root.print-measure .markdown-body thead th {
+  white-space: normal;
+}
+
+:root.print-measure .markdown-body .table-block > .table-scroll > table {
+  width: min-content !important;
+}
+
+:root.print-measure .markdown-body .table-block.print-break :is(th, td) {
+  overflow-wrap: anywhere;
+}
+
+/* editing in a narrow window keeps the preview off the screen (layout.css):
+   it prints all the same, so it is laid out for the measurement */
+:root.print-measure #app.editing.is-narrow #content-pane > #article {
+  display: block;
 }

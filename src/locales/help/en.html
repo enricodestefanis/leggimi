@@ -45,11 +45,14 @@
           the text.
         </p>
         <p>
-          Right-click the document for its menu: copy the selection (with its formatting or as plain text)
-          or search for it in the document or the folder; open or copy a link; open an image or a diagram,
-          copy a code block or a table; <strong>copy a link to the section</strong>,
-          <code>[Heading](file.md#heading)</code>, which works from any other document; <strong>edit from
-          that point</strong>; print or save as PDF.
+          Right-click the document, or press <kbd>Shift</kbd>+<kbd>F10</kbd> or the menu key, for its menu:
+          copy the selection (with its formatting or as plain text) or search for it in the document or the
+          folder; open or copy a link; open an image, a diagram or a table with <strong>Open preview</strong>,
+          copy a code block or a table; <strong>Copy link to this section</strong> gives
+          <code>[Heading](file.md#heading)</code>, a link that works from any other document and on GitHub
+          too; <strong>Edit from here</strong> opens the editor at that point; <strong>Copy the whole
+          document</strong> copies it with its formatting, as <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>
+          does; print or save as PDF.
         </p>
         <p>
           Like in a browser, <kbd>Alt</kbd>+<kbd>←</kbd> (or the mouse's side <em>back</em> button) returns to where you were before a link to a section, a click in the outline or a move to another document; <kbd>Alt</kbd>+<kbd>→</kbd> (or the <em>forward</em> button) goes forward again. <strong>Back</strong> and <strong>Forward</strong> are also at the top of the right-click menu. Each window has its own history.
@@ -69,27 +72,45 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Print or save as PDF</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>Copy the document as rich text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>Open the Share menu</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>F10</kbd></td><td>Open the right-click menu (also the menu key)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Larger / smaller text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Reset the text size</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Keep the window on top</td></tr>
-            <tr><td><kbd>F5</kbd></td><td>Reload the file from disk</td></tr>
+            <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Reload the file from disk</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>New window</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close the window</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Back / forward</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+click / middle click</td><td>Open a file, a recent document, a search result or a link in a new window</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Close the window</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Back / forward (also the mouse's side buttons)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Quick reference of the keys</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Close the find bar, the preview or this help</td></tr>
           </tbody>
         </table>
+        <p>
+          From the keyboard, <kbd>Tab</kbd> reaches the toolbar buttons and the <strong>Aa</strong> reading
+          settings, and the focus is always visible; in the menus (Share, the right-click menu, the preview's
+          copy menu) <kbd>↑</kbd> / <kbd>↓</kbd> and <kbd>Home</kbd> / <kbd>End</kbd> move between the
+          entries, and <kbd>Esc</kbd> closes them.
+        </p>
 
         <h3>Editing</h3>
         <p>
-          Press <kbd>Ctrl</kbd>+<kbd>E</kbd> or the pencil button to edit the open document: the text
-          editor appears on the left, with a live preview on the right. An orange dot next to the file
-          name marks unsaved changes — save with <kbd>Ctrl</kbd>+<kbd>S</kbd>. Leaving edit mode or
+          Press <kbd>Ctrl</kbd>+<kbd>E</kbd> or the pencil button (<strong>Edit</strong>) to edit the open
+          document: the text editor appears on the left, with a live preview on the right. While you edit,
+          the button shows an open book: <strong>Back to reading</strong>. In a window narrower than about
+          760 pixels only the editor shows; the preview comes back when the window is wider or when you go
+          back to reading.
+        </p>
+        <p>
+          An orange dot next to the file name marks unsaved changes — save with <kbd>Ctrl</kbd>+<kbd>S</kbd>,
+          and the dot turns into a check for a moment (screen readers hear "Saved"). Leaving edit mode or
           opening another document with unsaved changes asks for confirmation first. If the file
           changes on disk while you have unsaved edits, a warning appears instead of overwriting your
           work, and saving over a file that changed since you opened it asks before overwriting it.
+        </p>
+        <p>
+          While editing, a <strong>double-click on the preview</strong> puts the editor's cursor on that word,
+          and the preview stays where it is; while reading, a double-click selects a word as usual.
         </p>
         <p>
           <strong>Formatting:</strong> the bar above the editor formats the selection — or the word
@@ -110,12 +131,29 @@
             <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Move the line up / down</td></tr>
             <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplicate the line</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Delete the line</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Select the line</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Add the next occurrence to the selection</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Add a cursor above / below</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Comment / uncomment the line</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Go to line</td></tr>
+            <tr><td><kbd>Esc</kbd>, then <kbd>Tab</kbd></td><td>Leave the editor with the keyboard</td></tr>
           </tbody>
         </table>
         <p>
           <strong>Tools</strong> (the sliders button at the right of the bar) collects find &amp; replace,
-          the line commands and <strong>Spellcheck</strong>, which underlines misspelled words with the
-          dictionary of the interface language, with suggestions on a right-click (after a language change in the reading settings, from the next start).
+          the line commands, <strong>Comment line</strong> and <strong>Spellcheck</strong>.
+          <strong>Comment line</strong> (<kbd>Ctrl</kbd>+<kbd>/</kbd>, that is <kbd>Ctrl</kbd> with the keys
+          that type <kbd>/</kbd>: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>7</kbd> on Italian and German
+          keyboards) wraps the lines in <code>&lt;!-- --&gt;</code>, so they are hidden when reading; inside a
+          code block it uses that language's comment, and a second time it takes the comment away.
+          <strong>Spellcheck</strong> underlines misspelled words with the dictionary of the interface
+          language, with suggestions on a right-click (after a language change in the reading settings, from
+          the next start).
+        </p>
+        <p>
+          <kbd>Tab</kbd> indents. To leave the editor with the keyboard, press <kbd>Esc</kbd> and then
+          <kbd>Tab</kbd> within two seconds; if text is selected or a panel (such as find &amp; replace) or a
+          menu is open, press <kbd>Esc</kbd> twice first.
         </p>
         <p>
           <strong>Recovery:</strong> while you have unsaved changes, a copy of the text is kept aside. If
@@ -137,11 +175,23 @@
           Folders you collapse stay collapsed while you navigate — and across restarts.
         </p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
-        <p>The pane updates by itself when files are added, renamed or deleted in the folder. Rename the open document and the window follows it; delete or move it and its text stays on screen, with a notice offering to save it again.</p>
+        <p>The pane updates by itself when files are added, renamed or deleted in the folder. Rename the open document and the window follows it; delete or move it and its text stays on screen, with a notice offering <strong>Save again</strong>.</p>
+        <p>
+          From the keyboard the list works as a tree: <kbd>↑</kbd> / <kbd>↓</kbd> move, <kbd>→</kbd> opens a
+          folder or steps into it, <kbd>←</kbd> closes it or goes up to its parent, <kbd>Home</kbd> /
+          <kbd>End</kbd> reach the ends, <kbd>Enter</kbd> or <kbd>Space</kbd> opens, and
+          <kbd>Ctrl</kbd>+<kbd>Enter</kbd> opens in a new window.
+        </p>
         <p>
           Both side panels can be widened by dragging their inner edge — double-click the edge to
           restore the default width. Their text size follows <strong>Panels</strong> in the reading
           settings.
+        </p>
+        <p>
+          A window can be as narrow as 480 pixels: half a laptop screen, or a Windows 11 snap layout. When
+          the window gets narrow, the outline and then the file browser fold away by themselves; their
+          toolbar buttons (or <kbd>Ctrl</kbd>+<kbd>I</kbd> and <kbd>Ctrl</kbd>+<kbd>B</kbd>) then open them
+          over the text, and <kbd>Esc</kbd>, a click elsewhere or a pick puts them away again.
         </p>
         <p>
           The search box above the tree (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) finds text in every
@@ -156,6 +206,11 @@
           narrow the headings, then <kbd>↑</kbd> / <kbd>↓</kbd> and <kbd>Enter</kbd> jump to one;
           <kbd>Esc</kbd> clears it.
         </p>
+        <p>
+          After a jump — from the outline, a link to a section, the <kbd>.</kbd> / <kbd>,</kbd> keys or
+          <code>--line</code> — the heading or block you land on lights up for a moment, so your eye finds
+          it. Back and Forward do not light it up.
+        </p>
 
         <h3>Live reload</h3>
         <p>The open file is watched on disk. When it changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
@@ -163,19 +218,20 @@
 
         <h3>Rendering</h3>
         <ul>
-          <li>GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks.</li>
+          <li>GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks. Web addresses become links, those starting with <code>www.</code> too, as on GitHub; file names such as <code>README.md</code> stay text.</li>
           <li>Code blocks are syntax-highlighted and have a copy button on hover.</li>
           <li><code>mermaid</code> code fences render as diagrams; invalid syntax falls back to the code block with an error note.</li>
-          <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans, <kbd>0</kbd> fits it to the window and <kbd>Esc</kbd> closes. The copy button offers the image as PNG (normal or large), a diagram also as SVG, and both can be saved to a file.</li>
+          <li>A table or a diagram wider than the reading column widens up to the whole width available, centred: no sideways scrolling, and the diagram's text keeps its size.</li>
+          <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans and <kbd>Esc</kbd> closes. <strong>Fit</strong> (<kbd>0</kbd>) fits it to the window, <strong>Width</strong> (<kbd>W</kbd>) fits its width, starting from the top, and <strong>100%</strong> (<kbd>1</kbd>) shows it at its actual size. The copy button offers the image as PNG (normal or large), a diagram also as SVG, and both can be saved to a file.</li>
           <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence for display blocks.</li>
           <li>GitHub-style callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>.</li>
           <li>Footnotes: <code>[^1]</code> in the text and <code>[^1]: …</code> anywhere; the notes are collected at the end, with links there and back.</li>
-          <li>Task lists are live: clicking a checkbox updates the <code>[ ]</code> / <code>[x]</code> in the file right away (with an <em>Undo</em> in the notice), or in the editor buffer while you are editing.</li>
-          <li>Tables have a copy button on hover that puts them on the clipboard as tab-separated text, ready for Excel or Google Sheets.</li>
-          <li>Links to other documents work like a wiki: <code>[text](other)</code> finds <code>other.md</code>, <code>[text](folder/)</code> opens the folder's <code>index.md</code> or <code>README.md</code>, and <code>other.md#section</code> jumps to that heading.</li>
+          <li>Task lists are live: clicking a checkbox updates the <code>[ ]</code> / <code>[x]</code> in the file right away (with an <em>Undo</em> in the notice), or in the editor buffer while you are editing. Only the box ticks the task: clicking or double-clicking its text, to select a word, changes nothing.</li>
+          <li>Tables have two buttons at the top right, shown on hover or when you reach them with the keyboard: <strong>Copy table (for Excel)</strong> puts the table on the clipboard as tab-separated text, ready for Excel or Google Sheets, and <strong>Open preview</strong> shows it full-window, across the window's width (also from the right-click menu).</li>
+          <li>Links to other documents work like a wiki: <code>[text](other)</code> finds <code>other.md</code>, <code>[text](folder/)</code> opens the folder's <code>index.md</code> or <code>README.md</code>, and <code>other.md#section</code> jumps to that heading. Headings get the same anchors as on GitHub (<code>## 1. Introduction</code> → <code>#1-introduction</code>), so tables of contents written for GitHub or by an AI assistant work here too; links written for earlier versions still land.</li>
           <li>YAML front matter between <code>---</code> lines is folded into a <em>Front matter</em> block at the top: click it to see the fields as a table.</li>
           <li>A paragraph containing only <code>[TOC]</code> becomes a table of contents of the headings that follow, which also goes to print, HTML and DOCX.</li>
-          <li>Images with relative paths resolve against the document's folder.</li>
+          <li>Images with relative paths resolve against the document's folder. Logos made for GitHub's light and dark themes (marked <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>, or a <code>&lt;picture&gt;</code> with light and dark sources) show the one for Leggimi's theme; printing and exports use the light one.</li>
           <li>Links to web pages open in your default browser, <code>mailto:</code> links in your mail app; links to other Markdown files open in the viewer, to images in the preview, to a folder in the file browser. A link to any other file (a PDF, a spreadsheet) offers to open it in its own app.</li>
           <li>Simple HTML in the text works: <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, images (<code>&lt;picture&gt;</code> and <code>srcset</code> too), video and audio from the document's folder. As on GitHub, a tag that is not HTML, such as <code>&lt;name&gt;</code>, does not show: to show it, write it between backticks (<code>`&lt;name&gt;`</code>) or with a backslash in front (<code>\&lt;name&gt;</code>). Tags that would change the page, such as <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> and <code>&lt;iframe&gt;</code>, show as text.</li>
         </ul>
@@ -184,7 +240,7 @@
         <p>The <strong>Share</strong> button (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) collects everything that leaves the app:</p>
         <ul>
           <li><strong>Copy as rich text</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>): puts the rendered document on the clipboard with formatting, ready to paste into Outlook, Word or Teams. Local images are embedded.</li>
-          <li><strong>Print…</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): prints only the document, laid out for paper, always on a light background, with the title and date at the top of every page and "page / pages" at the bottom.</li>
+          <li><strong>Print…</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): prints only the document, laid out for paper, always on a light background, with the title and date at the top of every page and "page / pages" at the bottom; a table wider than the page is scaled down to fit it.</li>
           <li><strong>Save as PDF</strong>: the same layout written straight to a PDF file, no dialog other than the file picker. <strong>New page at every heading 1</strong> is an option in the menu, remembered, for both.</li>
           <li><strong>Export as HTML / DOCX</strong>: saves the document as a single self-contained <code>.html</code> page that opens in any browser, or as a <code>.docx</code> optimized for Microsoft Word — math becomes native Word equations, diagrams become images.</li>
         </ul>
@@ -192,21 +248,41 @@
         <h3>Reading settings</h3>
         <p>
           The <strong>Aa</strong> button opens the reading settings: text size, sans or serif font, line
-          spacing, column width and the theme: <strong>light</strong>, <strong>sepia</strong> (warm
-          paper), <strong>dark</strong>, <strong>black</strong> (for OLED screens) or
-          <strong>auto</strong> (light or dark following Windows). Text size is also available anywhere with
-          <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd>, <kbd>Ctrl</kbd>+scroll wheel, and
-          <kbd>Ctrl</kbd>+<kbd>0</kbd> to reset; the editor text scales along with it.
+          spacing, column width, the interface language and the theme: <strong>light</strong>,
+          <strong>sepia</strong> (warm paper), <strong>dark</strong>, <strong>black</strong> (for OLED
+          screens) or <strong>auto</strong> (light or dark following Windows). Text size is also available
+          anywhere with <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd>, <kbd>Ctrl</kbd>+scroll
+          wheel, and <kbd>Ctrl</kbd>+<kbd>0</kbd> to reset; the editor text scales along with it.
           <strong>Panels</strong> sets the text size of the file browser and the outline on its own —
           <kbd>Ctrl</kbd>+scroll wheel over a panel changes that one instead. Every choice is
           remembered across restarts.
         </p>
+        <p>
+          With Windows' <strong>Animation effects</strong> turned off (Settings &gt; Accessibility &gt; Visual
+          effects), scrolling jumps instead of gliding and the highlight after a jump does not animate.
+        </p>
         <h3>Windows integration</h3>
         <p>Files you open are added to Windows' Recent items and to the app's taskbar jump list. Double-clicking any <code>.md</code> file in File Explorer opens it here once the association is registered by the installer.</p>
         <p>
-          Right-click a file in the browser panel, or the file name in the toolbar, to <strong>show it in
-          File Explorer</strong>, copy its path, or copy a Markdown link to it relative to the open document.
-          The pin button (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>) keeps the window on top of the others.
+          In File Explorer, <strong>New</strong> → <strong>Markdown document</strong> (right-click in a
+          folder) creates an empty <code>.md</code> file. With the installer, that name — and the name of
+          the file type in Explorer's <em>Type</em> column — follows the Windows display language
+          (<em>Documento Markdown</em> on an Italian Windows); in the Microsoft Store version the entry is
+          always <em>Markdown document</em>.
+        </p>
+        <p>
+          Right-click a file in the browser panel, or the file name in the toolbar, for <strong>Open in a
+          new window</strong>, <strong>Show in File Explorer</strong>, <strong>Copy path</strong> or
+          <strong>Copy as Markdown link</strong> (relative to the open document). The pin button
+          (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>) keeps the window on top of the others.
+        </p>
+        <p>
+          In the Microsoft Store version, after a few days of use a small card asks <em>Enjoying
+          Leggimi?</em>: <strong>Rate</strong> opens the Store's rating dialog over Leggimi (or the Store
+          page, if the dialog cannot open), <strong>Later</strong> asks again in a month and <strong>No
+          thanks</strong> never again. The card shows in one window at a time and, left unanswered, waits a
+          week before coming back; <strong>Rate on the Store</strong>, at the bottom of this help, does the
+          same as Rate.
         </p>
         <p>
           A <strong>portable</strong> build is available on GitHub as a zip: unpack it anywhere and run it,

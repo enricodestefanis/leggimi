@@ -154,6 +154,9 @@
               return null;
             case "is_store_install":
               return params.has("store"); // ?store=1 behaves like the Store build
+            case "request_store_rating":
+              // the Store's own rating dialog: harness.rateResult picks its answer
+              return harness.rateResult ?? "succeeded";
             case "plugin:app|version":
               return "harness";
             case "plugin:dialog|message":

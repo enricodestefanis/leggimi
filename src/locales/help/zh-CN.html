@@ -33,7 +33,7 @@
           在选中的文字上按 <kbd>Ctrl</kbd>+<kbd>C</kbd>，会连同格式一起复制（可直接粘贴到 Word 或 Outlook），同时也复制纯文本。文档还可以像纸张一样拖动：在任何位置按住鼠标中键，或在文字旁边的空白处按住左键。
         </p>
         <p>
-          在文档上右键可打开其菜单：复制所选内容（带格式或纯文本），或在文档、文件夹中搜索它；打开或复制链接；打开图片或图表，复制代码块或表格；<strong>复制指向该章节的链接</strong> <code>[标题](文件.md#标题)</code>，可在任何其他文档中使用；<strong>从该处开始编辑</strong>；打印或保存为 PDF。
+          在文档上右键（或按 <kbd>Shift</kbd>+<kbd>F10</kbd> 或菜单键）可打开其菜单：复制所选内容（带格式或纯文本），或在文档、文件夹中搜索它；打开或复制链接；用<strong>打开预览</strong>打开图片、图表或表格，复制代码块或表格；<strong>复制指向此章节的链接</strong>会得到 <code>[标题](文件.md#标题)</code>，这个链接在任何其他文档中都能使用，在 GitHub 上也一样；<strong>从此处编辑</strong>会在该处打开编辑器；<strong>复制整个文档</strong>连同格式复制整篇文档，与 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> 相同；打印或保存为 PDF。
         </p>
         <p>
           和浏览器一样，<kbd>Alt</kbd>+<kbd>←</kbd>（或鼠标侧面的<em>后退</em>键）会回到你点击章节链接、点击大纲或切换到另一个文档之前的位置；<kbd>Alt</kbd>+<kbd>→</kbd>（或<em>前进</em>键）再前进。右键菜单顶部也有<strong>后退</strong>和<strong>前进</strong>。每个窗口都有自己的历史记录。
@@ -53,22 +53,33 @@
             <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>打印或保存为 PDF</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>将文档复制为富文本</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>打开分享菜单</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>F10</kbd></td><td>打开右键菜单（也可按菜单键）</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>放大 / 缩小文字</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>重置文字大小</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>窗口保持置顶</td></tr>
-            <tr><td><kbd>F5</kbd></td><td>从磁盘重新加载文件</td></tr>
+            <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>从磁盘重新加载文件</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>新窗口</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>关闭窗口</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>后退 / 前进</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+单击 / 中键单击</td><td>在新窗口中打开文件、最近文档、搜索结果或链接</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>关闭窗口</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>后退 / 前进（也可用鼠标侧键）</td></tr>
             <tr><td><kbd>?</kbd></td><td>按键速查表</td></tr>
             <tr><td><kbd>F1</kbd></td><td>显示本帮助</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>关闭查找栏、预览或本帮助</td></tr>
           </tbody>
         </table>
+        <p>
+          使用键盘时，<kbd>Tab</kbd> 可以到达工具栏按钮和 <strong>Aa</strong> 阅读设置，焦点始终清晰可见；在菜单中（分享菜单、右键菜单、预览的复制菜单），用 <kbd>↑</kbd> / <kbd>↓</kbd> 和 <kbd>Home</kbd> / <kbd>End</kbd> 在各项之间移动，按 <kbd>Esc</kbd> 关闭菜单。
+        </p>
 
         <h3>编辑</h3>
         <p>
-          按 <kbd>Ctrl</kbd>+<kbd>E</kbd> 或铅笔按钮编辑当前文档：左侧是文本编辑器，右侧是实时预览。文件名旁的橙色圆点表示有未保存的更改，按 <kbd>Ctrl</kbd>+<kbd>S</kbd> 保存。在有未保存更改时退出编辑模式或打开其他文档，会先请求确认。如果文件在你有未保存更改时在磁盘上发生变化，会显示警告而不是覆盖你的工作；覆盖保存一个在打开后已被修改的文件时，也会先询问。
+          按 <kbd>Ctrl</kbd>+<kbd>E</kbd> 或铅笔按钮（<strong>编辑</strong>）编辑当前文档：左侧是文本编辑器，右侧是实时预览。编辑时，该按钮显示为一本打开的书：<strong>返回阅读</strong>。窗口宽度小于约 760 像素时只显示编辑器；窗口变宽或返回阅读时，预览会重新出现。
+        </p>
+        <p>
+          文件名旁的橙色圆点表示有未保存的更改，按 <kbd>Ctrl</kbd>+<kbd>S</kbd> 保存后，圆点会短暂变成一个对勾（屏幕阅读器会读出“已保存”）。在有未保存更改时退出编辑模式或打开其他文档，会先请求确认。如果文件在你有未保存更改时在磁盘上发生变化，会显示警告而不是覆盖你的工作；覆盖保存一个在打开后已被修改的文件时，也会先询问。
+        </p>
+        <p>
+          编辑时，在<strong>预览中双击</strong>某个词，编辑器的光标就会移到这个词上，预览保持不动；阅读时，双击照常选中一个词。
         </p>
         <p>
           <strong>格式：</strong>编辑器上方的格式栏可对选中内容（或光标所在的词）设置格式，并插入表格、Mermaid 图表、公式和提示框。在行首输入 <kbd>/</kbd> 可按名称选择块。在选中的文字上粘贴链接会将其变成 Markdown 链接。
@@ -86,10 +97,19 @@
             <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>上移 / 下移当前行</td></tr>
             <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>复制当前行</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>删除当前行</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>选中当前行</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>将下一个相同内容加入选区</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>在上方 / 下方添加光标</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>注释 / 取消注释当前行</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>转到行</td></tr>
+            <tr><td><kbd>Esc</kbd>，然后 <kbd>Tab</kbd></td><td>用键盘离开编辑器</td></tr>
           </tbody>
         </table>
         <p>
-          <strong>工具</strong>（格式栏右侧的滑块按钮）汇集了查找与替换、行命令和<strong>拼写检查</strong>；拼写检查会用界面语言的词典给拼错的单词加下划线，右键可查看更正建议（在阅读设置中更改语言后，下次启动时生效）。
+          <strong>工具</strong>（格式栏右侧的滑块按钮）汇集了查找与替换、行命令、<strong>注释当前行</strong>和<strong>拼写检查</strong>。<strong>注释当前行</strong>（<kbd>Ctrl</kbd>+<kbd>/</kbd>，即 <kbd>Ctrl</kbd> 加上能输入 <kbd>/</kbd> 的按键；在意大利语或德语键盘上为 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>7</kbd>）用 <code>&lt;!-- --&gt;</code> 包裹这些行，阅读时它们会被隐藏；在代码块中则使用该语言的注释，再执行一次即可取消。<strong>拼写检查</strong>会用界面语言的词典给拼错的单词加下划线，右键可查看更正建议（在阅读设置中更改语言后，下次启动时生效）。
+        </p>
+        <p>
+          <kbd>Tab</kbd> 用于缩进。要用键盘离开编辑器，先按 <kbd>Esc</kbd>，再在两秒内按 <kbd>Tab</kbd>；如果有选中的文字，或打开了面板（如查找与替换）或菜单，请先按两次 <kbd>Esc</kbd>。
         </p>
         <p>
           <strong>恢复：</strong>只要有未保存的更改，文本副本就会被保留在一旁。如果应用未保存就关闭了（崩溃、强制关机），下次打开该文件时会有提示询问是否恢复。在你保存之前，文件本身绝不会被改动。
@@ -103,9 +123,15 @@
           左侧面板列出你打开的文件夹中的 Markdown 文件，最多四层子文件夹。从面板打开文件会保持同一个根文件夹，不会迷失方向；用<em>文件</em>旁的<strong>向上箭头</strong>把根移到上级文件夹。打开当前文件夹之外的文档会把面板移到那里。你折叠的文件夹在浏览期间保持折叠，重启后也是如此。
         </p>
         <p>没有 Markdown 文件的文件夹会被隐藏，隐藏文件夹和 <code>node_modules</code> 之类的构建文件夹也一样。</p>
-        <p>文件夹中添加、重命名或删除文件时，面板会自动更新。重命名当前打开的文档时，窗口会跟着它；删除或移走它时，文字仍留在屏幕上，并有提示可以重新保存。</p>
+        <p>文件夹中添加、重命名或删除文件时，面板会自动更新。重命名当前打开的文档时，窗口会跟着它；删除或移走它时，文字仍留在屏幕上，并有提示提供<strong>重新保存</strong>。</p>
+        <p>
+          使用键盘时，列表像树一样操作：<kbd>↑</kbd> / <kbd>↓</kbd> 移动，<kbd>→</kbd> 展开文件夹或进入其中，<kbd>←</kbd> 折叠文件夹或回到上级，<kbd>Home</kbd> / <kbd>End</kbd> 跳到首尾，<kbd>Enter</kbd> 或 <kbd>空格</kbd> 打开，<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 在新窗口中打开。
+        </p>
         <p>
           两个侧边面板都可以拖动内边缘加宽，双击边缘恢复默认宽度。它们的文字大小跟随阅读设置中的<strong>面板</strong>。
+        </p>
+        <p>
+          窗口最窄可以缩到 480 像素：笔记本屏幕的一半，或 Windows 11 的贴靠布局。窗口变窄时，大纲和文件列表会先后自动收起；这时点击它们在工具栏上的按钮（或按 <kbd>Ctrl</kbd>+<kbd>I</kbd> 和 <kbd>Ctrl</kbd>+<kbd>B</kbd>）会让它们浮在文字上方打开，按 <kbd>Esc</kbd>、点击其他地方或选择一项后即会收起。
         </p>
         <p>
           目录树上方的搜索框（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>）在文件夹的每个 Markdown 文件中查找文本，结果显示文件和片段，打开结果会在文档中高亮该词。<kbd>Esc</kbd> 清除搜索并恢复目录树。
@@ -115,6 +141,9 @@
         <p>
           右侧面板列出文档的标题，并高亮你正在阅读的那个。单击任意条目即可跳转。长文档的列表上方会出现筛选框：输入以缩小标题范围，然后用 <kbd>↑</kbd> / <kbd>↓</kbd> 和 <kbd>Enter</kbd> 跳转；<kbd>Esc</kbd> 清空筛选。
         </p>
+        <p>
+          跳转之后（通过大纲、章节链接、<kbd>.</kbd> / <kbd>,</kbd> 键或 <code>--line</code>），你到达的标题或段落会短暂高亮，方便目光找到它。后退和前进不会触发高亮。
+        </p>
 
         <h3>自动刷新</h3>
         <p>打开的文件会被监视。文件变化时，视图自动刷新并保持阅读位置——在文档被重新生成时很有用。编辑模式下，只有缓冲区没有未保存更改时才会刷新。</p>
@@ -122,19 +151,20 @@
 
         <h3>渲染</h3>
         <ul>
-          <li>GitHub 风格的 Markdown：表格、任务列表、删除线、自动链接。</li>
+          <li>GitHub 风格的 Markdown：表格、任务列表、删除线、自动链接。网址会变成链接，以 <code>www.</code> 开头的也一样，与 GitHub 相同；<code>README.md</code> 之类的文件名仍是普通文本。</li>
           <li>代码块带语法高亮，悬停时有复制按钮。</li>
           <li><code>mermaid</code> 代码块渲染为图表；语法无效时回退为代码块并附错误说明。</li>
-          <li>单击图表或图片可全窗口打开：<kbd>+</kbd> / <kbd>−</kbd> 或滚轮缩放，拖动平移，<kbd>0</kbd> 适应窗口，<kbd>Esc</kbd> 关闭。复制按钮可提供 PNG 图片（普通或大图），图表还可提供 SVG，两者都可以保存为文件。</li>
+          <li>比阅读栏更宽的表格或图表会居中展开，最宽可占满全部可用宽度：无需横向滚动，图表的文字也保持原有大小。</li>
+          <li>单击图表或图片可全窗口打开：<kbd>+</kbd> / <kbd>−</kbd> 或滚轮缩放，拖动平移，<kbd>Esc</kbd> 关闭。<strong>适应</strong>（<kbd>0</kbd>）使其适应窗口，<strong>宽度</strong>（<kbd>W</kbd>）使其适应宽度并从顶部开始，<strong>100%</strong>（<kbd>1</kbd>）按实际大小显示。复制按钮可提供 PNG 图片（普通或大图），图表还可提供 SVG，两者都可以保存为文件。</li>
           <li>公式使用 KaTeX 渲染：行内 <code>$…$</code>，独立公式用 <code>$$…$$</code> 或 <code>math</code> 代码块。</li>
           <li>GitHub 风格的提示框：以 <code>[!NOTE]</code>、<code>[!TIP]</code>、<code>[!IMPORTANT]</code>、<code>[!WARNING]</code> 或 <code>[!CAUTION]</code> 开头的引用。</li>
           <li>脚注：正文中的 <code>[^1]</code> 和任意位置的 <code>[^1]: …</code>；脚注汇集在文末，带有来回跳转链接。</li>
-          <li>任务列表是可交互的：单击复选框会立即更新文件中的 <code>[ ]</code> / <code>[x]</code>（提示中有<em>撤销</em>），编辑时则更新编辑器缓冲区。</li>
-          <li>表格悬停时有复制按钮，将其以制表符分隔的文本放入剪贴板，可直接粘贴到 Excel 或 Google 表格。</li>
-          <li>指向其他文档的链接像 wiki 一样工作：<code>[文字](other)</code> 找到 <code>other.md</code>，<code>[文字](folder/)</code> 打开该文件夹的 <code>index.md</code> 或 <code>README.md</code>，<code>other.md#section</code> 跳转到该标题。</li>
+          <li>任务列表是可交互的：单击复选框会立即更新文件中的 <code>[ ]</code> / <code>[x]</code>（提示中有<em>撤销</em>），编辑时则更新编辑器缓冲区。只有复选框才能勾选任务：单击或双击任务文字（例如为了选中一个词）不会改变任何内容。</li>
+          <li>表格右上角有两个按钮，鼠标悬停或用键盘到达时显示：<strong>复制表格（用于 Excel）</strong>把表格以制表符分隔的文本放入剪贴板，可直接粘贴到 Excel 或 Google 表格；<strong>打开预览</strong>以窗口宽度全窗口显示表格（右键菜单中也有）。</li>
+          <li>指向其他文档的链接像 wiki 一样工作：<code>[文字](other)</code> 找到 <code>other.md</code>，<code>[文字](folder/)</code> 打开该文件夹的 <code>index.md</code> 或 <code>README.md</code>，<code>other.md#section</code> 跳转到该标题。标题的锚点与 GitHub 相同（<code>## 1. 简介</code> → <code>#1-简介</code>），因此为 GitHub 编写或由 AI 助手生成的目录在这里同样可用；为早期版本写的链接也仍然有效。</li>
           <li><code>---</code> 行之间的 YAML front matter 会折叠成顶部的 <em>Front matter</em> 区块：单击可以表格形式查看字段。</li>
           <li>只包含 <code>[TOC]</code> 的段落会变成后续标题的目录，打印、HTML 和 DOCX 中也会保留。</li>
-          <li>相对路径的图片相对于文档所在文件夹解析。</li>
+          <li>相对路径的图片相对于文档所在文件夹解析。为 GitHub 浅色和深色主题制作的徽标（标有 <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>，或带有浅色和深色来源的 <code>&lt;picture&gt;</code>）会显示与 Leggimi 当前主题相符的那一个；打印和导出使用浅色版本。</li>
           <li>网页链接在默认浏览器中打开，<code>mailto:</code> 链接在邮件应用中打开；指向其他 Markdown 文件的链接在查看器中打开，指向图片的链接在预览中打开，指向文件夹的链接在文件面板中打开。指向其他文件（PDF、电子表格）的链接会提示用其对应的应用打开。</li>
           <li>文本中的简单 HTML 可以使用：<code>&lt;br&gt;</code>、<code>&lt;kbd&gt;</code>、<code>&lt;sup&gt;</code>、<code>&lt;details&gt;</code>、图片（包括 <code>&lt;picture&gt;</code> 和 <code>srcset</code>），以及文档所在文件夹中的视频和音频。和 GitHub 一样，不是 HTML 的标签（如 <code>&lt;name&gt;</code>）不会显示：要显示它，请用反引号括起来（<code>`&lt;name&gt;`</code>）或在前面加反斜杠（<code>\&lt;name&gt;</code>）。会改变页面的标签，如 <code>&lt;style&gt;</code>、<code>&lt;script&gt;</code>、<code>&lt;title&gt;</code> 和 <code>&lt;iframe&gt;</code>，会显示为文本。</li>
         </ul>
@@ -143,7 +173,7 @@
         <p><strong>分享</strong>按钮（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>）汇集了所有从应用输出的方式：</p>
         <ul>
           <li><strong>复制为富文本</strong>（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>）：把渲染后的文档连同格式放入剪贴板，可直接粘贴到 Outlook、Word 或 Teams。本地图片会被嵌入。</li>
-          <li><strong>打印…</strong>（<kbd>Ctrl</kbd>+<kbd>P</kbd>）：只打印文档，按纸张排版，始终使用浅色背景，每页顶部有标题和日期，底部有“页码 / 总页数”。</li>
+          <li><strong>打印…</strong>（<kbd>Ctrl</kbd>+<kbd>P</kbd>）：只打印文档，按纸张排版，始终使用浅色背景，每页顶部有标题和日期，底部有“页码 / 总页数”；比页面宽的表格会缩小以适应页面。</li>
           <li><strong>保存为 PDF</strong>：同样的排版直接写入 PDF 文件，除了选择文件外没有其他对话框。菜单中的<strong>每个一级标题另起一页</strong>选项会被记住，对两者都有效。</li>
           <li><strong>导出为 HTML / DOCX</strong>：把文档保存为可在任何浏览器中打开的单个独立 <code>.html</code> 页面，或为 Microsoft Word 优化的 <code>.docx</code>——公式变成 Word 原生公式，图表变成图片。</li>
         </ul>
@@ -152,10 +182,19 @@
         <p>
           <strong>Aa</strong> 按钮打开阅读设置：文字大小、无衬线或衬线字体、行距、栏宽、界面语言和主题：<strong>浅色</strong>、<strong>棕褐</strong>（暖纸色）、<strong>深色</strong>、<strong>纯黑</strong>（适合 OLED 屏幕）或<strong>自动</strong>（跟随 Windows 的浅色或深色）。文字大小在任何地方都可以用 <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd>、<kbd>Ctrl</kbd>+滚轮调整，<kbd>Ctrl</kbd>+<kbd>0</kbd> 重置；编辑器文字也会随之缩放。<strong>面板</strong>单独设置文件列表和大纲的文字大小——在面板上用 <kbd>Ctrl</kbd>+滚轮只改变该面板。所有选择在重启后都会保留。
         </p>
+        <p>
+          如果关闭了 Windows 的<strong>动画效果</strong>（设置 &gt; 辅助功能 &gt; 视觉效果），滚动会直接跳转而不是平滑滑动，跳转后的高亮也不会有动画。
+        </p>
         <h3>Windows 集成</h3>
         <p>你打开的文件会加入 Windows 的“最近使用的项目”和任务栏上应用的跳转列表。安装程序注册关联后，在文件资源管理器中双击任意 <code>.md</code> 文件即可在此打开。</p>
         <p>
-          在面板中的文件上或工具栏的文件名上右键，可以<strong>在文件资源管理器中显示</strong>、复制路径，或复制相对于当前文档的 Markdown 链接。图钉按钮（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>）让窗口保持在其他窗口之上。
+          在文件资源管理器中，<strong>新建</strong> → <strong>Markdown 文档</strong>（在文件夹中右键）会创建一个空的 <code>.md</code> 文件。使用安装程序时，这个名称以及资源管理器<em>类型</em>列中的文件类型名称都跟随 Windows 的显示语言；Microsoft Store 版本中该项始终名为 <em>Markdown document</em>。
+        </p>
+        <p>
+          在面板中的文件上或工具栏的文件名上右键，可选择<strong>在新窗口中打开</strong>、<strong>在文件资源管理器中显示</strong>、<strong>复制路径</strong>或<strong>复制为 Markdown 链接</strong>（相对于当前文档）。图钉按钮（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>）让窗口保持在其他窗口之上。
+        </p>
+        <p>
+          在 Microsoft Store 版本中，使用几天后会出现一张小卡片，询问<em>喜欢 Leggimi 吗？</em>：<strong>评分</strong>会在 Leggimi 上方打开商店的评分对话框（无法打开时则打开商店页面），<strong>稍后</strong>会在一个月后再次询问，<strong>不用了</strong>则不再询问。卡片一次只在一个窗口中出现；如果没有回应，会等一周后再出现。本帮助底部的<strong>在商店评分</strong>与“评分”作用相同。
         </p>
         <p>
           GitHub 上还提供<strong>便携版</strong> zip：解压到任意位置即可运行，设置保存在程序旁的 <code>data</code> 文件夹中，而不是用户配置文件里。

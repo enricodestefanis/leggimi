@@ -23,7 +23,8 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   min-height: 0;
-  /* containing block for the resize handles, which stay out of the grid flow */
+  /* containing block for the resize handles and the peeking panes, which
+     stay out of the grid flow */
   position: relative;
 }
 
@@ -69,19 +70,26 @@
   right: calc(var(--toc-width) - 6px);
 }
 
-/* display (not visibility) so a hidden handle also leaves the tab order */
+/* display (not visibility) so a hidden handle also leaves the tab order; a
+   pane the window has no room for (panes.ts: *-auto) has no edge to drag,
+   peeking or not */
 #app.tree-hidden #tree-resizer,
+#app.tree-auto #tree-resizer,
 #app.toc-hidden #toc-resizer,
+#app.toc-auto #toc-resizer,
 #app.no-headings #toc-resizer,
 #app.editing .pane-resizer {
   display: none;
 }
 
-#app.tree-hidden #tree-pane {
+/* the user's choice (*-hidden) or no room in the window (*-auto) */
+#app.tree-hidden #tree-pane,
+#app.tree-auto #tree-pane {
   display: none;
 }
 
 #app.toc-hidden #toc-pane,
+#app.toc-auto #toc-pane,
 #app.no-headings #toc-pane {
   display: none;
 }
@@ -114,15 +122,128 @@
   display: none;
 }
 
+/* A pane the window has no room for, called up anyway (panes.ts: *-peek):
+   it floats over the text, full height, until Escape, a click outside or a
+   pick. Above the article and its sticky bars, below the menus (40) and the
+   dialogs. Out of the grid (grid-column: auto), its containing block is the
+   whole shell, so it can be told to leave a strip of the text in sight. */
+#app.tree-peek #tree-pane,
+#app.toc-peek #toc-pane {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 30;
+  grid-column: auto;
+  min-width: 0;
+  max-width: calc(100% - 48px);
+  background: var(--bg);
+  /* the edge of a floating surface: the shadow vanishes on the black theme */
+  border-color: var(--float-border);
+  box-shadow: var(--shadow);
+}
+
+#app.tree-peek #tree-pane {
+  left: 0;
+  animation: peek-from-left 0.16s var(--ease);
+}
+
+#app.toc-peek #toc-pane {
+  right: 0;
+  animation: peek-from-right 0.16s var(--ease);
+}
+
+@keyframes peek-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes peek-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
 #content-pane {
   grid-column: 2;
   position: relative;
   overflow-y: auto;
   min-width: 0;
+  /* A document cannot cover the app: layout containment makes the pane the
+     containing block of the document's position: fixed content, which then
+     scrolls with the text and is clipped by the pane instead of spreading
+     over the toolbar and the side panes (container-type alone no longer
+     implies it). The pane is also the query container of the article's
+     padding below and of the wide tables and diagrams (100cqi). */
+  contain: layout;
+  container-type: inline-size;
+  /* the scrollbar's place is kept even when the document is short: cq units
+     then measure the width the text really has (with the gutter on demand,
+     100cqi includes the scrollbar and a full-width block would overflow
+     sideways), and a document that grows past one screen, a diagram
+     rendering, does not reflow by its width */
+  scrollbar-gutter: stable;
 }
 
 article {
+  /* the side padding, also the gutter a wide table keeps from the pane's
+     edges (markdown.css, .wide) */
+  --column-pad: 32px;
   max-width: var(--reader-max-width);
   margin: 0 auto;
-  padding: 48px 32px 96px;
+  padding: 48px var(--column-pad) 96px;
+  /* the document's z-index values stay inside it, under the find bar, the
+     notices and the rating card */
+  isolation: isolate;
+}
+
+/* a narrow pane (a narrow window, half of one beside the editor) keeps more
+   of its width for the text */
+@container (max-width: 640px) {
+  article {
+    --column-pad: 20px;
+    padding-top: 32px;
+    padding-bottom: 72px;
+  }
+}
+
+@container (max-width: 420px) {
+  article {
+    --column-pad: 14px;
+    padding-top: 24px;
+  }
+}
+
+/* Editing in a narrow window (panes.ts: is-narrow): the editor takes the
+   whole width, as side by side neither half would be usable. The preview
+   pane stays in the page for its notice bar alone (saving, errors), which
+   then floats at the bottom over the editor. Screen only: printing while
+   editing prints the preview. */
+@media screen {
+  #app.editing.is-narrow #shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #app.editing.is-narrow #content-pane {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    grid-column: auto;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  #app.editing.is-narrow #content-pane > :not(#notice-bar) {
+    display: none;
+  }
+
+  #app.editing.is-narrow #notice-bar {
+    margin-bottom: 16px;
+    pointer-events: auto;
+  }
 }

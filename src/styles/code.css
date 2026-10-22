@@ -43,7 +43,9 @@
   transition: opacity 0.15s;
 }
 
-.code-block:hover .code-copy {
+/* also for the keyboard: Tab can land on the button while it is invisible */
+.code-block:hover .code-copy,
+.code-copy:focus-visible {
   opacity: 1;
 }
 
@@ -54,7 +56,8 @@
   line-height: 1.55;
 }
 
-/* hljs — GitHub Light palette, scoped so themes can switch */
+/* hljs — GitHub Light palette, scoped so themes can switch. The comment grey
+   is one step darker than GitHub's #6e7781, which is 4.1:1 on --code-bg. */
 .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
 .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #cf222e; }
 .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #8250df; }
@@ -62,7 +65,7 @@
 .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id, .hljs-variable { color: #0550ae; }
 .hljs-string, .hljs-regexp, .hljs-meta .hljs-string { color: #0a3069; }
 .hljs-built_in, .hljs-symbol { color: #953800; }
-.hljs-comment, .hljs-code, .hljs-formula { color: #6e7781; }
+.hljs-comment, .hljs-code, .hljs-formula { color: #656d77; }
 .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #116329; }
 .hljs-subst { color: #24292f; }
 .hljs-section { color: #0550ae; font-weight: 600; }
@@ -71,6 +74,18 @@
 .hljs-strong { font-weight: 600; }
 .hljs-addition { color: #116329; background-color: #dafbe1; }
 .hljs-deletion { color: #82071e; background-color: #ffebe9; }
+
+/* hljs — sepia: the light palette on a darker, warmer --code-bg, where the
+   red, purple and grey fall under AA (4.2, 4.0 and 3.6:1); deeper shades of
+   the same hues. The other colours clear 5.8:1 as they are. */
+[data-theme="sepia"] .hljs-doctag, [data-theme="sepia"] .hljs-keyword,
+[data-theme="sepia"] .hljs-meta .hljs-keyword, [data-theme="sepia"] .hljs-template-tag,
+[data-theme="sepia"] .hljs-template-variable, [data-theme="sepia"] .hljs-type,
+[data-theme="sepia"] .hljs-variable.language_ { color: #bf1f2a; }
+[data-theme="sepia"] .hljs-title, [data-theme="sepia"] .hljs-title.class_,
+[data-theme="sepia"] .hljs-title.class_.inherited__, [data-theme="sepia"] .hljs-title.function_ { color: #7447c8; }
+[data-theme="sepia"] .hljs-comment, [data-theme="sepia"] .hljs-code,
+[data-theme="sepia"] .hljs-formula { color: #59636e; }
 
 /* hljs — GitHub Dark palette */
 [data-scheme="dark"] .hljs-doctag, [data-scheme="dark"] .hljs-keyword,

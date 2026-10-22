@@ -45,11 +45,14 @@
           mit der mittleren Maustaste überall, mit der linken auf der freien Fläche neben dem Text.
         </p>
         <p>
-          Ein Rechtsklick auf das Dokument öffnet sein Menü: die Auswahl kopieren (formatiert oder als reiner
-          Text) oder im Dokument bzw. im Ordner suchen; einen Link öffnen oder kopieren; ein Bild oder Diagramm
-          öffnen, einen Codeblock oder eine Tabelle kopieren; <strong>einen Link zum Abschnitt kopieren</strong>,
-          <code>[Überschrift](datei.md#überschrift)</code>, der aus jedem anderen Dokument funktioniert;
-          <strong>ab dieser Stelle bearbeiten</strong>; drucken oder als PDF speichern.
+          Ein Rechtsklick auf das Dokument – oder <kbd>Umschalt</kbd>+<kbd>F10</kbd> bzw. die Menütaste – öffnet
+          sein Menü: die Auswahl kopieren (formatiert oder als reiner Text) oder im Dokument bzw. im Ordner
+          suchen; einen Link öffnen oder kopieren; ein Bild, ein Diagramm oder eine Tabelle mit <strong>Vorschau
+          öffnen</strong> anzeigen, einen Codeblock oder eine Tabelle kopieren; <strong>Link zu diesem Abschnitt
+          kopieren</strong> liefert <code>[Überschrift](datei.md#überschrift)</code>, einen Link, der aus jedem
+          anderen Dokument und auch auf GitHub funktioniert; <strong>Ab hier bearbeiten</strong> öffnet den
+          Editor an dieser Stelle; <strong>Ganzes Dokument kopieren</strong> kopiert es mit Formatierung, wie
+          <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd>; drucken oder als PDF speichern.
         </p>
         <p>
           Wie in einem Browser kehrt <kbd>Alt</kbd>+<kbd>←</kbd> (oder die seitliche <em>Zurück</em>-Taste der Maus) dorthin zurück, wo Sie vor einem Link zu einem Abschnitt, einem Klick in der Gliederung oder dem Wechsel zu einem anderen Dokument waren; <kbd>Alt</kbd>+<kbd>→</kbd> (oder die <em>Vorwärts</em>-Taste) geht den Weg wieder vor. <strong>Zurück</strong> und <strong>Vorwärts</strong> stehen auch oben im Kontextmenü. Jedes Fenster hat seinen eigenen Verlauf.
@@ -69,28 +72,47 @@
             <tr><td><kbd>Strg</kbd>+<kbd>P</kbd></td><td>Drucken oder als PDF speichern</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd></td><td>Dokument als formatierten Text kopieren</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>E</kbd></td><td>Menü Teilen öffnen</td></tr>
+            <tr><td><kbd>Umschalt</kbd>+<kbd>F10</kbd></td><td>Kontextmenü öffnen (auch die Menütaste)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>=</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd></td><td>Größerer / kleinerer Text</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>0</kbd></td><td>Textgröße zurücksetzen</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd></td><td>Fenster im Vordergrund halten</td></tr>
-            <tr><td><kbd>F5</kbd></td><td>Datei neu vom Datenträger laden</td></tr>
+            <tr><td><kbd>F5</kbd> / <kbd>Strg</kbd>+<kbd>R</kbd></td><td>Datei neu vom Datenträger laden</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>N</kbd></td><td>Neues Fenster</td></tr>
-            <tr><td><kbd>Strg</kbd>+<kbd>W</kbd></td><td>Fenster schließen</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Zurück / vorwärts</td></tr>
+            <tr><td><kbd>Strg</kbd>+Klick / Mittelklick</td><td>Datei, zuletzt geöffnetes Dokument, Suchergebnis oder Link in neuem Fenster öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>W</kbd> / <kbd>Strg</kbd>+<kbd>F4</kbd></td><td>Fenster schließen</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Zurück / vorwärts (auch die Seitentasten der Maus)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Kurzübersicht der Tasten</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Suchleiste, Vorschau oder diese Hilfe schließen</td></tr>
           </tbody>
         </table>
+        <p>
+          Mit der Tastatur erreicht <kbd>Tab</kbd> die Schaltflächen der Symbolleiste und die Leseeinstellungen
+          <strong>Aa</strong>, und der Fokus ist immer sichtbar; in den Menüs (Teilen, das Kontextmenü, das
+          Kopiermenü der Vorschau) wechseln <kbd>↑</kbd> / <kbd>↓</kbd> und <kbd>Pos1</kbd> / <kbd>Ende</kbd>
+          zwischen den Einträgen, und <kbd>Esc</kbd> schließt sie.
+        </p>
 
         <h3>Bearbeiten</h3>
         <p>
-          <kbd>Strg</kbd>+<kbd>E</kbd> oder die Stift-Schaltfläche öffnet das Dokument zum Bearbeiten: links der
-          Texteditor, rechts die Live-Vorschau. Ein orangefarbener Punkt neben dem Dateinamen zeigt
-          ungespeicherte Änderungen an – speichern Sie mit <kbd>Strg</kbd>+<kbd>S</kbd>. Beim Verlassen des
-          Bearbeitungsmodus oder beim Öffnen eines anderen Dokuments mit ungespeicherten Änderungen wird
-          zuerst nachgefragt. Ändert sich die Datei auf der Festplatte, während Sie ungespeicherte
-          Änderungen haben, erscheint eine Warnung statt Ihre Arbeit zu überschreiben; und das Speichern über
-          eine seit dem Öffnen geänderte Datei fragt vorher nach.
+          <kbd>Strg</kbd>+<kbd>E</kbd> oder die Stift-Schaltfläche (<strong>Bearbeiten</strong>) öffnet das
+          Dokument zum Bearbeiten: links der Texteditor, rechts die Live-Vorschau. Beim Bearbeiten zeigt die
+          Schaltfläche ein aufgeschlagenes Buch: <strong>Zurück zum Lesen</strong>. In einem Fenster, das
+          schmaler als etwa 760 Pixel ist, erscheint nur der Editor; die Vorschau kommt zurück, sobald das
+          Fenster breiter ist oder Sie zum Lesen zurückkehren.
+        </p>
+        <p>
+          Ein orangefarbener Punkt neben dem Dateinamen zeigt ungespeicherte Änderungen an – speichern Sie mit
+          <kbd>Strg</kbd>+<kbd>S</kbd>, dann wird der Punkt kurz zu einem Häkchen (Bildschirmleser melden
+          „Gespeichert“). Beim Verlassen des Bearbeitungsmodus oder beim Öffnen eines anderen Dokuments mit
+          ungespeicherten Änderungen wird zuerst nachgefragt. Ändert sich die Datei auf der Festplatte, während
+          Sie ungespeicherte Änderungen haben, erscheint eine Warnung statt Ihre Arbeit zu überschreiben; und
+          das Speichern über eine seit dem Öffnen geänderte Datei fragt vorher nach.
+        </p>
+        <p>
+          Beim Bearbeiten setzt ein <strong>Doppelklick in die Vorschau</strong> den Cursor des Editors auf
+          dieses Wort, und die Vorschau bleibt, wo sie ist; beim Lesen markiert ein Doppelklick wie gewohnt ein
+          Wort.
         </p>
         <p>
           <strong>Formatierung:</strong> die Leiste über dem Editor formatiert die Auswahl – oder das Wort
@@ -111,12 +133,30 @@
             <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Zeile nach oben / unten verschieben</td></tr>
             <tr><td><kbd>Umschalt</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Zeile duplizieren</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>K</kbd></td><td>Zeile löschen</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Zeile auswählen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>D</kbd></td><td>Nächstes Vorkommen zur Auswahl hinzufügen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Strg</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Cursor darüber / darunter hinzufügen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>/</kbd></td><td>Zeile aus-/einkommentieren (auf einer deutschen Tastatur <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>7</kbd>)</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Gehe zu Zeile</td></tr>
+            <tr><td><kbd>Esc</kbd>, dann <kbd>Tab</kbd></td><td>Editor mit der Tastatur verlassen</td></tr>
           </tbody>
         </table>
         <p>
           <strong>Werkzeuge</strong> (die Schieberegler-Schaltfläche rechts in der Leiste) sammelt Suchen und
-          Ersetzen, die Zeilenbefehle und die <strong>Rechtschreibprüfung</strong>, die falsch geschriebene
-          Wörter mit dem Wörterbuch der Oberflächensprache unterstreicht und per Rechtsklick Korrekturen vorschlägt (nach einem Sprachwechsel in den Leseeinstellungen ab dem nächsten Start).
+          Ersetzen, die Zeilenbefehle, <strong>Zeile auskommentieren</strong> und die
+          <strong>Rechtschreibprüfung</strong>. <strong>Zeile auskommentieren</strong>
+          (<kbd>Strg</kbd>+<kbd>/</kbd>, also <kbd>Strg</kbd> mit den Tasten, die <kbd>/</kbd> schreiben: auf
+          einer deutschen oder italienischen Tastatur <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>7</kbd>) setzt
+          die Zeilen in <code>&lt;!-- --&gt;</code>, sodass sie beim Lesen ausgeblendet sind; in einem Codeblock
+          verwendet es den Kommentar der jeweiligen Sprache, und ein zweites Mal entfernt es ihn wieder. Die
+          <strong>Rechtschreibprüfung</strong> unterstreicht falsch geschriebene Wörter mit dem Wörterbuch der
+          Oberflächensprache und schlägt per Rechtsklick Korrekturen vor (nach einem Sprachwechsel in den
+          Leseeinstellungen ab dem nächsten Start).
+        </p>
+        <p>
+          <kbd>Tab</kbd> rückt ein. Um den Editor mit der Tastatur zu verlassen, drücken Sie <kbd>Esc</kbd> und
+          innerhalb von zwei Sekunden <kbd>Tab</kbd>; ist Text markiert oder eine Leiste (etwa Suchen und
+          Ersetzen) oder ein Menü geöffnet, drücken Sie zuerst zweimal <kbd>Esc</kbd>.
         </p>
         <p>
           <strong>Wiederherstellung:</strong> solange Sie ungespeicherte Änderungen haben, wird eine Kopie des
@@ -139,10 +179,23 @@
           Eingeklappte Ordner bleiben eingeklappt – beim Navigieren und über Neustarts hinweg.
         </p>
         <p>Ordner ohne Markdown-Dateien werden ausgeblendet, ebenso versteckte und Build-Ordner wie <code>node_modules</code>.</p>
-        <p>Die Liste aktualisiert sich von selbst, wenn im Ordner Dateien hinzugefügt, umbenannt oder gelöscht werden. Benennen Sie das geöffnete Dokument um, folgt ihm das Fenster; löschen oder verschieben Sie es, bleibt sein Text auf dem Bildschirm, und ein Hinweis bietet an, ihn erneut zu speichern.</p>
+        <p>Die Liste aktualisiert sich von selbst, wenn im Ordner Dateien hinzugefügt, umbenannt oder gelöscht werden. Benennen Sie das geöffnete Dokument um, folgt ihm das Fenster; löschen oder verschieben Sie es, bleibt sein Text auf dem Bildschirm, und ein Hinweis bietet <strong>Erneut speichern</strong> an.</p>
+        <p>
+          Mit der Tastatur funktioniert die Liste wie ein Baum: <kbd>↑</kbd> / <kbd>↓</kbd> bewegen,
+          <kbd>→</kbd> öffnet einen Ordner oder geht hinein, <kbd>←</kbd> schließt ihn oder geht zum
+          übergeordneten Ordner, <kbd>Pos1</kbd> / <kbd>Ende</kbd> springen an die Enden, <kbd>Eingabe</kbd>
+          oder <kbd>Leertaste</kbd> öffnet, und <kbd>Strg</kbd>+<kbd>Eingabe</kbd> öffnet in einem neuen Fenster.
+        </p>
         <p>
           Beide Seitenbereiche lassen sich an der Innenkante breiter ziehen – ein Doppelklick auf die Kante stellt
           die Standardbreite wieder her. Ihre Textgröße folgt <strong>Bereiche</strong> in den Leseeinstellungen.
+        </p>
+        <p>
+          Ein Fenster kann bis zu 480 Pixel schmal sein: ein halber Laptop-Bildschirm oder ein Andocklayout von
+          Windows 11. Wird das Fenster schmal, klappen erst die Gliederung und dann der Dateibrowser von selbst
+          ein; ihre Schaltflächen in der Symbolleiste (oder <kbd>Strg</kbd>+<kbd>I</kbd> und
+          <kbd>Strg</kbd>+<kbd>B</kbd>) öffnen sie dann über dem Text, und <kbd>Esc</kbd>, ein Klick daneben
+          oder eine Auswahl schließt sie wieder.
         </p>
         <p>
           Das Suchfeld über dem Baum (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>F</kbd>) findet Text in jeder
@@ -157,6 +210,11 @@
           Liste: tippen Sie, um die Überschriften einzugrenzen, dann <kbd>↑</kbd> / <kbd>↓</kbd> und
           <kbd>Eingabe</kbd> springen zu einer; <kbd>Esc</kbd> leert es.
         </p>
+        <p>
+          Nach einem Sprung – aus der Gliederung, über einen Link zu einem Abschnitt, mit den Tasten
+          <kbd>.</kbd> / <kbd>,</kbd> oder mit <code>--line</code> – leuchtet die Überschrift oder der Block,
+          bei dem Sie landen, kurz auf, damit das Auge ihn findet. Zurück und Vorwärts lassen nichts aufleuchten.
+        </p>
 
         <h3>Automatisches Neuladen</h3>
         <p>Die geöffnete Datei wird auf der Festplatte beobachtet. Ändert sie sich, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
@@ -164,19 +222,20 @@
 
         <h3>Darstellung</h3>
         <ul>
-          <li>Markdown wie auf GitHub: Tabellen, Aufgabenlisten, Durchstreichen, automatische Links.</li>
+          <li>Markdown wie auf GitHub: Tabellen, Aufgabenlisten, Durchstreichen, automatische Links. Webadressen werden zu Links, auch solche, die mit <code>www.</code> beginnen, wie auf GitHub; Dateinamen wie <code>README.md</code> bleiben Text.</li>
           <li>Codeblöcke werden hervorgehoben und haben beim Überfahren eine Kopieren-Schaltfläche.</li>
           <li><code>mermaid</code>-Codeblöcke werden zu Diagrammen; ungültige Syntax fällt mit einem Fehlerhinweis auf den Codeblock zurück.</li>
-          <li>Ein Klick auf ein Diagramm oder Bild öffnet es bildschirmfüllend: <kbd>+</kbd> / <kbd>−</kbd> oder das Mausrad zoomen, Ziehen verschiebt, <kbd>0</kbd> passt ins Fenster ein, <kbd>Esc</kbd> schließt. Die Kopieren-Schaltfläche bietet das Bild als PNG (normal oder groß), ein Diagramm auch als SVG, und beides lässt sich als Datei speichern.</li>
+          <li>Eine Tabelle oder ein Diagramm, breiter als die Lesespalte, wird zentriert bis auf die ganze verfügbare Breite erweitert: kein seitliches Scrollen, und der Text des Diagramms behält seine Größe.</li>
+          <li>Ein Klick auf ein Diagramm oder Bild öffnet es bildschirmfüllend: <kbd>+</kbd> / <kbd>−</kbd> oder das Mausrad zoomen, Ziehen verschiebt, <kbd>Esc</kbd> schließt. <strong>Anpassen</strong> (<kbd>0</kbd>) passt es ins Fenster ein, <strong>Breite</strong> (<kbd>W</kbd>) an die Breite, von oben beginnend, und <strong>100 %</strong> (<kbd>1</kbd>) zeigt es in Originalgröße. Die Kopieren-Schaltfläche bietet das Bild als PNG (normal oder groß), ein Diagramm auch als SVG, und beides lässt sich als Datei speichern.</li>
           <li>Formeln werden mit KaTeX gesetzt: <code>$…$</code> im Text, <code>$$…$$</code> oder ein <code>math</code>-Codeblock für abgesetzte Formeln.</li>
           <li>Hinweisboxen im GitHub-Stil: ein Zitat, das mit <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> oder <code>[!CAUTION]</code> beginnt.</li>
           <li>Fußnoten: <code>[^1]</code> im Text und <code>[^1]: …</code> an beliebiger Stelle; die Noten werden am Ende gesammelt, mit Links hin und zurück.</li>
-          <li>Aufgabenlisten sind aktiv: ein Klick auf ein Kästchen aktualisiert sofort <code>[ ]</code> / <code>[x]</code> in der Datei (mit <em>Rückgängig</em> im Hinweis) oder im Editorpuffer, während Sie bearbeiten.</li>
-          <li>Tabellen haben beim Überfahren eine Schaltfläche, die sie als tabulatorgetrennten Text in die Zwischenablage legt – fertig für Excel oder Google Tabellen.</li>
-          <li>Links auf andere Dokumente funktionieren wie in einem Wiki: <code>[Text](andere)</code> findet <code>andere.md</code>, <code>[Text](ordner/)</code> öffnet dessen <code>index.md</code> oder <code>README.md</code>, und <code>andere.md#abschnitt</code> springt zu dieser Überschrift.</li>
+          <li>Aufgabenlisten sind aktiv: ein Klick auf ein Kästchen aktualisiert sofort <code>[ ]</code> / <code>[x]</code> in der Datei (mit <em>Rückgängig</em> im Hinweis) oder im Editorpuffer, während Sie bearbeiten. Nur das Kästchen hakt die Aufgabe ab: ein Klick oder Doppelklick auf ihren Text, etwa um ein Wort zu markieren, ändert nichts.</li>
+          <li>Tabellen haben oben rechts zwei Schaltflächen, sichtbar beim Überfahren oder wenn Sie sie mit der Tastatur erreichen: <strong>Tabelle kopieren (für Excel)</strong> legt die Tabelle als tabulatorgetrennten Text in die Zwischenablage, fertig für Excel oder Google Tabellen, und <strong>Vorschau öffnen</strong> zeigt sie bildschirmfüllend, so breit wie das Fenster (auch im Kontextmenü).</li>
+          <li>Links auf andere Dokumente funktionieren wie in einem Wiki: <code>[Text](andere)</code> findet <code>andere.md</code>, <code>[Text](ordner/)</code> öffnet dessen <code>index.md</code> oder <code>README.md</code>, und <code>andere.md#abschnitt</code> springt zu dieser Überschrift. Überschriften bekommen dieselben Anker wie auf GitHub (<code>## 1. Einleitung</code> → <code>#1-einleitung</code>), sodass Inhaltsverzeichnisse, die für GitHub oder von einem KI-Assistenten geschrieben wurden, auch hier funktionieren; Links, die für frühere Versionen geschrieben wurden, führen weiterhin ans Ziel.</li>
           <li>YAML-Front-Matter zwischen <code>---</code>-Zeilen wird zu einem <em>Front Matter</em>-Block am Anfang gefaltet: ein Klick zeigt die Felder als Tabelle.</li>
           <li>Ein Absatz, der nur <code>[TOC]</code> enthält, wird zu einem Inhaltsverzeichnis der folgenden Überschriften, das auch in Druck, HTML und DOCX landet.</li>
-          <li>Bilder mit relativem Pfad werden relativ zum Ordner des Dokuments aufgelöst.</li>
+          <li>Bilder mit relativem Pfad werden relativ zum Ordner des Dokuments aufgelöst. Logos für das helle und das dunkle Design von GitHub (markiert mit <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code> oder ein <code>&lt;picture&gt;</code> mit heller und dunkler Quelle) zeigen das zum Design von Leggimi passende; Druck und Exporte verwenden das helle.</li>
           <li>Links auf Webseiten öffnen sich im Standardbrowser, <code>mailto:</code>-Links in der Mail-App; Links auf andere Markdown-Dateien öffnen sich im Viewer, auf Bilder in der Vorschau, auf einen Ordner in der Dateiliste. Ein Link auf eine andere Datei (ein PDF, eine Tabelle) bietet an, sie mit ihrer App zu öffnen.</li>
           <li>Einfaches HTML im Text funktioniert: <code>&lt;br&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;sup&gt;</code>, <code>&lt;details&gt;</code>, Bilder (auch <code>&lt;picture&gt;</code> und <code>srcset</code>), Videos und Audio aus dem Ordner des Dokuments. Wie auf GitHub wird ein Tag, das kein HTML ist, etwa <code>&lt;name&gt;</code>, nicht angezeigt: Um es zu zeigen, schreiben Sie es zwischen Backticks (<code>`&lt;name&gt;`</code>) oder mit einem Backslash davor (<code>\&lt;name&gt;</code>). Tags, die die Seite verändern würden, wie <code>&lt;style&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;title&gt;</code> und <code>&lt;iframe&gt;</code>, erscheinen als Text.</li>
         </ul>
@@ -185,7 +244,7 @@
         <p>Die Schaltfläche <strong>Teilen</strong> (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>E</kbd>) sammelt alles, was die App verlässt:</p>
         <ul>
           <li><strong>Als formatierten Text kopieren</strong> (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd>): legt das gerenderte Dokument mit Formatierung in die Zwischenablage, fertig zum Einfügen in Outlook, Word oder Teams. Lokale Bilder werden eingebettet.</li>
-          <li><strong>Drucken…</strong> (<kbd>Strg</kbd>+<kbd>P</kbd>): druckt nur das Dokument, für Papier gesetzt, immer auf hellem Hintergrund, mit Titel und Datum oben auf jeder Seite und „Seite / Seiten“ unten.</li>
+          <li><strong>Drucken…</strong> (<kbd>Strg</kbd>+<kbd>P</kbd>): druckt nur das Dokument, für Papier gesetzt, immer auf hellem Hintergrund, mit Titel und Datum oben auf jeder Seite und „Seite / Seiten“ unten; eine Tabelle, die breiter als die Seite ist, wird verkleinert, bis sie passt.</li>
           <li><strong>Als PDF speichern</strong>: dasselbe Layout direkt in eine PDF-Datei geschrieben, ohne weiteren Dialog außer der Dateiauswahl. <strong>Neue Seite bei jeder Überschrift 1</strong> ist eine gemerkte Option im Menü, für beides.</li>
           <li><strong>Als HTML / DOCX exportieren</strong>: speichert das Dokument als eine eigenständige <code>.html</code>-Seite, die in jedem Browser läuft, oder als für Microsoft Word optimiertes <code>.docx</code> – Formeln werden native Word-Gleichungen, Diagramme Bilder.</li>
         </ul>
@@ -202,13 +261,33 @@
           ein – <kbd>Strg</kbd>+Mausrad über einem Bereich ändert nur diesen. Jede Wahl bleibt über Neustarts
           erhalten.
         </p>
+        <p>
+          Sind die <strong>Animationseffekte</strong> von Windows ausgeschaltet (Einstellungen &gt;
+          Barrierefreiheit &gt; Visuelle Effekte), springt das Scrollen, statt zu gleiten, und das Aufleuchten
+          nach einem Sprung ist nicht animiert.
+        </p>
         <h3>Windows-Integration</h3>
         <p>Geöffnete Dateien erscheinen unter „Zuletzt verwendet“ in Windows und in der Sprungliste der App in der Taskleiste. Ein Doppelklick auf eine <code>.md</code>-Datei im Explorer öffnet sie hier, sobald der Installer die Zuordnung registriert hat.</p>
         <p>
-          Rechtsklick auf eine Datei im Browserbereich oder auf den Dateinamen in der Symbolleiste: <strong>im
-          Explorer anzeigen</strong>, den Pfad kopieren oder einen Markdown-Link relativ zum geöffneten Dokument
-          kopieren. Die Pin-Schaltfläche (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd>) hält das Fenster über den
+          Im Explorer legt <strong>Neu</strong> → <strong>Markdown-Dokument</strong> (Rechtsklick in einem
+          Ordner) eine leere <code>.md</code>-Datei an. Mit dem Installer folgen dieser Name und der Name des
+          Dateityps in der Explorer-Spalte <em>Typ</em> der Anzeigesprache von Windows; in der Version aus dem
+          Microsoft Store heißt der Eintrag immer <em>Markdown document</em>.
+        </p>
+        <p>
+          Rechtsklick auf eine Datei im Browserbereich oder auf den Dateinamen in der Symbolleiste:
+          <strong>In neuem Fenster öffnen</strong>, <strong>Im Explorer anzeigen</strong>, <strong>Pfad
+          kopieren</strong> oder <strong>Als Markdown-Link kopieren</strong> (relativ zum geöffneten Dokument).
+          Die Pin-Schaltfläche (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd>) hält das Fenster über den
           anderen.
+        </p>
+        <p>
+          In der Version aus dem Microsoft Store fragt nach einigen Tagen eine kleine Karte <em>Gefällt Ihnen
+          Leggimi?</em>: <strong>Bewerten</strong> öffnet den Bewertungsdialog des Stores über Leggimi (oder die
+          Store-Seite, wenn der Dialog nicht erscheinen kann), <strong>Später</strong> fragt in einem Monat
+          wieder und <strong>Nein, danke</strong> nie mehr. Die Karte erscheint immer nur in einem Fenster und
+          wartet, wenn sie unbeantwortet bleibt, eine Woche, bevor sie wiederkommt; <strong>Im Store
+          bewerten</strong> unten in dieser Hilfe wirkt wie Bewerten.
         </p>
         <p>
           Eine <strong>portable</strong> Version gibt es auf GitHub als Zip: irgendwo entpacken und starten; sie

@@ -1,4 +1,4 @@
-import { EditorState } from "@codemirror/state";
+import { EditorSelection, EditorState, type Line } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -8,7 +8,7 @@ import {
   highlightActiveLineGutter,
   scrollPastEnd,
 } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab, toggleTabFocusMode } from "@codemirror/commands";
 import { search, searchKeymap, searchPanelOpen, findNext, findPrevious } from "@codemirror/search";
 import { syntaxHighlighting, syntaxTree, HighlightStyle } from "@codemirror/language";
 import {
@@ -164,7 +164,9 @@ const appTheme = EditorView.theme({
   ".cm-panel.cm-search::after": { content: '""', flexBasis: "100%", height: "0", order: "1" },
   ".cm-panel.cm-search.cm-search-find-only::after": { display: "none" },
   ".cm-panel.cm-search [name=replace], .cm-panel.cm-search [name=replaceAll]": { order: "2" },
-  ".cm-panel.cm-search .cm-textfield": {
+  // the field, buttons and close button below also dress the go-to-line
+  // dialog (further down), so both bars read alike
+  ".cm-panel.cm-search .cm-textfield, .cm-panel.cm-dialog .cm-textfield": {
     font: "inherit",
     fontSize: "12.5px",
     minWidth: "180px",
@@ -175,8 +177,10 @@ const appTheme = EditorView.theme({
     color: "var(--text)",
     outline: "none",
   },
-  ".cm-panel.cm-search .cm-textfield:focus": { borderColor: "var(--accent)" },
-  ".cm-panel.cm-search .cm-button": {
+  ".cm-panel.cm-search .cm-textfield:focus, .cm-panel.cm-dialog .cm-textfield:focus": {
+    borderColor: "var(--accent)",
+  },
+  ".cm-panel.cm-search .cm-button, .cm-panel.cm-dialog .cm-button": {
     font: "inherit",
     fontSize: "12px",
     padding: "4px 8px",
@@ -187,7 +191,10 @@ const appTheme = EditorView.theme({
     color: "var(--text)",
     cursor: "pointer",
   },
-  ".cm-panel.cm-search .cm-button:hover": { backgroundColor: "var(--surface-2)" },
+  // --surface-2 is all but the surface itself in dark and black
+  ".cm-panel.cm-search .cm-button:hover, .cm-panel.cm-dialog .cm-button:hover": {
+    backgroundColor: "var(--surface-hover)",
+  },
   ".cm-panel.cm-search label": {
     fontSize: "12px",
     color: "var(--text-muted)",
@@ -197,7 +204,7 @@ const appTheme = EditorView.theme({
     marginLeft: "4px",
   },
   ".cm-panel.cm-search input[type=checkbox]": { accentColor: "var(--accent)", margin: "0" },
-  ".cm-panel.cm-search [name=close]": {
+  ".cm-panel.cm-search [name=close], .cm-panel.cm-dialog .cm-dialog-close": {
     position: "static",
     marginLeft: "auto",
     padding: "0 6px",
@@ -205,6 +212,29 @@ const appTheme = EditorView.theme({
     color: "var(--text-muted)",
     cursor: "pointer",
   },
+  // Go to line (Ctrl+Alt+G) is CodeMirror's dialog under the text. Its own
+  // style knows only a light editor: a white field and a pale button under
+  // the dark themes' light text could not be read. A <label> holds the
+  // prompt and the field, then come the Go button and the close button.
+  ".cm-panels.cm-panels-bottom": { borderTop: "1px solid var(--border)" },
+  ".cm-panel.cm-dialog": {
+    fontFamily: "var(--sans)",
+    fontSize: "12.5px",
+    padding: "6px 8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  ".cm-panel.cm-dialog form": { display: "flex", alignItems: "center", gap: "6px" },
+  ".cm-panel.cm-dialog label": {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  // a line number ("120", "+5", "50%", "12:4"), not a search phrase
+  ".cm-panel.cm-dialog .cm-textfield": { minWidth: "0", width: "7em" },
   ".cm-searchMatch": { backgroundColor: "rgba(250, 204, 21, 0.4)" },
   ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#f59e0b", color: "#1a1915" },
 });
@@ -222,6 +252,12 @@ const formatKeymap = COMMANDS.filter((c) => c.shortcut).map((c) => ({
   run: c.run,
   preventDefault: true,
 }));
+
+// CodeMirror's defaults without Ctrl+M: it switches Tab from indenting to
+// moving the focus, for as long as the window lives, with nothing on screen
+// to say so, one Shift away from Ctrl+Shift+M (inline code). Escape then Tab
+// still moves the focus out of the editor.
+const baseKeymap = defaultKeymap.filter((b) => b.run !== toggleTabFocusMode);
 
 // "/" at the start of a line opens a menu of blocks; typing filters it
 const blockCommands = COMMANDS.filter((c) => c.block);
@@ -364,7 +400,7 @@ function makeState(content: string): EditorState {
         indentWithTab,
         ...historyKeymap,
         ...searchKeymap,
-        ...defaultKeymap,
+        ...baseKeymap,
       ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -531,5 +567,136 @@ export function scrollToLine(line: number): void {
   view.dispatch({
     selection: { anchor: pos },
     effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: 12 }),
+  });
+}
+
+// A double-click on the preview names a block (its source line) and a word
+// read there; these find that word in the block's source.
+
+// Letters (with their combining marks) and digits: what a whole word does
+// not touch on either side.
+const WORD_CHAR = "[\\p{L}\\p{M}\\p{N}]";
+
+// The preview curls straight quotes (markdown-it's typographer) and the
+// source keeps them straight: l’ is l'. One UTF-16 unit for another, so
+// offsets stay valid.
+const straighten = (s: string): string => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+
+// A link's or an image's target: (address "title"), with one level of
+// parentheses allowed inside.
+const TARGET = String.raw`\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)`;
+
+// Prose source as the preview shows it: comments, images, link targets and
+// HTML tags become spaces of the same length (offsets stay valid). A word
+// read in the preview is never in there, and a word in a link's address
+// would throw off the count of a repeated word. Code spans stay as written.
+const HIDDEN = new RegExp(
+  [
+    "(`+)[\\s\\S]*?\\1", // a code span, kept
+    "<!--[\\s\\S]*?(?:-->|$)", // a comment
+    String.raw`!\[[^\]\n]*\]` + TARGET, // an image
+    String.raw`\]` + TARGET, // a link's target
+    String.raw`<\/?[A-Za-z][\w-]*(?:\s[^<>]*)?\/?>`, // an HTML tag
+  ].join("|"),
+  "g",
+);
+
+function shownText(source: string): string {
+  return straighten(source).replace(HIDDEN, (m: string, ticks?: string) => (ticks ? m : m.replace(/[^\n]/g, " ")));
+}
+
+// Each match of `word` in `text`. Whitespace in the word matches any run of
+// whitespace: a line break in the source is a space in the preview.
+function matchesOf(text: string, word: string, ignoreCase: boolean, whole: boolean): { from: number; to: number }[] {
+  const body = word
+    .split(/\s+/)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\\s+");
+  const re = new RegExp(whole ? `(?<!${WORD_CHAR})${body}(?!${WORD_CHAR})` : body, ignoreCase ? "giu" : "gu");
+  return [...text.matchAll(re)].map((m) => ({ from: m.index ?? 0, to: (m.index ?? 0) + m[0].length }));
+}
+
+// `word` in a block's text. With `before` (the preview's text of the block
+// in front of the clicked word), the same occurrence of a repeated word:
+// both sides count the loose way, any case and inside longer words too.
+// Without it, the first match: a whole word in the exact case, then in any
+// case, then inside a longer word (a Chinese word has no spaces around it).
+function findWord(text: string, word: string, before?: string): { from: number; to: number } | null {
+  if (before !== undefined) {
+    const all = matchesOf(text, word, true, false);
+    const n = matchesOf(straighten(before), word, true, false).length;
+    return all.length ? all[Math.min(n, all.length - 1)] : null;
+  }
+  for (const [ignoreCase, whole] of [[false, true], [true, true], [false, false], [true, false]] as const) {
+    const [first] = matchesOf(text, word, ignoreCase, whole);
+    if (first) return first;
+  }
+  return null;
+}
+
+// The source of the preview block starting at `first`: up to the next blank
+// line, at most 60 lines. A fenced code block keeps its blank lines and
+// runs to the closing fence; its text starts below the opening fence.
+function blockRange(state: EditorState, first: Line): { from: number; to: number; code: boolean } {
+  const { doc } = state;
+  const fence = /^ {0,3}(`{3,}|~{3,})/.exec(first.text);
+  const closing = fence ? new RegExp(`^ {0,3}${fence[1][0]}{${fence[1].length},}[ \\t]*$`) : null;
+  let to = first.to;
+  for (let n = first.number + 1; n <= Math.min(doc.lines, first.number + 59); n++) {
+    const l = doc.line(n);
+    if (closing ? closing.test(l.text) : !l.text.trim()) break;
+    to = l.to;
+  }
+  return { from: fence ? Math.min(first.to + 1, to) : first.from, to, code: !!fence };
+}
+
+/**
+ * A double-click on the preview while editing: the caret goes to the
+ * 0-based source `line` (the start of the block clicked) and selects `word`
+ * when the block's source has it (from `line` to the next blank line, at
+ * most 60 lines; exact case first, then any case). `before`, the block's
+ * preview text in front of the word (a Range from the block's start to the
+ * selection's start), picks the same occurrence of a repeated word.
+ * Without a match the caret goes to the line start. The line lands
+ * `viewportY` px below the top of the editor's visible area (where the
+ * block sits in the preview, so the synced preview does not jump), kept
+ * within the view's height. Focuses the editor.
+ */
+export function placeCaret(line: number, opts: { word?: string; viewportY?: number; before?: string } = {}): void {
+  if (!view || !Number.isFinite(line)) return;
+  const { state } = view;
+  const first = state.doc.line(Math.max(1, Math.min(state.doc.lines, Math.floor(line) + 1)));
+  const block = blockRange(state, first);
+  const word = straighten(opts.word?.trim() ?? "");
+  let hit: { from: number; to: number } | null = null;
+  if (word && word.length <= 200) {
+    const source = state.sliceDoc(block.from, block.to);
+    hit = findWord(block.code ? straighten(source) : shownText(source), word, opts.before);
+  }
+  const selection = hit
+    ? EditorSelection.single(block.from + hit.from, block.from + hit.to)
+    : EditorSelection.single(first.from);
+  // within the view with a row to spare; negative too, since a tall block's
+  // start can be above the top in the preview as well
+  const room = Math.max(0, view.scrollDOM.clientHeight - 2 * view.defaultLineHeight);
+  const wanted = opts.viewportY ?? NaN;
+  const y = Number.isFinite(wanted) ? Math.max(-room, Math.min(room, wanted)) : 12;
+  view.dispatch({
+    selection,
+    effects: EditorView.scrollIntoView(first.from, { y: "start", yMargin: y }),
+  });
+  view.focus();
+
+  // The source can wrap taller than the preview, so a word far down its
+  // block may still land outside the view. CodeMirror scrolls in its
+  // measure, which runs first in the next frame; then bring the word in.
+  const doc = view.state.doc;
+  const range = view.state.selection.main;
+  requestAnimationFrame(() => {
+    if (!view || view.state.doc !== doc || !view.state.selection.main.eq(range)) return;
+    const box = view.scrollDOM.getBoundingClientRect();
+    const at = view.coordsAtPos(range.head);
+    if (!box.height || (at && at.top >= box.top && at.bottom <= box.bottom)) return;
+    view.dispatch({ effects: EditorView.scrollIntoView(range, { y: "nearest", yMargin: 24 }) });
   });
 }

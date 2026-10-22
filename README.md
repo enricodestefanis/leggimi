@@ -72,9 +72,10 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 ## Features
 
 - Documents always open in **viewer mode**; `Ctrl+E` switches to **edit mode**: CodeMirror
-  editor on the left, live preview on the right, updated as you type
-- Explicit save with `Ctrl+S`, unsaved-changes indicator and confirmation guards; line endings
-  (CRLF/LF) are preserved on save
+  editor on the left, live preview on the right, updated as you type; a double-click on the
+  preview puts the editor's cursor on that word
+- Explicit save with `Ctrl+S` (the unsaved-changes dot turns into a check for a moment) and
+  confirmation guards; line endings (CRLF/LF) are preserved on save
 - If a preview render fails mid-edit, the last good preview stays on screen and a dismissable
   notice appears — the pane never goes blank
 - **Formatting help in edit mode**: a format bar (headings, bold, italic, strikethrough, code,
@@ -82,25 +83,34 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   line that inserts tables, Mermaid diagrams, KaTeX formulas, code blocks and callouts. The file
   stays plain Markdown — every command just edits the text
 - **Find & replace** (`Ctrl+F` / `Ctrl+H`), **spellcheck** with the dictionary of the interface language, line
-  commands (`Alt+↑` / `Alt+↓` move, `Shift+Alt+↓` duplicate, `Ctrl+Shift+K` delete), and a
+  commands (`Alt+↑` / `Alt+↓` move, `Shift+Alt+↓` duplicate, `Ctrl+Shift+K` delete, `Alt+L`
+  select), **Comment line** (`Ctrl+/`) to hide lines from the reader, more cursors (`Ctrl+D`
+  for the next occurrence, `Ctrl+Alt+↑` / `↓`), **go to line** (`Ctrl+Alt+G`), and a
   **recovery draft** that offers your unsaved text back after a crash
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
-- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks, **footnotes**;
-  task-list checkboxes are **live** (a click updates the file, with Undo), tables have a
-  **copy for Excel** button, and `Ctrl+C` copies a selection with its formatting
+- GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks (`www.` addresses
+  too), **footnotes**, and **heading anchors as on GitHub**, so tables of contents written for
+  GitHub or by AI assistants work; task-list checkboxes are **live** (a click on the box
+  updates the file, with Undo; clicking the text only selects it), and `Ctrl+C` copies a
+  selection with its formatting
+- **Wide tables and diagrams** get the room they need: past the reading column, up to the
+  width of the window, instead of scrolling sideways or shrinking; when printing, a table wider
+  than the page is scaled to fit. Every table has **Copy table (for Excel)** and **Open
+  preview** buttons
 - **YAML front matter** folded into a block at the top of the document: click it to see the
   fields as a table, instead of reading them as stray text
 - Syntax-highlighted code blocks with a copy button
 - **Mermaid** diagrams, bundled locally so they work offline
-- **Full-window preview** for diagrams and images: click one to open it, zoom with `+` / `−` or
-  the scroll wheel around the pointer, drag to pan, `0` to fit, `Esc` to close — and a menu to
-  copy it as PNG (2× or 4×) or SVG, or save it to a file. Diagrams fill the window and stay
-  sharp at any zoom
+- **Full-window preview** for diagrams, images and tables: click a diagram or an image (a table
+  from its button) to open it, zoom with `+` / `−` or the scroll wheel around the pointer, drag
+  to pan, `0` to fit, `W` to fit the width, `1` for 100%, `Esc` to close — and a menu to copy
+  it as PNG (2× or 4×) or SVG, or save it to a file. Diagrams fill the window and stay sharp
+  at any zoom
 - **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences for display blocks
 - **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - Clickable **outline** with scroll-spy, and a **filter box** on long documents (type, then
-  `↑` / `↓` and `Enter` to jump)
+  `↑` / `↓` and `Enter` to jump); after a jump, the heading you land on lights up briefly
 - **Picks up where you left off**: every document remembers its reading position, and the
   empty screen lists your **recent files**
 - **Reading keys**: `j` / `k` scroll, `.` / `,` jump between headings, `g g` / `G` go to the
@@ -111,10 +121,12 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   `index.md` or `README.md` (or shows the folder in the file browser), `other.md#section` jumps to
   the heading; a link to an image opens the preview, to any other file (a PDF, a spreadsheet) a
   notice offers to open it in its own app, and `mailto:` links open the mail app
-- **Right-click menu of the document**: copy the selection (with its formatting or as plain
-  text) or search for it in the document or the folder; open, copy or open in a new window a
-  link; copy a code block or a table; **copy a link to the section** (`[Heading](file.md#heading)`,
-  followed by Leggimi from any other document); **edit from here**; print or save as PDF
+- **Right-click menu of the document** (also `Shift+F10` or the menu key): copy the selection
+  (with its formatting or as plain text) or search for it in the document or the folder; open,
+  copy or open in a new window a link; open an image, a diagram or a table in the preview; copy
+  a code block or a table; **Copy link to this section** (`[Heading](file.md#heading)`,
+  followed by Leggimi from any other document, and by GitHub); **Edit from here**; **Copy the
+  whole document**; print or save as PDF
 - Right-click a file for **Open in a new window**, **Show in File Explorer**, **Copy path** and
   **Copy as Markdown link**; a **pin** button (`Ctrl+Shift+T`) keeps the window on top
 - **More than one document at a time**: a file opened from outside (double-click, *Open with*,
@@ -124,10 +136,15 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 - **Back and forward** like a browser (`Alt+←` / `Alt+→`, the mouse's side buttons): after a
   link to a section, a jump through the outline or a move to another document
 - **File browser** for the Markdown files in the folder you opened, kept up to date as files
-  come and go on disk; collapsed folders are remembered across navigation and restarts
+  come and go on disk: a renamed open document is followed, a deleted one stays on screen with
+  **Save again**; collapsed folders are remembered across navigation and restarts, and the
+  keyboard moves through it as a tree
 - **Resizable side panels**: drag the inner edge of the file browser or the outline to widen it
   (double-click to restore the default), and size their text independently of the document with
   **Panels** in the reading settings
+- **Fits half a screen**: a window can be as narrow as 480 px (next to Teams, in a Windows 11
+  snap layout); the outline and then the file browser fold away and open over the text when
+  called, and below about 760 px edit mode shows the editor alone
 - **Search across the folder** (`Ctrl+Shift+F`): full-text and file-name matches with
   snippets; opening a result highlights the term in the document
 - **Live reload** when the file changes on disk, preserving your reading position; with unsaved
@@ -144,11 +161,20 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   dark / black / follow Windows** theme — all remembered across restarts, never affecting
   print or export;
   the editor text scales along with the size, and **Panels** sizes the side panels
-- Find in document (`Ctrl+F`), relative images, video and audio (`srcset` and `<picture>` too)
+- **Accessible**: WCAG AA contrast in all four themes, visible keyboard focus, menus that work
+  with the arrow keys, a file browser that screen readers read as a tree, notices read aloud,
+  and scrolling that follows Windows' *Animation effects* setting
+- Find in document (`Ctrl+F`), relative images, video and audio (`srcset` and `<picture>` too);
+  README logos made for GitHub's light and dark themes (`#gh-dark-mode-only`, `<picture>`
+  sources) follow Leggimi's theme
+- Simple HTML works (`<br>`, `<kbd>`, `<details>`…); as on GitHub, tags that would change the
+  page (`<style>`, `<script>`, `<title>`, `<iframe>`…) show as text, and a tag that is not HTML
+  stays hidden
 - Opened files land in Windows' **Recent items and the taskbar jump list**
-- Double-click any `.md` file in File Explorer — the installer registers the association
+- Double-click any `.md` file in File Explorer — the installer registers the association — and
+  create one with File Explorer's **New → Markdown document**
 - Drag and drop files onto the window, or press `Ctrl+O`; several at once open one per window
-- `F5` reads the open file again from disk, keeping your place
+- `F5` or `Ctrl+R` reads the open file again from disk, keeping your place
 - Built-in help (`F1`) showing the running version
 - **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the
   interface and the help follow the first supported language in your Windows preferred
@@ -163,9 +189,10 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 | `Ctrl+O` | Open a file |
 | `Ctrl+Shift+N` | New window |
 | `Ctrl+W` / `Ctrl+F4` | Close the window |
-| `Ctrl`+click | Open a file, a recent document or a link in a new window |
-| `Alt+←` / `Alt+→` | Back / forward |
+| `Ctrl`+click / middle click | Open a file, a recent document or a link in a new window |
+| `Alt+←` / `Alt+→` | Back / forward (also the mouse's side buttons) |
 | `F5` / `Ctrl+R` | Reload the file from disk |
+| `Shift+F10` / menu key | Right-click menu |
 | `Ctrl+E` | Toggle edit mode |
 | `Ctrl+S` | Save the file (edit mode) |
 | `Ctrl+F` | Find in document |
@@ -179,6 +206,11 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 | `Ctrl+F` / `Ctrl+H` | Find / find and replace (editing) |
 | `Alt+↑` / `Alt+↓` | Move the line (editing) |
 | `Shift+Alt+↓` / `Ctrl+Shift+K` | Duplicate / delete the line (editing) |
+| `Ctrl+/` | Comment / uncomment the line (editing; `Ctrl+Shift+7` on Italian and German keyboards) |
+| `Ctrl+D` / `Alt+L` | Add the next occurrence to the selection / select the line (editing) |
+| `Ctrl+Alt+↑` / `Ctrl+Alt+↓` | Add a cursor above / below (editing) |
+| `Ctrl+Alt+G` | Go to line (editing) |
+| `Esc`, then `Tab` | Leave the editor with the keyboard (editing) |
 | `Ctrl+Shift+T` | Keep the window on top |
 | `/` | Block menu at the start of a line (editing) |
 | `Ctrl+P` | Print or save as PDF |
@@ -190,6 +222,7 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 | `.` / `,` | Next / previous heading (reading) |
 | `g g` / `G` | Top / end of the document (reading) |
 | `n` / `N` | Next / previous find match (reading) |
+| `0` / `W` / `1` | Fit / fit the width / 100% (full-window preview) |
 | `?` | Quick reference of the keys |
 | `F1` | Show help |
 | `Esc` | Close the preview, the find bar or help |
@@ -202,7 +235,9 @@ leggimi [file] [--line N]
 
 `leggimi README.md` opens the file (relative to the current folder) in a new window of the
 running app, or brings forward the window that already shows it, or starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
-block containing it, in edit mode the editor caret. The installer puts a `leggimi` command in
+block containing it, which lights up briefly, in edit mode the editor caret. A file that does
+not exist gets a "Not found" notice in the window in front instead of an empty window. The
+installer puts a `leggimi` command in
 `%LOCALAPPDATA%\Microsoft\WindowsApps`, which is on every user's PATH; the Store build registers
 `leggimi.exe` as an app execution alias; the portable build is run by its own path.
 
@@ -215,6 +250,14 @@ root to the parent folder. Opening a document outside the current root re-roots 
 Folders you collapse stay collapsed while you navigate and across restarts; the folders on the
 path of a newly selected file auto-expand to reveal it. Folders with no Markdown files are
 hidden, as are hidden folders and build directories such as `node_modules`, `target` and `dist`.
+
+The panel follows the disk: files added, renamed or deleted in the folder (in File Explorer, by
+another program) show up at once. A document renamed while open is followed, unsaved edits
+included; one deleted or moved away stays on screen, with a notice offering **Save again**.
+From the keyboard the panel is a tree: `↑` / `↓` move, `→` opens a folder or enters it, `←`
+closes it or goes up, `Home` / `End` reach the ends, `Enter` or `Space` opens, `Ctrl+Enter`
+opens in a new window. In a narrow window it folds away; its toolbar button (or `Ctrl+B`) then
+opens it over the text.
 
 ## Versioning and releases
 

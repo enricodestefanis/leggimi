@@ -1,8 +1,10 @@
 // Right-click menus, built on the fly: the reading menu of the article and the
 // file menu of the tree and the title. One element, reused; it opens at the
-// pointer, flips at the window edges and takes the arrow keys like the format
-// bar's menus. It replaces WebView2's own menu, whose Back, Refresh, Save as
-// and Share act on the app's page rather than on the document.
+// pointer, flips at the window edges and takes the keys of every menu of the
+// app (menuKeys.ts). It replaces WebView2's own menu, whose Back, Refresh,
+// Save as and Share act on the app's page rather than on the document.
+
+import { handleMenuKey } from "./menuKeys";
 
 export interface MenuItem {
   label: string;
@@ -146,34 +148,9 @@ function ensureMenu(): HTMLDivElement {
     close(true);
     run?.();
   });
-  m.addEventListener("keydown", (e) => {
-    const items = [...m.querySelectorAll<HTMLButtonElement>(".ctx-item")];
-    const i = items.indexOf(document.activeElement as HTMLButtonElement);
-    let next = -1;
-    switch (e.key) {
-      case "ArrowDown":
-        next = i < 0 ? 0 : (i + 1) % items.length;
-        break;
-      case "ArrowUp":
-        next = i < 0 ? items.length - 1 : (i - 1 + items.length) % items.length;
-        break;
-      case "Home":
-        next = 0;
-        break;
-      case "End":
-        next = items.length - 1;
-        break;
-      case "Escape":
-      case "Tab":
-        close(true);
-        break;
-      default:
-        return; // Enter and Space click the focused button natively
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    if (next >= 0) items[next]?.focus({ preventScroll: true });
-  });
+  // the arrows, Home and End move, Escape and Tab close with the focus going
+  // back; Enter and Space click the focused item natively
+  m.addEventListener("keydown", (e) => handleMenuKey(e, m, () => close(true)));
   document.body.append(m);
 
   // anything else the pointer touches, a scroll, a resize or leaving the window closes it

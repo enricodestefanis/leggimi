@@ -1,3 +1,5 @@
+import * as motion from "./motion";
+
 let spyCleanup: (() => void) | null = null;
 
 // Headings whose top edge is within this band below the pane's top edge count
@@ -78,12 +80,16 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
   };
   releaseImpl = release;
 
+  // Every jump (a click, Enter in the filter, the "." and "," keys) glides
+  // there, or jumps at once when Windows animations are off, and the heading
+  // lights up briefly once it has arrived, so the eye finds where it landed.
   const jumpTo = (i: number) => {
     pinned = true;
     settling = true;
     armSettle();
     setActive(i);
-    heads[i].scrollIntoView({ behavior: "smooth", block: "start" });
+    heads[i].scrollIntoView({ behavior: motion.behavior(), block: "start" });
+    motion.flash(heads[i], scrollPane);
   };
 
   heads.forEach((h, i) => {

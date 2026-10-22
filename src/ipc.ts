@@ -87,6 +87,11 @@ export const openExternally = (path: string) => invoke<void>("open_externally", 
 export const rememberLanguage = (pref: string) => invoke<void>("remember_language", { pref });
 export const isStoreInstall = () => invoke<boolean>("is_store_install");
 export const openStoreReview = () => invoke<void>("open_store_review");
+// the Store's own rating dialog over this window: "succeeded" (rated) or
+// "canceled" (closed); "fallback" when it cannot show (the GitHub build, no
+// network, an error) and the Store's review page opened instead. Rejects only
+// when even that page could not open.
+export const requestStoreRating = () => invoke<"succeeded" | "canceled" | "fallback">("request_store_rating");
 
 // These events are sent to one window. They are heard through that window:
 // the global listen() takes the events sent to any window, the others' too.

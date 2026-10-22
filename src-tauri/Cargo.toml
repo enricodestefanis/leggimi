@@ -1,6 +1,6 @@
 [package]
 name = "leggimi"
-version = "1.15.0"
+version = "1.15.1"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
 license = "MIT"
@@ -36,5 +36,10 @@ windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage
 # PDF export through ICoreWebView2_7::PrintToPdf; the versions must match the
 # ones wry links, or the COM interface types do not unify
 webview2-com = "0.38"
-# System_UserProfile: the preferred languages list that picks the UI language
-windows = { version = "0.61", features = ["System_UserProfile", "Foundation_Collections"] }
+# System_UserProfile: the preferred languages list that picks the UI language;
+# Services_Store and Win32_UI_Shell (IInitializeWithWindow): the Store's own
+# rating dialog, owned by the window that asks for it
+windows = { version = "0.61", features = ["System_UserProfile", "Foundation_Collections", "Services_Store", "Win32_Foundation", "Win32_UI_Shell"] }
+# the completion handler of a WinRT async call (the rating dialog's); the
+# version the windows crate above already uses
+windows-future = { version = "0.2", default-features = false }

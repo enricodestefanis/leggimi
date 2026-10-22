@@ -1,14 +1,10 @@
 // Turning the rendered article into shareable output: rich-text clipboard
-// copy, a Word document and a self-contained HTML export.
-
-import { asBlob } from "html-docx-js-typescript";
+// copy, a Word document and a self-contained HTML export. The Word converter
+// (with JSZip) and the stylesheets an HTML export carries are loaded by the
+// first export that needs them, not at startup.
 
 import * as i18n from "./i18n";
 import { rerenderForTheme } from "./mermaid";
-
-import markdownCss from "./styles/markdown.css?inline";
-import codeCss from "./styles/code.css?inline";
-import katexCss from "katex/dist/katex.min.css?inline";
 
 // The export carries its own light-theme tokens so markdown.css/code.css
 // resolve outside the app. Kept in sync with base.css by hand.
@@ -20,12 +16,14 @@ const EXPORT_BASE_CSS = `
   --surface: #ffffff;
   --surface-2: #f0efe9;
   --text: #1a1915;
-  --text-muted: #6e6e69;
+  --text-muted: #6b6b66;
   --border: #e8e6df;
   --accent: #c15f3c;
   --accent-soft: rgba(193, 95, 60, 0.1);
   --code-bg: #f5f4ef;
   --link: #a84b2b;
+  --accent-text: #a84b2b;
+  --danger: #b42318;
   --code-chip-bg: #eae8df;
   --code-chip-border: #d5d1c5;
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -51,6 +49,8 @@ article { max-width: 760px; margin: 0 auto; padding: 48px 32px 96px; }
   body { background: #fff; }
   article { max-width: none; padding: 0; }
   .code-block, .table-scroll, .mermaid-diagram, .markdown-alert, img { break-inside: avoid; }
+  /* a long table goes on to the next page instead of being cut */
+  .table-scroll { overflow: visible; }
 }
 `;
 
@@ -59,7 +59,31 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
   const clone = article.cloneNode(true) as HTMLElement;
   for (const el of clone.querySelectorAll(".code-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-source-line]")) el.removeAttribute("data-source-line");
-  for (const el of clone.querySelectorAll(".table-copy")) el.remove();
+  // a table's buttons (copy for Excel, preview); its wrappers stay for now:
+  // the HTML export's stylesheet knows them, the Word family unwraps them
+  for (const el of clone.querySelectorAll(".table-actions, .table-copy, .table-expand")) el.remove();
+  // Content too wide for the reading column breaks out of it on screen
+  // (wide.ts), sized against the app's pane, which output does not have (and
+  // shrunk for paper while a print is being prepared); the highlight of a
+  // heading just jumped to would replay on opening
+  for (const el of clone.querySelectorAll<HTMLElement>(
+    ".wide, [style*='--tw'], [style*='--print-zoom'], .landing, .landing-static",
+  )) {
+    el.classList.remove("wide", "landing", "landing-static");
+    el.style.removeProperty("--tw");
+    el.style.removeProperty("--print-zoom");
+    if (!el.getAttribute("style")) el.removeAttribute("style");
+    if (!el.getAttribute("class")) el.removeAttribute("class");
+  }
+  // GitHub's dark-theme images: output is light (and an image inlined as a
+  // data: URL would lose the #fragment that hides it on light paper). Its
+  // <picture>, and a link that held nothing else, go too.
+  for (const img of clone.querySelectorAll('img[src*="#gh-dark-mode-only"]')) {
+    const gone = img.parentElement?.tagName === "PICTURE" ? img.parentElement : img;
+    const link = gone.parentElement?.closest("a");
+    gone.remove();
+    if (link && !link.textContent?.trim() && !link.querySelector("img, svg, picture, video")) link.remove();
+  }
   for (const el of clone.querySelectorAll("[data-zoomable]")) {
     el.removeAttribute("data-zoomable");
     el.removeAttribute("tabindex");
@@ -68,11 +92,17 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
   }
   // An image's other candidates (srcset, a <picture>'s sources) are asset
   // URLs that only work in the app, and would win over the src inlined
-  // below: output keeps the plain src (of a light/dark pair, the light one,
-  // for white paper), or a candidate when the src itself was never found
+  // below: output keeps the plain src attribute (of a light/dark pair, the
+  // light one, for white paper; never currentSrc, which follows the app's
+  // theme), or a candidate when the src itself was never found, but never a
+  // source meant for a dark theme (its media as written: renderer.ts keeps it
+  // in data-media while the theme rewrites media)
+  const forDark = (s: Element) =>
+    /prefers-color-scheme\s*:\s*dark/i.test(s.getAttribute("data-media") ?? s.getAttribute("media") ?? "");
   for (const img of clone.querySelectorAll("img")) {
     if (!isAssetUrl(img.getAttribute("src") ?? "")) {
-      const sets = [img.getAttribute("srcset"), ...[...(img.closest("picture")?.querySelectorAll("source") ?? [])].map((s) => s.getAttribute("srcset"))];
+      const sources = [...(img.closest("picture")?.querySelectorAll("source") ?? [])].filter((s) => !forDark(s));
+      const sets = [img.getAttribute("srcset"), ...sources.map((s) => s.getAttribute("srcset"))];
       const found = sets.flatMap((s) => (s ?? "").split(/,\s+/).map((c) => c.trim().split(/\s+/)[0])).find(isAssetUrl);
       if (found) img.setAttribute("src", found);
     }
@@ -178,6 +208,9 @@ async function preparePortableClone(
   live: HTMLElement = source,
 ): Promise<HTMLElement> {
   const clone = cleanedClone(source, docDir);
+  // the table's block wrapper means nothing to Word; the scroll wrapper
+  // inside stays as before (the rich copy unwraps that one too)
+  for (const block of clone.querySelectorAll(".table-block")) block.replaceWith(...block.childNodes);
   await inlineImages(clone);
   // Word and Outlook drop video and audio: a link to the file stands in
   for (const media of clone.querySelectorAll("video, audio")) {
@@ -342,7 +375,7 @@ const COPY_STYLES: StyleMap = [
     "color:#0550ae",
   ],
   [".hljs-built_in, .hljs-symbol, .hljs-bullet", "color:#953800"],
-  [".hljs-comment, .hljs-code, .hljs-formula", "color:#6e7781"],
+  [".hljs-comment, .hljs-code, .hljs-formula", "color:#656d77"],
   [".hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo", "color:#116329"],
   [".hljs-subst", "color:#24292f"],
   [".hljs-section", "color:#0550ae;font-weight:600"],
@@ -564,6 +597,7 @@ export async function buildDocxBase64(
     `<!DOCTYPE html><html><head><meta charset="utf-8">` +
     `<title>${escapeHtml(title)}</title><style>${DOCX_CSS}</style></head>` +
     `<body>${clone.innerHTML}</body></html>`;
+  const { asBlob } = await import("html-docx-js-typescript");
   const blob = (await asBlob(html, { orientation: "portrait" })) as Blob;
   return arrayBufferToBase64(await blob.arrayBuffer());
 }
@@ -616,7 +650,12 @@ export async function buildStandaloneHtml(
   docDir: string,
 ): Promise<string> {
   const clone = cleanedClone(article, docDir);
-  await inlineImages(clone);
+  const [, markdownCss, codeCss, katexCss] = await Promise.all([
+    inlineImages(clone),
+    import("./styles/markdown.css?inline").then((m) => m.default),
+    import("./styles/code.css?inline").then((m) => m.default),
+    import("katex/dist/katex.min.css?inline").then((m) => m.default),
+  ]);
   return [
     "<!doctype html>",
     `<html lang="${i18n.current()}">`,
