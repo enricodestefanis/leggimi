@@ -51,6 +51,25 @@ export function close(): void {
   paint();
 }
 
+/** The find bar of the tab in front, for it to take along when another comes forward. */
+export function state(): { open: boolean; query: string } {
+  return { open: !!els && !els.bar.hidden, query: els?.input.value ?? "" };
+}
+
+/** A tab's find bar comes back as it was, matches marked, without moving the page or the focus. */
+export function restore(s: { open: boolean; query: string } | null): void {
+  if (!els) return;
+  if (!s?.open) {
+    close();
+    return;
+  }
+  els.input.value = s.query;
+  els.bar.hidden = false;
+  ranges = collect(s.query);
+  idx = ranges.length > 0 ? 0 : -1;
+  paint();
+}
+
 export function onContentChanged(): void {
   if (els && !els.bar.hidden) refresh();
 }

@@ -42,6 +42,18 @@ export function load(): void {
   }
 }
 
+/** The lists of the tab in front, for it to take along when another comes forward. */
+export function exportState(): { back: Place[]; forward: Place[] } {
+  return { back: [...back], forward: [...forward] };
+}
+
+/** A tab's own lists come back (empty for a new tab). */
+export function importState(s: { back: Place[]; forward: Place[] } | null): void {
+  back = s ? s.back.filter(isPlace) : [];
+  forward = s ? s.forward.filter(isPlace) : [];
+  save();
+}
+
 /** a new place was reached from `from`: it goes on the Back list, and Forward empties */
 export function record(from: Place): void {
   const top = back[back.length - 1];
@@ -74,6 +86,13 @@ export function commitForward(current: Place | null): void {
 export function drop(dir: -1 | 1): void {
   (dir < 0 ? back : forward).pop();
   save();
+}
+
+/** A tab's lists kept behind the one in front, with a renamed file's places following it. */
+export function renamedIn(s: { back: Place[]; forward: Place[] }, from: string, to: string): { back: Place[]; forward: Place[] } {
+  const f = from.toLowerCase();
+  const follow = (p: Place): Place => (p.path.toLowerCase() === f ? { ...p, path: to } : p);
+  return { back: s.back.map(follow), forward: s.forward.map(follow) };
 }
 
 /** the file was renamed: its places follow it */

@@ -7,13 +7,27 @@
           <li>按 <kbd>Ctrl</kbd>+<kbd>O</kbd>，或使用工具栏上的文件夹按钮。</li>
         </ul>
         <p>
-          应用运行时从外部打开的文件（双击、<em>打开方式</em>、<code>leggimi 文件.md</code>）会有<strong>自己的窗口</strong>；如果该文件已经打开，它所在的窗口会切换到前台。在应用内，文件在同一窗口中打开：在文件、最近文档、搜索结果或链接上 <kbd>Ctrl</kbd>+单击（或按鼠标中键）会改为在新窗口中打开，右键菜单中的<em>在新窗口中打开</em>也一样；<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 打开一个空窗口。一次打开多个文件（<kbd>Ctrl</kbd>+<kbd>O</kbd> 或拖放）时，每个文件各占一个窗口。
+          文档在工具栏的<strong>标签页</strong>中打开。应用运行时从外部打开的文件（双击、<em>打开方式</em>、<code>leggimi 文件.md</code>）会在你最后使用的窗口中新开一个标签页；如果该文件已经打开，它的标签页会切换到前台。在应用内，单击文件、最近文档、搜索结果或链接会在当前标签页中打开它；<kbd>Ctrl</kbd>+单击（或按鼠标中键）会在后台的新标签页中打开，<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+单击在前台的新标签页中打开，<kbd>Shift</kbd>+单击则在新窗口中打开，右键菜单中的<em>在新标签页中打开</em>和<em>在新窗口中打开</em>也一样。用 <kbd>Ctrl</kbd>+<kbd>O</kbd> 打开或拖到窗口上的文件各占一个标签页。同一个文档在同一窗口中不会打开两次：再次打开时会把它的标签页切换到前台。
         </p>
         <p>
-          没有打开文档时，窗口会列出最近打开的文件：单击即可重新打开。每个文档还会<strong>记住你上次读到的位置</strong>，再次打开时自动回到那里。
+          新标签页显示起始页，其中列出最近打开的文件：单击即可在该标签页中打开。每个文档还会<strong>记住你上次读到的位置</strong>，再次打开时自动回到那里。
         </p>
         <p>
           在终端中，<code>leggimi 文件.md</code> 打开文件，<code>--line 40</code> 则定位到该行（安装后即可使用 <code>leggimi</code> 命令）。
+        </p>
+
+        <h3>标签页和窗口</h3>
+        <p>
+          按 <kbd>Ctrl</kbd>+<kbd>T</kbd> 或单击最后一个标签页后面的 <strong>+</strong> 可打开新标签页，按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 可打开新窗口。<kbd>Ctrl</kbd>+<kbd>W</kbd> 关闭标签页，单击标签页上的 × 或用鼠标中键单击它也一样：关闭最后一个文档后会留下起始页，只剩起始页时按 <kbd>Ctrl</kbd>+<kbd>W</kbd> 会关闭窗口。<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> 关闭窗口及其所有标签页，<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> 重新打开最近关闭的标签页。关闭有未保存更改的标签页前会先询问：<strong>保存</strong>、<strong>不保存</strong>或<strong>取消</strong>；关闭窗口时只询问一次，并列出有未保存更改的文档。
+        </p>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>Tab</kbd>、<kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> 以及<em>键盘快捷键</em>中的其他标签页按键可用键盘在标签页之间切换。每个标签页都保留自己的阅读位置、编辑内容和撤销记录、后退 / 前进历史记录以及文件面板的文件夹。将鼠标指针停在标签页上可查看其所在文件夹和阅读时间；标签页放不下时，标签栏末尾的箭头会列出全部标签页。右键单击标签页可选择<strong>移至新窗口</strong>、<strong>关闭其他标签页</strong>、<strong>关闭右侧标签页</strong>、<strong>复制路径</strong>和<strong>在文件资源管理器中显示</strong>。
+        </p>
+        <p>
+          沿标签栏拖动标签页可调整顺序（按 <kbd>Esc</kbd> 可放回原处）。把它拖出标签栏，它会在自己的新窗口中打开，窗口随指针移动；把它放到另一个 Leggimi 窗口的标签栏上，它就会移到那里，未保存的更改和撤销记录也一并带上。拖动窗口中唯一的标签页会移动整个窗口，把它放到另一个窗口的标签栏上会将两个窗口合并。
+        </p>
+        <p>
+          工具栏同时也是窗口的标题栏，颜色跟随主题：拖动其空白处可移动窗口，双击可最大化或还原窗口，将鼠标指针停在“最大化”按钮上可使用 Windows 11 的贴靠布局。
         </p>
 
         <h3>阅读按键</h3>
@@ -28,7 +42,7 @@
             <tr><td><kbd>?</kbd></td><td>显示或隐藏按键速查表</td></tr>
           </tbody>
         </table>
-        <p>文档顶部的细线显示阅读进度，工具栏显示预计阅读时间。</p>
+        <p>文档顶部的细线显示阅读进度；将鼠标指针停在文档的标签页上可查看预计阅读时间。</p>
         <p>
           在选中的文字上按 <kbd>Ctrl</kbd>+<kbd>C</kbd>，会连同格式一起复制（可直接粘贴到 Word 或 Outlook），同时也复制纯文本。文档还可以像纸张一样拖动：在任何位置按住鼠标中键，或在文字旁边的空白处按住左键。
         </p>
@@ -36,7 +50,7 @@
           在文档上右键（或按 <kbd>Shift</kbd>+<kbd>F10</kbd> 或菜单键）可打开其菜单：复制所选内容（带格式或纯文本），或在文档、文件夹中搜索它；打开或复制链接；用<strong>打开预览</strong>打开图片、图表或表格，复制代码块或表格；<strong>复制指向此章节的链接</strong>会得到 <code>[标题](文件.md#标题)</code>，这个链接在任何其他文档中都能使用，在 GitHub 上也一样；<strong>从此处编辑</strong>会在该处打开编辑器；<strong>复制整个文档</strong>连同格式复制整篇文档，与 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> 相同；打印或保存为 PDF。
         </p>
         <p>
-          和浏览器一样，<kbd>Alt</kbd>+<kbd>←</kbd>（或鼠标侧面的<em>后退</em>键）会回到你点击章节链接、点击大纲或切换到另一个文档之前的位置；<kbd>Alt</kbd>+<kbd>→</kbd>（或<em>前进</em>键）再前进。右键菜单顶部也有<strong>后退</strong>和<strong>前进</strong>。每个窗口都有自己的历史记录。
+          和浏览器一样，<kbd>Alt</kbd>+<kbd>←</kbd>（或鼠标侧面的<em>后退</em>键）会回到你点击章节链接、点击大纲或切换到另一个文档之前的位置；<kbd>Alt</kbd>+<kbd>→</kbd>（或<em>前进</em>键）再前进。右键菜单顶部也有<strong>后退</strong>和<strong>前进</strong>。每个标签页都有自己的历史记录。
         </p>
 
         <h3>键盘快捷键</h3>
@@ -56,11 +70,18 @@
             <tr><td><kbd>Shift</kbd>+<kbd>F10</kbd></td><td>打开右键菜单（也可按菜单键）</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>放大 / 缩小文字</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>重置文字大小</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>窗口保持置顶</td></tr>
             <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>从磁盘重新加载文件</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>新标签页</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>关闭标签页</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>重新打开最近关闭的标签页</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>下一个 / 上一个标签页（也可用 <kbd>Ctrl</kbd>+<kbd>PgDn</kbd> / <kbd>Ctrl</kbd>+<kbd>PgUp</kbd>）</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>8</kbd> / <kbd>Ctrl</kbd>+<kbd>9</kbd></td><td>第 1 至 8 个标签页 / 最后一个标签页（在编辑器中 <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd> 仍用于标题）</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PgUp</kbd> / <kbd>PgDn</kbd></td><td>向左 / 向右移动标签页</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>新窗口</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+单击 / 中键单击</td><td>在新窗口中打开文件、最近文档、搜索结果或链接</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>关闭窗口</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd></td><td>关闭窗口</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+单击 / 中键单击</td><td>在新标签页中打开文件、最近文档、搜索结果或链接</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+单击</td><td>同上，在前台的新标签页中打开</td></tr>
+            <tr><td><kbd>Shift</kbd>+单击</td><td>同上，在新窗口中打开</td></tr>
             <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>后退 / 前进（也可用鼠标侧键）</td></tr>
             <tr><td><kbd>?</kbd></td><td>按键速查表</td></tr>
             <tr><td><kbd>F1</kbd></td><td>显示本帮助</td></tr>
@@ -68,7 +89,7 @@
           </tbody>
         </table>
         <p>
-          使用键盘时，<kbd>Tab</kbd> 可以到达工具栏按钮和 <strong>Aa</strong> 阅读设置，焦点始终清晰可见；在菜单中（分享菜单、右键菜单、预览的复制菜单），用 <kbd>↑</kbd> / <kbd>↓</kbd> 和 <kbd>Home</kbd> / <kbd>End</kbd> 在各项之间移动，按 <kbd>Esc</kbd> 关闭菜单。
+          使用键盘时，<kbd>Tab</kbd> 可以到达标签页、工具栏按钮和 <strong>Aa</strong> 阅读设置，焦点始终清晰可见；在标签页上用 <kbd>←</kbd> / <kbd>→</kbd> 在标签页之间移动，<kbd>Enter</kbd> 显示所选标签页，<kbd>Delete</kbd> 将其关闭；在菜单中（分享菜单、右键菜单、预览的复制菜单），用 <kbd>↑</kbd> / <kbd>↓</kbd> 和 <kbd>Home</kbd> / <kbd>End</kbd> 在各项之间移动，按 <kbd>Esc</kbd> 关闭菜单。
         </p>
 
         <h3>编辑</h3>
@@ -76,7 +97,7 @@
           按 <kbd>Ctrl</kbd>+<kbd>E</kbd> 或铅笔按钮（<strong>编辑</strong>）编辑当前文档：左侧是文本编辑器，右侧是实时预览。编辑时，该按钮显示为一本打开的书：<strong>返回阅读</strong>。窗口宽度小于约 760 像素时只显示编辑器；窗口变宽或返回阅读时，预览会重新出现。
         </p>
         <p>
-          文件名旁的橙色圆点表示有未保存的更改，按 <kbd>Ctrl</kbd>+<kbd>S</kbd> 保存后，圆点会短暂变成一个对勾（屏幕阅读器会读出“已保存”）。在有未保存更改时退出编辑模式或打开其他文档，会先请求确认。如果文件在你有未保存更改时在磁盘上发生变化，会显示警告而不是覆盖你的工作；覆盖保存一个在打开后已被修改的文件时，也会先询问。
+          文档标签页上取代 × 的橙色圆点表示有未保存的更改，按 <kbd>Ctrl</kbd>+<kbd>S</kbd> 保存后，圆点会短暂变成一个对勾（屏幕阅读器会读出“已保存”）。在有未保存更改时退出编辑模式或打开其他文档，会先请求确认。如果文件在你有未保存更改时在磁盘上发生变化，会显示警告而不是覆盖你的工作；覆盖保存一个在打开后已被修改的文件时，也会先询问。
         </p>
         <p>
           编辑时，在<strong>预览中双击</strong>某个词，编辑器的光标就会移到这个词上，预览保持不动；阅读时，双击照常选中一个词。
@@ -125,7 +146,7 @@
         <p>没有 Markdown 文件的文件夹会被隐藏，隐藏文件夹和 <code>node_modules</code> 之类的构建文件夹也一样。</p>
         <p>文件夹中添加、重命名或删除文件时，面板会自动更新。重命名当前打开的文档时，窗口会跟着它；删除或移走它时，文字仍留在屏幕上，并有提示提供<strong>重新保存</strong>。</p>
         <p>
-          使用键盘时，列表像树一样操作：<kbd>↑</kbd> / <kbd>↓</kbd> 移动，<kbd>→</kbd> 展开文件夹或进入其中，<kbd>←</kbd> 折叠文件夹或回到上级，<kbd>Home</kbd> / <kbd>End</kbd> 跳到首尾，<kbd>Enter</kbd> 或 <kbd>空格</kbd> 打开，<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 在新窗口中打开。
+          使用键盘时，列表像树一样操作：<kbd>↑</kbd> / <kbd>↓</kbd> 移动，<kbd>→</kbd> 展开文件夹或进入其中，<kbd>←</kbd> 折叠文件夹或回到上级，<kbd>Home</kbd> / <kbd>End</kbd> 跳到首尾，<kbd>Enter</kbd> 或 <kbd>空格</kbd> 打开，<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 在新标签页中打开。
         </p>
         <p>
           两个侧边面板都可以拖动内边缘加宽，双击边缘恢复默认宽度。它们的文字大小跟随阅读设置中的<strong>面板</strong>。
@@ -146,7 +167,7 @@
         </p>
 
         <h3>自动刷新</h3>
-        <p>打开的文件会被监视。文件变化时，视图自动刷新并保持阅读位置——在文档被重新生成时很有用。编辑模式下，只有缓冲区没有未保存更改时才会刷新。</p>
+        <p>打开的文件都会被监视。文件变化时，视图自动刷新并保持阅读位置——在文档被重新生成时很有用；后台的标签页会在你切换回去时更新。编辑模式下，只有缓冲区没有未保存更改时才会刷新。</p>
         <p>按 <kbd>F5</kbd> 或 <kbd>Ctrl</kbd>+<kbd>R</kbd> 可随时重新读取文件并保持阅读位置；有未保存的更改时不执行任何操作。</p>
 
         <h3>渲染</h3>
@@ -191,7 +212,7 @@
           在文件资源管理器中，<strong>新建</strong> → <strong>Markdown 文档</strong>（在文件夹中右键）会创建一个空的 <code>.md</code> 文件。使用安装程序时，这个名称以及资源管理器<em>类型</em>列中的文件类型名称都跟随 Windows 的显示语言；Microsoft Store 版本中该项始终名为 <em>Markdown document</em>。
         </p>
         <p>
-          在面板中的文件上或工具栏的文件名上右键，可选择<strong>在新窗口中打开</strong>、<strong>在文件资源管理器中显示</strong>、<strong>复制路径</strong>或<strong>复制为 Markdown 链接</strong>（相对于当前文档）。图钉按钮（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>）让窗口保持在其他窗口之上。
+          在面板中的文件上右键，可选择<strong>在新标签页中打开</strong>、<strong>在新窗口中打开</strong>、<strong>在文件资源管理器中显示</strong>、<strong>复制路径</strong>或<strong>复制为 Markdown 链接</strong>（相对于当前文档）。图钉按钮让窗口保持在其他窗口之上；它不再有快捷键，因为 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> 现在用于重新打开最近关闭的标签页。
         </p>
         <p>
           在 Microsoft Store 版本中，使用几天后会出现一张小卡片，询问<em>喜欢 Leggimi 吗？</em>：<strong>评分</strong>会在 Leggimi 上方打开商店的评分对话框（无法打开时则打开商店页面），<strong>稍后</strong>会在一个月后再次询问，<strong>不用了</strong>则不再询问。卡片一次只在一个窗口中出现；如果没有回应，会等一周后再出现。本帮助底部的<strong>在商店评分</strong>与“评分”作用相同。

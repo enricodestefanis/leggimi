@@ -42,6 +42,8 @@ let els: Elements | null = null;
 let actionFn: (() => void) | null = null;
 let dismissFn: (() => void) | null = null;
 let sticky = false;
+// the notice on screen, for its tab to take along when another comes forward
+let shown: { message: string; opts: NoticeOptions } | null = null;
 
 export function init(elements: Elements): void {
   els = elements;
@@ -70,8 +72,17 @@ export function show(message: string, opts: NoticeOptions = {}): void {
     actionFn = null;
   }
   sticky = opts.sticky ?? false;
+  shown = { message, opts };
   els.bar.hidden = false;
   announce(message, kind === "error" ? "assertive" : "polite");
+}
+
+/**
+ * A sticky notice on screen (a file changed on disk, a draft to restore, a
+ * file gone), to be shown again when its tab comes back to the front.
+ */
+export function snapshot(): { message: string; opts: NoticeOptions } | null {
+  return els && !els.bar.hidden && sticky ? shown : null;
 }
 
 // sticky notices (a file changed on disk, a recovered draft) survive routine
@@ -80,6 +91,7 @@ export function hide(force = false): void {
   if (!els || (sticky && !force)) return;
   els.bar.hidden = true;
   sticky = false;
+  shown = null;
   actionFn = null;
   dismissFn = null;
 }

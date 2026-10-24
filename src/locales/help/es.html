@@ -7,22 +7,59 @@
           <li>Pulsa <kbd>Ctrl</kbd>+<kbd>O</kbd> o usa el botón de carpeta de la barra de herramientas.</li>
         </ul>
         <p>
-          Un archivo abierto desde fuera mientras la aplicación se ejecuta (doble clic, <em>Abrir con</em>,
-          <code>leggimi archivo.md</code>) tiene <strong>su propia ventana</strong>; si ya está abierto, su
-          ventana pasa al frente. Dentro de la aplicación los archivos se abren en la misma ventana:
-          <kbd>Ctrl</kbd>+clic (o el botón central) en un archivo, un documento reciente, un resultado de
-          búsqueda o un enlace lo abre en una ventana nueva, igual que <em>Abrir en una ventana nueva</em> en su
-          menú contextual, y <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>N</kbd> abre una vacía. Varios archivos
-          abiertos a la vez (<kbd>Ctrl</kbd>+<kbd>O</kbd> o arrastrados) van cada uno a su ventana.
+          Los documentos se abren en <strong>pestañas</strong>, en la barra de herramientas. Un archivo abierto
+          desde fuera mientras la aplicación se ejecuta (doble clic, <em>Abrir con</em>,
+          <code>leggimi archivo.md</code>) se abre en una pestaña nueva de la última ventana que usaste; si ya está
+          abierto, su pestaña pasa al frente. Dentro de la aplicación, un clic en un archivo, un documento
+          reciente, un resultado de búsqueda o un enlace lo abre en la pestaña actual; <kbd>Ctrl</kbd>+clic (o el
+          botón central) lo abre en una pestaña nueva en segundo plano, <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+clic en
+          una pestaña nueva en primer plano y <kbd>Mayús</kbd>+clic en una ventana nueva, igual que <em>Abrir en
+          una pestaña nueva</em> y <em>Abrir en una ventana nueva</em> en su menú contextual. Los archivos
+          abiertos con <kbd>Ctrl</kbd>+<kbd>O</kbd> o arrastrados a la ventana tienen cada uno su pestaña. Un
+          documento nunca está abierto dos veces en la misma ventana: abrirlo de nuevo trae su pestaña al frente.
         </p>
         <p>
-          Sin ningún documento abierto, la ventana muestra los archivos abiertos recientemente: haz clic en uno
-          para volver a abrirlo. Cada documento además <strong>recuerda dónde dejaste de leer</strong> y vuelve
-          allí cuando lo abres de nuevo.
+          Una pestaña nueva empieza en la página de inicio, que muestra los archivos abiertos recientemente: haz
+          clic en uno para abrirlo allí. Cada documento además <strong>recuerda dónde dejaste de leer</strong> y
+          vuelve allí cuando lo abres de nuevo.
         </p>
         <p>
           Desde un terminal, <code>leggimi archivo.md</code> abre un archivo y <code>--line 40</code> lo
           abre en esa línea (el comando <code>leggimi</code> está disponible una vez instalada la aplicación).
+        </p>
+
+        <h3>Pestañas y ventanas</h3>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>T</kbd>, o el <strong>+</strong> tras la última pestaña, abre una pestaña nueva, y
+          <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>N</kbd> una ventana nueva. <kbd>Ctrl</kbd>+<kbd>W</kbd> cierra la
+          pestaña, igual que su × y un clic central sobre ella: cerrar el último documento deja la página de
+          inicio, y <kbd>Ctrl</kbd>+<kbd>W</kbd> en una página de inicio que ha quedado sola cierra la ventana.
+          <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>W</kbd> cierra la ventana con todas sus pestañas, y
+          <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd> vuelve a abrir la última pestaña cerrada. Una pestaña
+          con cambios sin guardar pregunta antes de cerrarse: <strong>Guardar</strong>, <strong>No
+          guardar</strong> o <strong>Cancelar</strong>; al cerrar la ventana se pregunta una sola vez, con la
+          lista de los documentos con cambios sin guardar.
+        </p>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> y las demás teclas de las
+          pestañas, en <em>Atajos de teclado</em>, pasan de una pestaña a otra con el teclado. Cada pestaña
+          conserva su propia posición de lectura, sus cambios con su historial para deshacer, su historial de
+          Atrás / Adelante y la carpeta del panel de archivos. Pasa el ratón sobre una pestaña para ver su
+          carpeta y su tiempo de lectura; cuando las pestañas no caben, la flecha al final de la franja las
+          muestra todas. El clic derecho en una pestaña ofrece <strong>Mover a una ventana nueva</strong>,
+          <strong>Cerrar las demás pestañas</strong>, <strong>Cerrar las pestañas de la derecha</strong>,
+          <strong>Copiar ruta</strong> y <strong>Mostrar en el Explorador</strong>.
+        </p>
+        <p>
+          Arrastra una pestaña a lo largo de la franja para cambiar su orden (<kbd>Esc</kbd> la devuelve a su sitio). Sácala de la franja y se abre en su
+          propia ventana, que sigue al puntero; suéltala sobre las pestañas de otra ventana de Leggimi y pasa a
+          ella, con los cambios sin guardar y su historial para deshacer. Arrastrar la única pestaña de una
+          ventana mueve toda la ventana, y soltarla sobre las pestañas de otra ventana une las dos.
+        </p>
+        <p>
+          La barra de herramientas es también la barra de título de la ventana, con los colores del tema:
+          arrastra su parte vacía para mover la ventana, haz doble clic en ella para maximizarla o restaurarla,
+          y pasa el ratón sobre el botón Maximizar para ver los diseños de ajuste de Windows 11.
         </p>
 
         <h3>Teclas de lectura</h3>
@@ -37,7 +74,7 @@
             <tr><td><kbd>?</kbd></td><td>Mostrar u ocultar el recordatorio de teclas</td></tr>
           </tbody>
         </table>
-        <p>Una línea fina en la parte superior del documento indica por dónde vas, y la barra de herramientas muestra el tiempo de lectura estimado.</p>
+        <p>Una línea fina en la parte superior del documento indica por dónde vas; pasa el ratón sobre la pestaña del documento para ver el tiempo de lectura estimado.</p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>C</kbd> sobre una selección la copia con su formato, lista para Word u Outlook,
           además de como texto sin formato. El documento también se puede arrastrar como una hoja de papel:
@@ -54,7 +91,7 @@
           <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>C</kbd>; imprimir o guardar como PDF.
         </p>
         <p>
-          Como en un navegador, <kbd>Alt</kbd>+<kbd>←</kbd> (o el botón lateral <em>atrás</em> del ratón) vuelve adonde estabas antes de un enlace a una sección, un clic en el índice o el paso a otro documento; <kbd>Alt</kbd>+<kbd>→</kbd> (o el botón <em>adelante</em>) rehace el camino. <strong>Atrás</strong> y <strong>Adelante</strong> están también arriba en el menú del clic derecho. Cada ventana tiene su propio historial.
+          Como en un navegador, <kbd>Alt</kbd>+<kbd>←</kbd> (o el botón lateral <em>atrás</em> del ratón) vuelve adonde estabas antes de un enlace a una sección, un clic en el índice o el paso a otro documento; <kbd>Alt</kbd>+<kbd>→</kbd> (o el botón <em>adelante</em>) rehace el camino. <strong>Atrás</strong> y <strong>Adelante</strong> están también arriba en el menú del clic derecho. Cada pestaña tiene su propio historial.
         </p>
 
         <h3>Atajos de teclado</h3>
@@ -74,11 +111,18 @@
             <tr><td><kbd>Mayús</kbd>+<kbd>F10</kbd></td><td>Abrir el menú contextual (también la tecla de menú)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Texto más grande / más pequeño</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Restablecer el tamaño del texto</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd></td><td>Mantener la ventana en primer plano</td></tr>
             <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Volver a cargar el archivo del disco</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>Pestaña nueva</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Cerrar la pestaña</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd></td><td>Volver a abrir la última pestaña cerrada</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>Tab</kbd></td><td>Pestaña siguiente / anterior (también <kbd>Ctrl</kbd>+<kbd>Av Pág</kbd> / <kbd>Ctrl</kbd>+<kbd>Re Pág</kbd>)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>8</kbd> / <kbd>Ctrl</kbd>+<kbd>9</kbd></td><td>Pestaña de la 1 a la 8 / última pestaña (en el editor, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd> siguen siendo los títulos)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>Re Pág</kbd> / <kbd>Av Pág</kbd></td><td>Mover la pestaña a la izquierda / derecha</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>N</kbd></td><td>Ventana nueva</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+clic / clic central</td><td>Abrir un archivo, un documento reciente, un resultado de búsqueda o un enlace en una ventana nueva</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Cerrar la ventana</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>W</kbd></td><td>Cerrar la ventana</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / clic central</td><td>Abrir un archivo, un documento reciente, un resultado de búsqueda o un enlace en una pestaña nueva</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+clic</td><td>Lo mismo, en una pestaña nueva en primer plano</td></tr>
+            <tr><td><kbd>Mayús</kbd>+clic</td><td>Lo mismo, en una ventana nueva</td></tr>
             <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Atrás / adelante (también los botones laterales del ratón)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Recordatorio de teclas</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Mostrar esta ayuda</td></tr>
@@ -86,10 +130,12 @@
           </tbody>
         </table>
         <p>
-          Con el teclado, <kbd>Tab</kbd> llega a los botones de la barra de herramientas y a los ajustes de
-          lectura <strong>Aa</strong>, y el foco siempre se ve; en los menús (Compartir, el menú contextual, el
-          menú de copia de la vista previa), <kbd>↑</kbd> / <kbd>↓</kbd> e <kbd>Inicio</kbd> / <kbd>Fin</kbd>
-          pasan de una opción a otra, y <kbd>Esc</kbd> los cierra.
+          Con el teclado, <kbd>Tab</kbd> llega a las pestañas, a los botones de la barra de herramientas y a los
+          ajustes de lectura <strong>Aa</strong>, y el foco siempre se ve; en las pestañas, <kbd>←</kbd> /
+          <kbd>→</kbd> pasan de una a otra, <kbd>Intro</kbd> muestra una y <kbd>Supr</kbd> la cierra; en los
+          menús (Compartir, el menú contextual, el menú de copia de la vista previa), <kbd>↑</kbd> /
+          <kbd>↓</kbd> e <kbd>Inicio</kbd> / <kbd>Fin</kbd> pasan de una opción a otra, y <kbd>Esc</kbd> los
+          cierra.
         </p>
 
         <h3>Edición</h3>
@@ -101,7 +147,7 @@
           es más ancha o cuando vuelves a la lectura.
         </p>
         <p>
-          Un punto naranja junto al nombre del archivo indica cambios sin guardar; guarda con
+          Un punto naranja en la pestaña del documento, en lugar de su ×, indica cambios sin guardar; guarda con
           <kbd>Ctrl</kbd>+<kbd>S</kbd> y el punto se convierte un momento en una marca de verificación (los
           lectores de pantalla anuncian «Guardado»). Salir del modo de edición o abrir otro documento con cambios
           sin guardar pide confirmación primero. Si el archivo cambia en el disco mientras tienes cambios sin
@@ -181,7 +227,7 @@
           Con el teclado, la lista funciona como un árbol: <kbd>↑</kbd> / <kbd>↓</kbd> se mueven, <kbd>→</kbd>
           abre una carpeta o entra en ella, <kbd>←</kbd> la cierra o sube a la carpeta superior,
           <kbd>Inicio</kbd> / <kbd>Fin</kbd> van a los extremos, <kbd>Intro</kbd> o <kbd>Espacio</kbd> abre y
-          <kbd>Ctrl</kbd>+<kbd>Intro</kbd> abre en una ventana nueva.
+          <kbd>Ctrl</kbd>+<kbd>Intro</kbd> abre en una pestaña nueva.
         </p>
         <p>
           Ambos paneles laterales se ensanchan arrastrando su borde interior; un doble clic en el borde restaura
@@ -213,7 +259,7 @@
         </p>
 
         <h3>Recarga automática</h3>
-        <p>El archivo abierto se vigila en el disco. Cuando cambia, la vista se actualiza sola y conserva tu posición de lectura, útil mientras un documento se regenera. En el modo de edición la actualización solo ocurre mientras tu búfer no tenga cambios sin guardar.</p>
+        <p>Los archivos abiertos se vigilan en el disco. Cuando uno cambia, la vista se actualiza sola y conserva tu posición de lectura, útil mientras un documento se regenera; una pestaña en segundo plano se pone al día cuando vuelves a ella. En el modo de edición la actualización solo ocurre mientras tu búfer no tenga cambios sin guardar.</p>
         <p><kbd>F5</kbd> o <kbd>Ctrl</kbd>+<kbd>R</kbd> vuelve a leer el archivo cuando quieras, manteniendo tu posición; con cambios sin guardar no hace nada.</p>
 
         <h3>Representación</h3>
@@ -270,10 +316,11 @@
           versión de Microsoft Store la entrada se llama siempre <em>Markdown document</em>.
         </p>
         <p>
-          Haz clic derecho en un archivo del panel, o en el nombre del archivo en la barra de herramientas, para
-          <strong>Abrir en una ventana nueva</strong>, <strong>Mostrar en el Explorador</strong>, <strong>Copiar
-          ruta</strong> o <strong>Copiar como enlace Markdown</strong> (relativo al documento abierto). El botón
-          de la chincheta (<kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd>) mantiene la ventana sobre las demás.
+          Haz clic derecho en un archivo del panel para <strong>Abrir en una pestaña nueva</strong>, <strong>Abrir
+          en una ventana nueva</strong>, <strong>Mostrar en el Explorador</strong>, <strong>Copiar ruta</strong> o
+          <strong>Copiar como enlace Markdown</strong> (relativo al documento abierto). El botón de la chincheta
+          mantiene la ventana sobre las demás; ya no tiene atajo, porque
+          <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd> ahora vuelve a abrir la última pestaña cerrada.
         </p>
         <p>
           En la versión de Microsoft Store, tras unos días de uso una pequeña tarjeta pregunta <em>¿Te gusta

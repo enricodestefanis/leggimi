@@ -1,6 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { UnlistenFn } from "@tauri-apps/api/event";
+import { emitTo, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import {
+  EV,
+  type CaptionLayout,
+  type OpenRequest,
+  type TabAccepted,
+  type TabHover,
+  type TabOffer,
+  type TabTransfer,
+  type WindowDragDrop,
+} from "./tabs/contract";
 
 export interface MarkdownDoc {
   path: string;
@@ -38,13 +48,8 @@ export interface SearchHit {
   preview: string;
 }
 
-/** a command line: `leggimi [file] [--line N]`, or what a new window is made for */
-export interface Launch {
-  path: string | null;
-  line: number | null;
-  /** heading id to show at the top (a `file.md#section` link) */
-  anchor?: string | null;
-}
+/** a command line: `leggimi [file] [--line N]`, a file routed here, or what a new window is made for */
+export type Launch = OpenRequest;
 
 export const getInitialFile = () => invoke<Launch | null>("get_initial_file");
 export const readMarkdown = (path: string) => invoke<MarkdownDoc>("read_markdown", { path });
@@ -66,7 +71,22 @@ export const listTree = (dir: string) => invoke<TreeNode>("list_tree", { dir });
 export const searchInTree = (dir: string, query: string) =>
   invoke<SearchHit[]>("search_in_tree", { dir, query });
 export const parentDir = (path: string) => invoke<string | null>("parent_dir", { path });
-export const watchFile = (path: string) => invoke<void>("watch_file", { path });
+// every file open in the window's tabs, watched for changes, renames and deletions
+export const watchFiles = (paths: string[]) => invoke<void>("watch_files", { paths });
+// the window's tabs (and the one in front), so a file opened from outside finds its tab
+export const setTabs = (paths: string[], active: string | null) => invoke<void>("set_tabs", { paths, active });
+// the Leggimi window at this point of the screen (physical pixels), in true stacking order
+export const windowAt = (x: number, y: number, exclude: string | null = null) =>
+  invoke<string | null>("window_at", { x, y, exclude });
+// the window is asking whether to close: a file opened from outside goes elsewhere
+export const setClosing = (closing: boolean) => invoke<void>("set_closing", { closing });
+// where the window's buttons and tab strip are, for the native caption zones and window drags
+export const setCaption = (layout: CaptionLayout) => invoke<void>("set_caption", { layout });
+export const setStrip = (x: number, y: number, w: number, h: number) => invoke<void>("set_strip", { x, y, w, h });
+// the title bar's own menu (Restore, Move, Size, Minimize, Maximize, Close) at this point (physical px)
+export const showSystemMenu = (x: number, y: number) => invoke<void>("show_system_menu", { x, y });
+// the only tab dragged: the window follows the pointer natively and may join another one
+export const beginWindowDrag = (path: string | null, title: string) => invoke<void>("begin_window_drag", { path, title });
 // the file pane's folder, watched for files coming and going; `rearm` renews
 // the watch of the same folder. The time orders the requests (a reload of the
 // page keeps counting up).
@@ -76,9 +96,34 @@ export const resolvePath = (dir: string, rel: string) => invoke<string>("resolve
 // a document link without extension, or to a folder: the file it stands for
 export const resolveDoc = (dir: string, rel: string) => invoke<string | null>("resolve_doc", { dir, rel });
 export const showWindow = () => invoke<void>("show_window");
-/** a new window, for a file or (path null) on the home */
-export const openWindow = (path: string | null, opts: { line?: number; anchor?: string } = {}) =>
-  invoke<void>("open_window", { path, line: opts.line ?? null, anchor: opts.anchor ?? null });
+/**
+ * A new window, for a file or (path null) on the home; with `transfer`, a tab
+ * moving there (answered with "tab-accepted" and `token`), born at `at`
+ * (physical pixels) and, with `follow`, carried by the pointer still down.
+ * Resolves to its label.
+ */
+export const openWindow = (
+  path: string | null,
+  opts: {
+    line?: number;
+    anchor?: string;
+    transfer?: TabTransfer;
+    from?: string;
+    token?: string;
+    at?: { x: number; y: number };
+    follow?: boolean;
+  } = {},
+) =>
+  invoke<string>("open_window", {
+    path,
+    line: opts.line ?? null,
+    anchor: opts.anchor ?? null,
+    transfer: opts.transfer ?? null,
+    from: opts.from ?? null,
+    token: opts.token ?? null,
+    at: opts.at ?? null,
+    follow: opts.follow ?? false,
+  });
 export const printToPdf = (path: string, landscape: boolean) =>
   invoke<void>("print_to_pdf", { path, landscape });
 // a file a document links to, in its default app (documents and media only)
@@ -104,3 +149,22 @@ export const onFileChanged = (cb: (change: FileChange) => void): Promise<Unliste
 // the folder of the file pane may list something else now
 export const onTreeChanged = (cb: () => void): Promise<UnlistenFn> =>
   getCurrentWebviewWindow().listen("tree-changed", () => cb());
+
+const listen = <T>(event: string, cb: (payload: T) => void): Promise<UnlistenFn> =>
+  getCurrentWebviewWindow().listen<T>(event, (e) => cb(e.payload));
+
+// the pointer over one of the native caption zones (the page draws the hover)
+export const onCaptionHover = (cb: (button: "min" | "max" | "close" | null) => void) =>
+  listen<{ button: "min" | "max" | "close" | null }>(EV.captionHover, (p) => cb(p?.button ?? null));
+// this window, carried by its only tab, was let go over another window's strip
+export const onWindowDragDrop = (cb: (drop: WindowDragDrop) => void) => listen<WindowDragDrop>(EV.windowDragDrop, cb);
+
+// tabs between windows: a tab carried over this window, let go here, and the answers
+export const onTabHover = (cb: (h: TabHover) => void) => listen<TabHover>(EV.tabHover, cb);
+export const onTabHoverEnd = (cb: () => void) => listen<null>(EV.tabHoverEnd, () => cb());
+export const onTabOffer = (cb: (o: TabOffer) => void) => listen<TabOffer>(EV.tabOffer, cb);
+export const onTabAccepted = (cb: (a: TabAccepted) => void) => listen<TabAccepted>(EV.tabAccepted, cb);
+export const sendTabHover = (to: string, h: TabHover) => emitTo(to, EV.tabHover, h);
+export const sendTabHoverEnd = (to: string) => emitTo(to, EV.tabHoverEnd, null);
+export const sendTabOffer = (to: string, o: TabOffer) => emitTo(to, EV.tabOffer, o);
+export const sendTabAccepted = (to: string, a: TabAccepted) => emitTo(to, EV.tabAccepted, a);

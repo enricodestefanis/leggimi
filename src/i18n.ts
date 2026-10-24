@@ -196,6 +196,8 @@ const KEY_CAPS = new Map<string, keyof Dict>([
   ["Shift", "key.shift"],
   ["Space", "key.space"],
   ["Esc", "key.esc"],
+  ["PgUp", "key.pgUp"],
+  ["PgDn", "key.pgDn"],
 ]);
 
 // Static markup carries its English text as the fallback and a data-i18n*

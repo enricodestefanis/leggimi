@@ -1,16 +1,19 @@
+pub mod caption;
 mod commands;
+pub mod drag;
 mod watcher;
 mod windowing;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU32;
 use std::sync::Mutex;
 use std::time::Instant;
 
 use notify::RecommendedWatcher;
-use notify_debouncer_full::{Debouncer, NoCache, RecommendedCache};
+use notify_debouncer_full::{Debouncer, NoCache};
 use tauri::Manager;
+use tauri_plugin_window_state::StateFlags;
 
 /// One window's share of the state, by window label.
 #[derive(Default)]
@@ -19,12 +22,28 @@ pub struct WindowSlot {
     pub launch: Option<Launch>,
     /// the page has called get_initial_file, so its "open-file" listener is live
     pub ready: bool,
-    /// the document on screen, canonical (set by watch_file)
-    pub doc: Option<PathBuf>,
-    /// a document on its way to the page (handed out or routed, not yet on
-    /// screen): the window is busy, and a second launch of it finds it here
-    pub opening: Option<PathBuf>,
-    pub watcher: Option<Debouncer<RecommendedWatcher, RecommendedCache>>,
+    /// the page has shown its window (show_window), so it has opened what it
+    /// started with: launches routed here from then on go to it at once
+    pub shown: bool,
+    /// the documents in its tabs, canonical (set_tabs), and the one in front
+    pub docs: Vec<PathBuf>,
+    pub active: Option<PathBuf>,
+    /// documents on their way to a tab (handed out or routed, not yet in
+    /// `docs`), canonical: a second launch of one finds it here, and the
+    /// window is no free start page meanwhile
+    pub opening: Vec<PathBuf>,
+    /// launches routed here before its page had started (get_initial_file,
+    /// then show_window), sent in order once it has
+    pub queued: Vec<Launch>,
+    /// its page is asking whether to close (unsaved edits): launches go elsewhere
+    pub closing: bool,
+    /// its tab strip, in CSS px of the client area: where a window dragged
+    /// over it merges (drag.rs)
+    pub strip: Option<drag::Strip>,
+    /// a torn-off tab's new window, to follow the pointer once its page shows it
+    pub follow: Option<drag::Follow>,
+    /// the watch on its documents' folders (watch_files)
+    pub watcher: Option<watcher::DocWatch>,
     /// the folder the file pane shows, as last asked by the page
     pub tree_root: Option<PathBuf>,
     /// when that was asked (the page's clock), to drop older requests
@@ -33,11 +52,52 @@ pub struct WindowSlot {
     pub tree: Option<Debouncer<RecommendedWatcher, NoCache>>,
 }
 
+impl WindowSlot {
+    /// A window about to be built for `launch` (`canon`: its file, canonical,
+    /// when it exists): the launch waits there, and its file counts as being
+    /// opened.
+    pub fn reserved(launch: Launch, canon: Option<PathBuf>) -> WindowSlot {
+        WindowSlot {
+            launch: Some(launch),
+            opening: canon.into_iter().collect(),
+            ..Default::default()
+        }
+    }
+
+    /// `file` is in one of its tabs, or on its way to one.
+    pub fn holds(&self, file: &Path) -> bool {
+        self.docs.iter().chain(&self.opening).any(|d| same_file(d, file))
+    }
+
+    /// On its start page alone, with nothing on its way: a launch takes it over.
+    pub fn idle(&self) -> bool {
+        self.ready
+            && !self.closing
+            && self.launch.is_none()
+            && self.docs.is_empty()
+            && self.opening.is_empty()
+            && self.queued.is_empty()
+    }
+
+    /// Counts `file` (canonical) as on its way to a tab here.
+    pub fn expect(&mut self, file: PathBuf) {
+        if !self.opening.iter().any(|o| same_file(o, &file)) {
+            self.opening.push(file);
+        }
+    }
+}
+
+/// The same file for Windows, which ignores case.
+pub fn same_file(a: &Path, b: &Path) -> bool {
+    a.as_os_str().eq_ignore_ascii_case(b.as_os_str())
+}
+
 #[derive(Default)]
 pub struct AppState {
     pub windows: Mutex<HashMap<String, WindowSlot>>,
-    /// the window used last: where a launch without a file lands
-    pub last_focused: Mutex<String>,
+    /// the windows by use, the one used last first: a launch goes to the
+    /// first that can take it
+    pub focus: Mutex<Vec<String>>,
     /// the newest window and when it was made, for cascading bursts
     pub last_created: Mutex<Option<(String, Instant)>>,
     /// one window is placed and built at a time, so a burst cascades instead
@@ -46,15 +106,48 @@ pub struct AppState {
     pub next_id: AtomicU32,
 }
 
+/// How a launch routed to a window wants its file ("open-file").
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    /// in a new tab there (a start page in front is reused)
+    Tab,
+    /// it is in a tab there already: that tab comes forward
+    Activate,
+}
+
 /// What a command line asks for: `leggimi [file] [--line N]`; also what a new
-/// window is made for.
-#[derive(Clone, Default, serde::Serialize)]
+/// window is made for, and what "open-file" carries (OpenRequest in
+/// src/tabs/contract.ts).
+#[derive(Clone, Debug, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Launch {
     pub path: Option<String>,
     /// 1-based source line to show at the top
     pub line: Option<u32>,
     /// heading id to show at the top (a `file.md#section` link)
     pub anchor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Mode>,
+    /// a torn-off tab coming with its state (TabTransfer): only the pages
+    /// read it, so it goes through untouched
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transfer: Option<serde_json::Value>,
+    /// with a transfer: the window it comes from, and the token the new page
+    /// answers it with ("tab-accepted")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+impl Launch {
+    /// Its file: the path, or the file of the tab it carries.
+    pub fn file(&self) -> Option<&str> {
+        self.path
+            .as_deref()
+            .or_else(|| self.transfer.as_ref()?.get("path")?.as_str())
+    }
 }
 
 /// `leggimi file.md`, `leggimi --line 40 file.md`, `leggimi file.md -l 40`,
@@ -332,6 +425,19 @@ unsafe fn prune_native_menu(
     Ok(count)
 }
 
+/// The native side of the title bar every window draws itself: the Snap
+/// layouts zones over its caption buttons (caption.rs) and the watch on its
+/// moves for the tab drags (drag.rs), from the moment its WebView exists.
+fn window_chrome_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+    tauri::plugin::Builder::new("window-chrome")
+        .on_webview_ready(|webview| {
+            let window = webview.window();
+            caption::install(&window);
+            drag::install(&window);
+        })
+        .build()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
@@ -368,29 +474,29 @@ pub fn run() {
             tauri::async_runtime::spawn(async move { windowing::route_launch(&app, launch) });
         }))
         .plugin(system_languages_plugin())
-        // only the first window keeps its place; the others cascade from it
+        // only the first window keeps its place; the others cascade from it.
+        // Never its decorations: the windows have none (the page draws the
+        // title bar), and a state saved by 1.x would bring Windows' bar back
         .plugin(
             tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS)
                 .with_filter(|label| label == "main")
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(window_chrome_plugin());
     #[cfg(windows)]
     let builder = builder.plugin(webview_guard_plugin());
     builder
         .manage(AppState::default())
         .setup(|app| {
             let cwd = std::env::current_dir().ok();
+            let launch = parse_args(std::env::args(), cwd.as_deref());
+            let canon = launch.path.as_deref().and_then(|p| dunce::canonicalize(p).ok());
             let state = app.state::<AppState>();
-            state.windows.lock().unwrap().insert(
-                "main".to_owned(),
-                WindowSlot {
-                    launch: Some(parse_args(std::env::args(), cwd.as_deref())),
-                    ..Default::default()
-                },
-            );
-            *state.last_focused.lock().unwrap() = "main".to_owned();
+            state.windows.lock().unwrap().insert("main".to_owned(), WindowSlot::reserved(launch, canon));
+            *state.focus.lock().unwrap() = vec!["main".to_owned()];
             Ok(())
         })
         .on_window_event(windowing::on_window_event)
@@ -411,10 +517,18 @@ pub fn run() {
             commands::list_tree,
             commands::search_in_tree,
             commands::parent_dir,
+            commands::set_tabs,
+            commands::watch_files,
             commands::watch_file,
             commands::watch_tree,
             commands::resolve_path,
             commands::show_window,
+            commands::window_at,
+            commands::set_closing,
+            commands::set_strip,
+            commands::begin_window_drag,
+            caption::set_caption,
+            caption::show_system_menu,
             commands::is_store_install,
             commands::open_store_review,
             commands::request_store_rating

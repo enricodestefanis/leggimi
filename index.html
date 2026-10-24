@@ -30,7 +30,7 @@
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
         <button id="btn-reading" class="icon-btn" title="Reading settings" data-i18n-title="toolbar.reading" popovertarget="reading-menu"><span class="aa-glyph" aria-hidden="true">Aa</span></button>
-        <button id="btn-pin" class="icon-btn" title="Keep on top of other windows (Ctrl+Shift+T)" data-i18n-title="toolbar.pin" aria-pressed="false">
+        <button id="btn-pin" class="icon-btn" title="Keep on top of other windows" data-i18n-title="toolbar.pin" aria-pressed="false">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 7 3 3H7l3-3z"/></svg>
         </button>
         <span class="toolbar-sep"></span>
@@ -40,6 +40,11 @@
         <button id="btn-toc" class="icon-btn" title="Toggle outline (Ctrl+I)" data-i18n-title="toolbar.toc">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         </button>
+        <div id="caption" class="caption" role="group" aria-label="Window" data-i18n-aria-label="caption.group">
+          <button id="cap-min" class="cap-btn" type="button" tabindex="-1" title="Minimize" aria-label="Minimize" data-i18n-title="caption.minimize" data-i18n-aria-label="caption.minimize"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M0 5.5h10"/></svg></button>
+          <button id="cap-max" class="cap-btn cap-max" type="button" tabindex="-1" title="Maximize" aria-label="Maximize" data-i18n-title="caption.maximize" data-i18n-aria-label="caption.maximize"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" rx="1.5"/></svg><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><rect x="0.5" y="2.5" width="7" height="7" rx="1.2"/><path d="M2.5 2.5V2A1.5 1.5 0 0 1 4 .5h4A1.5 1.5 0 0 1 9.5 2v4A1.5 1.5 0 0 1 8 7.5h-.5"/></svg></button>
+          <button id="cap-close" class="cap-btn cap-close" type="button" tabindex="-1" title="Close" aria-label="Close" data-i18n-title="caption.close" data-i18n-aria-label="caption.close"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M.5.5l9 9M9.5.5l-9 9"/></svg></button>
+        </div>
       </header>
       <div id="shell">
         <aside id="tree-pane" aria-label="Files" data-i18n-aria-label="pane.files">
@@ -91,7 +96,7 @@
           <article id="article" class="markdown-body" hidden></article>
           <div id="empty-state" hidden>
             <div class="empty-card">
-              <svg class="empty-icon" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <img class="empty-icon" src="/src/assets/leggimi-icon.png" alt="" width="72" height="72" draggable="false" />
               <h2 data-i18n="empty.title">No document open</h2>
               <p class="empty-lead" data-i18n="empty.lead">Drop a Markdown file here, or</p>
               <button id="btn-open-empty" class="primary-btn" data-i18n="empty.open">Open a file…</button>
@@ -259,8 +264,7 @@
           <dl>
             <div><dt><kbd>Ctrl</kbd>+<kbd>O</kbd></dt><dd data-i18n="keys.open">Open a file</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></dt><dd data-i18n="keys.newWindow">New window</dd></div>
-            <div><dt><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></dt><dd data-i18n="keys.closeWindow">Close the window</dd></div>
-            <div><dt data-i18n-html="keys.ctrlClickKeys"><kbd>Ctrl</kbd>+click / middle click</dt><dd data-i18n="keys.ctrlClick">Open in a new window</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd></dt><dd data-i18n="keys.closeWindow">Close the window</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>E</kbd></dt><dd data-i18n="keys.edit">Edit / back to reading</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd data-i18n="keys.save">Save</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></dt><dd data-i18n="keys.panels">File browser / outline</dd></div>
@@ -269,7 +273,19 @@
             <div><dt><kbd>Shift</kbd>+<kbd>F10</kbd></dt><dd data-i18n="keys.contextMenu">Right-click menu</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></dt><dd data-i18n="keys.copyRich">Copy as rich text</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>P</kbd></dt><dd data-i18n="keys.print">Print / PDF</dd></div>
-            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></dt><dd data-i18n="keys.pin">Keep on top</dd></div>
+          </dl>
+        </section>
+        <section>
+          <h3 data-i18n="keys.tabs">Tabs</h3>
+          <dl>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>T</kbd></dt><dd data-i18n="keys.newTab">New tab</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></dt><dd data-i18n="keys.closeTab">Close the tab</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></dt><dd data-i18n="keys.reopenTab">Reopen the closed tab</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd></dt><dd data-i18n="keys.nextTab">Next / previous tab</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>1</kbd>…<kbd>8</kbd> / <kbd>Ctrl</kbd>+<kbd>9</kbd></dt><dd data-i18n="keys.tabN">Tab 1 to 8 / last tab</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PgUp</kbd> / <kbd>PgDn</kbd></dt><dd data-i18n="keys.moveTab">Move the tab left / right</dd></div>
+            <div><dt data-i18n-html="keys.ctrlClickKeys"><kbd>Ctrl</kbd>+click / middle click</dt><dd data-i18n="keys.ctrlClick">Open in a new tab</dd></div>
+            <div><dt data-i18n-html="keys.shiftClickKeys"><kbd>Shift</kbd>+click</dt><dd data-i18n="keys.shiftClick">Open in a new window</dd></div>
           </dl>
         </section>
         <section>
@@ -292,7 +308,7 @@
 
     <dialog id="help-dialog" aria-label="Help" data-i18n-aria-label="help.title">
       <div class="help-head">
-        <h2>Leggimi <span id="help-version" class="version-badge"></span></h2>
+        <h2><img class="help-logo" src="/src/assets/leggimi-icon.png" alt="" width="28" height="28" draggable="false" />Leggimi <span id="help-version" class="version-badge"></span></h2>
         <button id="help-close" class="icon-btn" title="Close (Esc)" data-i18n-title="help.close">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>

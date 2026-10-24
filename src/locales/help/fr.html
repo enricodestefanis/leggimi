@@ -7,23 +7,61 @@
           <li>Appuyez sur <kbd>Ctrl</kbd>+<kbd>O</kbd> ou utilisez le bouton dossier de la barre d'outils.</li>
         </ul>
         <p>
-          Un fichier ouvert depuis l'extérieur pendant que l'application tourne (double-clic, <em>Ouvrir
-          avec</em>, <code>leggimi fichier.md</code>) a <strong>sa propre fenêtre</strong> ; s'il est déjà
-          ouvert, sa fenêtre passe au premier plan. Dans l'application, les fichiers s'ouvrent dans la même
-          fenêtre : <kbd>Ctrl</kbd>+clic (ou le bouton du milieu) sur un fichier, un document récent, un
-          résultat de recherche ou un lien l'ouvre plutôt dans une nouvelle fenêtre, tout comme <em>Ouvrir
-          dans une nouvelle fenêtre</em> dans son menu contextuel, et <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>N</kbd>
-          en ouvre une vide. Plusieurs fichiers ouverts ensemble (<kbd>Ctrl</kbd>+<kbd>O</kbd> ou glissés)
-          vont chacun dans sa fenêtre.
+          Les documents s'ouvrent dans des <strong>onglets</strong>, dans la barre d'outils. Un fichier ouvert
+          depuis l'extérieur pendant que l'application tourne (double-clic, <em>Ouvrir avec</em>,
+          <code>leggimi fichier.md</code>) s'ouvre dans un nouvel onglet de la dernière fenêtre utilisée ; s'il est déjà
+          ouvert, son onglet passe au premier plan. Dans l'application, un clic sur un fichier, un document
+          récent, un résultat de recherche ou un lien l'ouvre dans l'onglet courant ; <kbd>Ctrl</kbd>+clic (ou
+          le bouton du milieu) l'ouvre dans un nouvel onglet en arrière-plan,
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+clic dans un nouvel onglet au premier plan et <kbd>Maj</kbd>+clic dans
+          une nouvelle fenêtre, tout comme <em>Ouvrir dans un nouvel onglet</em> et <em>Ouvrir dans une
+          nouvelle fenêtre</em> dans son menu contextuel. Les fichiers ouverts avec <kbd>Ctrl</kbd>+<kbd>O</kbd>
+          ou glissés sur la fenêtre ont chacun leur onglet. Un document n'est jamais ouvert deux fois dans la
+          même fenêtre : l'ouvrir à nouveau ramène son onglet au premier plan.
         </p>
         <p>
-          Sans document ouvert, la fenêtre liste les fichiers ouverts récemment : cliquez sur l'un d'eux pour
-          le rouvrir. Chaque document <strong>se souvient aussi de l'endroit où vous vous êtes arrêté</strong>
-          et y revient à la prochaine ouverture.
+          Un nouvel onglet commence par la page d'accueil, qui liste les fichiers ouverts récemment : cliquez
+          sur l'un d'eux pour l'y ouvrir. Chaque document <strong>se souvient aussi de l'endroit où vous vous
+          êtes arrêté</strong> et y revient à la prochaine ouverture.
         </p>
         <p>
           Depuis un terminal, <code>leggimi fichier.md</code> ouvre un fichier et <code>--line 40</code>
           l'ouvre à cette ligne (la commande <code>leggimi</code> est disponible une fois l'application installée).
+        </p>
+
+        <h3>Onglets et fenêtres</h3>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>T</kbd>, ou le <strong>+</strong> après le dernier onglet, ouvre un nouvel onglet,
+          et <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>N</kbd> une nouvelle fenêtre. <kbd>Ctrl</kbd>+<kbd>W</kbd> ferme
+          l'onglet, tout comme sa croix × et un clic du milieu dessus : fermer le dernier document laisse la page
+          d'accueil, et <kbd>Ctrl</kbd>+<kbd>W</kbd> sur une page d'accueil restée seule ferme la fenêtre.
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>W</kbd> ferme la fenêtre avec tous ses onglets, et
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> rouvre le dernier onglet fermé. Un onglet qui contient des
+          modifications non enregistrées pose la question avant de se fermer : <strong>Enregistrer</strong>,
+          <strong>Ne pas enregistrer</strong> ou <strong>Annuler</strong> ; fermer la fenêtre ne la pose qu'une
+          fois, en listant les documents qui contiennent des modifications non enregistrées.
+        </p>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> et les autres touches des
+          onglets, sous <em>Raccourcis clavier</em>, passent d'un onglet à l'autre au clavier. Chaque onglet garde
+          sa propre position de lecture, ses modifications avec leur historique d'annulation, son historique
+          Précédent / Suivant et le dossier du panneau des fichiers. Survolez un onglet pour voir son dossier et
+          son temps de lecture ; quand les onglets ne tiennent plus, la flèche au bout de la bande les liste tous.
+          Un clic droit sur un onglet propose <strong>Déplacer vers une nouvelle fenêtre</strong>, <strong>Fermer
+          les autres onglets</strong>, <strong>Fermer les onglets à droite</strong>, <strong>Copier le
+          chemin</strong> et <strong>Afficher dans l'Explorateur</strong>.
+        </p>
+        <p>
+          Faites glisser un onglet le long de la bande pour changer sa place (<kbd>Échap</kbd> le remet où il était). Tirez-le hors de la bande et il
+          s'ouvre dans sa propre fenêtre, qui suit le pointeur ; lâchez-le sur les onglets d'une autre fenêtre de
+          Leggimi et il y passe, modifications non enregistrées et annulation comprises. Faire glisser l'unique
+          onglet d'une fenêtre déplace toute la fenêtre, et le lâcher sur les onglets d'une autre fenêtre réunit
+          les deux.
+        </p>
+        <p>
+          La barre d'outils sert aussi de barre de titre, aux couleurs du thème : faites glisser sa partie vide
+          pour déplacer la fenêtre, double-cliquez dessus pour l'agrandir ou la restaurer, et survolez le bouton
+          Agrandir pour afficher les dispositions d'ancrage de Windows 11.
         </p>
 
         <h3>Touches de lecture</h3>
@@ -38,7 +76,7 @@
             <tr><td><kbd>?</kbd></td><td>Afficher ou masquer l'aide-mémoire des touches</td></tr>
           </tbody>
         </table>
-        <p>Un trait fin en haut du document indique où vous en êtes, et la barre d'outils affiche le temps de lecture estimé.</p>
+        <p>Un trait fin en haut du document indique où vous en êtes ; survolez l'onglet du document pour voir le temps de lecture estimé.</p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>C</kbd> sur une sélection la copie avec sa mise en forme, prête pour Word ou
           Outlook, ainsi qu'en texte brut. Le document peut aussi être déplacé comme une feuille de papier :
@@ -55,7 +93,7 @@
           <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>C</kbd> ; imprimer ou enregistrer en PDF.
         </p>
         <p>
-          Comme dans un navigateur, <kbd>Alt</kbd>+<kbd>←</kbd> (ou le bouton latéral <em>précédent</em> de la souris) revient là où vous étiez avant un lien vers une section, un clic dans le plan ou le passage à un autre document ; <kbd>Alt</kbd>+<kbd>→</kbd> (ou le bouton <em>suivant</em>) refait le chemin. <strong>Précédent</strong> et <strong>Suivant</strong> sont aussi en haut du menu du clic droit. Chaque fenêtre a son propre historique.
+          Comme dans un navigateur, <kbd>Alt</kbd>+<kbd>←</kbd> (ou le bouton latéral <em>précédent</em> de la souris) revient là où vous étiez avant un lien vers une section, un clic dans le plan ou le passage à un autre document ; <kbd>Alt</kbd>+<kbd>→</kbd> (ou le bouton <em>suivant</em>) refait le chemin. <strong>Précédent</strong> et <strong>Suivant</strong> sont aussi en haut du menu du clic droit. Chaque onglet a son propre historique.
         </p>
 
         <h3>Raccourcis clavier</h3>
@@ -75,11 +113,18 @@
             <tr><td><kbd>Maj</kbd>+<kbd>F10</kbd></td><td>Ouvrir le menu contextuel (aussi la touche Menu)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Texte plus grand / plus petit</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Réinitialiser la taille du texte</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd></td><td>Garder la fenêtre au premier plan</td></tr>
             <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Recharger le fichier depuis le disque</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>Nouvel onglet</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Fermer l'onglet</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd></td><td>Rouvrir le dernier onglet fermé</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>Tab</kbd></td><td>Onglet suivant / précédent (aussi <kbd>Ctrl</kbd>+<kbd>Pg suiv</kbd> / <kbd>Ctrl</kbd>+<kbd>Pg préc</kbd>)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>8</kbd> / <kbd>Ctrl</kbd>+<kbd>9</kbd></td><td>Onglet 1 à 8 / dernier onglet (dans l'éditeur, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd> restent les titres)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>Pg préc</kbd> / <kbd>Pg suiv</kbd></td><td>Déplacer l'onglet à gauche / à droite</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>N</kbd></td><td>Nouvelle fenêtre</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+clic / clic du milieu</td><td>Ouvrir un fichier, un document récent, un résultat de recherche ou un lien dans une nouvelle fenêtre</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Fermer la fenêtre</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>W</kbd></td><td>Fermer la fenêtre</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / clic du milieu</td><td>Ouvrir un fichier, un document récent, un résultat de recherche ou un lien dans un nouvel onglet</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+clic</td><td>De même, dans un nouvel onglet au premier plan</td></tr>
+            <tr><td><kbd>Maj</kbd>+clic</td><td>De même, dans une nouvelle fenêtre</td></tr>
             <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Précédent / suivant (aussi les boutons latéraux de la souris)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Aide-mémoire des touches</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Afficher cette aide</td></tr>
@@ -87,10 +132,12 @@
           </tbody>
         </table>
         <p>
-          Au clavier, <kbd>Tab</kbd> atteint les boutons de la barre d'outils et les réglages de lecture
-          <strong>Aa</strong>, et le focus reste toujours visible ; dans les menus (Partager, le menu
-          contextuel, le menu de copie de l'aperçu), <kbd>↑</kbd> / <kbd>↓</kbd> et <kbd>Début</kbd> /
-          <kbd>Fin</kbd> passent d'une entrée à l'autre, et <kbd>Échap</kbd> les ferme.
+          Au clavier, <kbd>Tab</kbd> atteint les onglets, les boutons de la barre d'outils et les réglages de
+          lecture <strong>Aa</strong>, et le focus reste toujours visible ; sur les onglets, <kbd>←</kbd> /
+          <kbd>→</kbd> passent de l'un à l'autre, <kbd>Entrée</kbd> en affiche un et <kbd>Suppr</kbd> le ferme ;
+          dans les menus (Partager, le menu contextuel, le menu de copie de l'aperçu), <kbd>↑</kbd> /
+          <kbd>↓</kbd> et <kbd>Début</kbd> / <kbd>Fin</kbd> passent d'une entrée à l'autre, et <kbd>Échap</kbd>
+          les ferme.
         </p>
 
         <h3>Édition</h3>
@@ -102,7 +149,7 @@
           s'élargit ou quand vous revenez à la lecture.
         </p>
         <p>
-          Un point orange à côté du nom du fichier signale des modifications non enregistrées — enregistrez avec
+          Un point orange sur l'onglet du document, à la place de sa croix ×, signale des modifications non enregistrées — enregistrez avec
           <kbd>Ctrl</kbd>+<kbd>S</kbd>, et le point devient un instant une coche (les lecteurs d'écran annoncent
           « Enregistré »). Quitter le mode édition ou ouvrir un autre document avec des modifications non
           enregistrées demande d'abord confirmation. Si le fichier change sur le disque pendant que vous avez des
@@ -182,7 +229,7 @@
           Au clavier, la liste fonctionne comme une arborescence : <kbd>↑</kbd> / <kbd>↓</kbd> se déplacent,
           <kbd>→</kbd> ouvre un dossier ou y entre, <kbd>←</kbd> le ferme ou remonte au dossier parent,
           <kbd>Début</kbd> / <kbd>Fin</kbd> vont aux extrémités, <kbd>Entrée</kbd> ou <kbd>Espace</kbd> ouvre,
-          et <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> ouvre dans une nouvelle fenêtre.
+          et <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> ouvre dans un nouvel onglet.
         </p>
         <p>
           Les deux panneaux latéraux s'élargissent en tirant leur bord intérieur — un double-clic sur le bord
@@ -217,7 +264,7 @@
         </p>
 
         <h3>Rechargement automatique</h3>
-        <p>Le fichier ouvert est surveillé sur le disque. Quand il change, la vue se rafraîchit d'elle-même en gardant votre position de lecture — utile pendant qu'un document est régénéré. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée.</p>
+        <p>Les fichiers ouverts sont surveillés sur le disque. Quand l'un d'eux change, la vue se rafraîchit d'elle-même en gardant votre position de lecture — utile pendant qu'un document est régénéré ; un onglet en arrière-plan se met à jour quand vous y revenez. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée.</p>
         <p><kbd>F5</kbd> ou <kbd>Ctrl</kbd>+<kbd>R</kbd> relit le fichier à la demande en gardant votre position ; avec des modifications non enregistrées, rien ne se passe.</p>
 
         <h3>Rendu</h3>
@@ -274,11 +321,11 @@
           la version du Microsoft Store, l'entrée s'appelle toujours <em>Markdown document</em>.
         </p>
         <p>
-          Clic droit sur un fichier dans le panneau, ou sur le nom du fichier dans la barre d'outils, pour
+          Clic droit sur un fichier dans le panneau pour <strong>Ouvrir dans un nouvel onglet</strong>,
           <strong>Ouvrir dans une nouvelle fenêtre</strong>, <strong>Afficher dans l'Explorateur</strong>,
           <strong>Copier le chemin</strong> ou <strong>Copier comme lien Markdown</strong> (relatif au document
-          ouvert). Le bouton épingle (<kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd>) garde la fenêtre au-dessus des
-          autres.
+          ouvert). Le bouton épingle garde la fenêtre au-dessus des autres ; il n'a plus de raccourci, car
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> rouvre désormais le dernier onglet fermé.
         </p>
         <p>
           Dans la version du Microsoft Store, après quelques jours d'utilisation, une petite carte demande

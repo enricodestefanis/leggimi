@@ -1226,9 +1226,12 @@ body.resizing * {
   animation: doc-enter 0.2s var(--ease);
 }
 
+/* the app's icon: the title bar no longer shows it */
 .empty-icon {
-  color: var(--text-muted);
-  opacity: 0.8;
+  display: block;
+  margin: 0 auto 6px;
+  filter: drop-shadow(0 3px 8px rgba(26, 25, 21, 0.14));
+  user-select: none;
 }
 
 .empty-card h2 {
@@ -1668,9 +1671,17 @@ body.resizing * {
 }
 
 .help-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font-size: 1.05rem;
   font-weight: 650;
+}
+
+.help-logo {
+  flex: none;
+  user-select: none;
 }
 
 .version-badge {

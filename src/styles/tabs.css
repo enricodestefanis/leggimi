@@ -1,0 +1,541 @@
+/* The tabs in the toolbar, where the file name used to be (src/tabs/strip.ts),
+   and the window's own buttons at its right end (src/tabs/chrome.ts): the
+   toolbar is the title bar. */
+
+:root {
+  /* the caption buttons, as Windows 11 draws them */
+  --caption-hover: color-mix(in srgb, var(--text) 8%, transparent);
+  --caption-press: color-mix(in srgb, var(--text) 5%, transparent);
+  --caption-close: #c42b1c;
+}
+
+/* the file name, its dot of unsaved edits and the reading time live in the
+   tab now (the dot on it, the time on its card); the title stays in the page
+   for the assistive technologies and the tests, out of sight */
+#doc-title,
+#dirty-dot,
+#doc-meta,
+#toolbar .spacer {
+  display: none;
+}
+
+#tabbar {
+  --tabs-bg: var(--bg);
+  display: flex;
+  flex: 1 1 auto;
+  align-self: stretch;
+  align-items: center;
+  min-width: 0;
+  margin-left: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#tabbar .tabs {
+  display: flex;
+  flex: 1 1 auto;
+  align-self: stretch;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 2px;
+  overflow: auto hidden;
+  scrollbar-width: none;
+}
+
+#tabbar .tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* the tabs scrolled out of sight on the left fade there; on the right they
+   slide under the + */
+#tabbar.fade-start .tabs {
+  mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+
+/* stuck to the strip's right edge, a pixel past its padding (sticky stops
+   short of it), so no seam shows at fractional scales */
+.tab-new-wrap {
+  position: sticky;
+  right: -3px;
+  z-index: 3;
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 5px 0 4px;
+  background: var(--tabs-bg);
+}
+
+.tab-new-wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 28px;
+  background: linear-gradient(to right, transparent, var(--tabs-bg));
+  opacity: 0;
+  pointer-events: none;
+}
+
+#tabbar.fade-end .tab-new-wrap::before {
+  opacity: 1;
+}
+
+/* as wide as the name, down to a common minimum when the toolbar fills up */
+.tab {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 1 auto;
+  max-width: 228px;
+  min-width: 84px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: default;
+  transition:
+    flex-basis 0.18s var(--ease),
+    min-width 0.18s var(--ease),
+    padding 0.18s var(--ease),
+    opacity 0.14s var(--ease),
+    color 0.12s var(--ease),
+    background-color 0.12s var(--ease),
+    box-shadow 0.12s var(--ease),
+    transform 0.18s var(--ease);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* the plate under a tab: the hover fill, and the light of a new tab */
+.tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--surface-2);
+  opacity: 0;
+  transition: opacity 0.12s var(--ease);
+}
+
+.tab:not(.active):hover::before {
+  opacity: 1;
+}
+
+.tab:not(.active):hover {
+  color: var(--text);
+}
+
+/* the tab on screen is raised, as the chosen option of a segmented control */
+.tab.active {
+  z-index: 1;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 1px 3px rgba(26, 25, 21, 0.07);
+}
+
+/* in the dark themes the surface is nearly the page: a tint of the text */
+:root[data-scheme="dark"] .tab.active {
+  background: color-mix(in srgb, var(--text) 9%, var(--bg));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+/* one document only: its tab is the title it replaces, flat */
+#tabbar.single .tab.active {
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.tab-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  transition:
+    color 0.12s var(--ease),
+    opacity 0.12s var(--ease);
+}
+
+.tab.active .tab-icon {
+  color: var(--accent);
+}
+
+.tab-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* a name too long for its tab fades out, rather than breaking off with an
+   ellipsis (strip.ts marks the ones that do not fit) */
+.tab-title.clipped {
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+}
+
+/* No room kept for a close button: it takes the icon's place under the
+   pointer, as in Safari, and so do the dot of unsaved edits and the check
+   of a save. */
+.tab-close {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition:
+    opacity 0.12s var(--ease),
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+
+.tab-close > * {
+  grid-area: 1 / 1;
+}
+
+:is(.tab:hover, .tab:focus-visible, .tab.dirty, .tab.saved) .tab-close {
+  opacity: 1;
+}
+
+:is(.tab:hover, .tab:focus-visible, .tab.dirty, .tab.saved) .tab-icon {
+  opacity: 0;
+}
+
+.tab-close:hover {
+  background: var(--caption-hover);
+  color: var(--text);
+}
+
+.tab-close:active {
+  background: var(--caption-press);
+}
+
+/* unsaved edits: an accent dot where the close button is, which turns back
+   into it under the pointer */
+.tab-dot,
+.tab-saved {
+  display: none;
+}
+
+.tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tab.dirty .tab-close:not(:hover) svg,
+.tab.saved .tab-close:not(:hover) svg {
+  display: none;
+}
+
+.tab.dirty .tab-close:not(:hover) .tab-dot {
+  display: block;
+}
+
+/* Ctrl+S answered: the dot turns into a small check that fades away */
+.tab.saved:not(.dirty) .tab-close:not(:hover) .tab-saved {
+  display: block;
+  width: 5px;
+  height: 9px;
+  margin-bottom: 2px;
+  border: solid var(--success);
+  border-width: 0 2px 2px 0;
+  rotate: 45deg;
+  animation: saved-check 1.4s var(--ease) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab.saved .tab-saved {
+    animation: none;
+  }
+}
+
+/* new and leaving tabs grow from and shrink to nothing */
+@keyframes tab-in {
+  from {
+    flex-basis: 0;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
+  }
+}
+
+.tab.opening {
+  animation: tab-in 0.2s var(--ease);
+}
+
+.tab.closing,
+.tab.detached {
+  flex-basis: 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@keyframes tab-pulse {
+  0%,
+  35% {
+    opacity: 1;
+    background-color: var(--accent-soft);
+  }
+}
+
+.tab.pulse::before {
+  animation: tab-pulse 1.1s var(--ease);
+}
+
+.tab.dragging {
+  z-index: 2;
+  transition: none;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 6px 18px rgba(26, 25, 21, 0.14);
+}
+
+/* the place a tab carried over from another window would take */
+.tab.ghost {
+  pointer-events: none;
+  color: var(--accent-text);
+}
+
+.tab.ghost::before {
+  opacity: 1;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.tab.ghost .tab-icon {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab.opening,
+  .tab.pulse::before {
+    transition: none;
+    animation: none;
+  }
+}
+
+.tab-tool {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--text-muted);
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease),
+    transform 0.06s var(--ease);
+}
+
+.tab-tool[hidden] {
+  display: none;
+}
+
+.tab-tool:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tab-tool:active {
+  transform: scale(0.94);
+}
+
+/* a strip to grab the window by, even when the tabs fill the toolbar (the
+   empty part of the strip is grabbed too) */
+.tabbar-fill {
+  flex: 0 0 40px;
+  align-self: stretch;
+}
+
+/* A narrow window keeps room for the tab in front (the others are in the
+   list): the separators go, then Open and Help, which have their keys
+   (Ctrl+O, F1) and Open also its button on the start page. */
+@media (max-width: 720px) {
+  #toolbar .toolbar-sep {
+    display: none;
+  }
+
+  .tabbar-fill {
+    flex-basis: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  #btn-open,
+  #btn-help {
+    display: none;
+  }
+}
+
+/* narrower still: the + too (Ctrl+T, and the list of the tabs has it), and
+   the fade on the left, which would eat into the only tab in sight (the ⌄
+   says there are more) */
+@media (max-width: 560px) {
+  .tab-new-wrap {
+    display: none;
+  }
+
+  #tabbar.fade-start .tabs {
+    mask-image: none;
+  }
+}
+
+/* ---- the window's own buttons ---- */
+
+#toolbar {
+  padding-right: 0;
+}
+
+.caption {
+  flex: none;
+  display: flex;
+  align-self: stretch;
+  margin-left: 6px;
+}
+
+.cap-btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  color: var(--text);
+  transition:
+    background-color 0.1s linear,
+    color 0.1s linear;
+}
+
+/* .hover: the native zone over the button has the pointer (caption.rs) */
+.cap-btn:hover,
+.cap-btn.hover {
+  background: var(--caption-hover);
+}
+
+.cap-btn:active {
+  background: var(--caption-press);
+}
+
+.cap-close:hover,
+.cap-close.hover {
+  background: var(--caption-close);
+  color: #fff;
+}
+
+.cap-close:active {
+  background: color-mix(in srgb, var(--caption-close) 88%, transparent);
+  color: #fff;
+}
+
+.cap-max svg:last-child,
+.caption.maxed .cap-max svg:first-child {
+  display: none;
+}
+
+.caption.maxed .cap-max svg:last-child {
+  display: block;
+}
+
+/* Windows greys the caption of the window that is not in front */
+:root.win-blur .cap-btn:not(:hover, .hover) {
+  color: var(--text-muted);
+}
+
+/* High contrast: the system's own colours, the button under the pointer
+   inverted as Windows does */
+@media (forced-colors: active) {
+  .tab.active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .tab-dot {
+    background: Highlight;
+  }
+
+  .cap-btn:hover,
+  .cap-btn.hover {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+/* ---- the hover card ---- */
+
+.tab-card {
+  position: fixed;
+  z-index: 41;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 9px 12px 10px;
+  border: 1px solid var(--float-border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.tab-card[hidden] {
+  display: none;
+}
+
+.tab-card.card-in {
+  animation: card-in 0.14s var(--ease);
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    translate: 0 -3px;
+  }
+}
+
+.tab-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tab-card-path {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.tab-card-meta {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tab-card-meta.unsaved {
+  color: var(--accent-text);
+}

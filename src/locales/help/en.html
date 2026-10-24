@@ -7,22 +7,56 @@
           <li>Press <kbd>Ctrl</kbd>+<kbd>O</kbd> or use the folder button in the toolbar.</li>
         </ul>
         <p>
-          A file opened from outside while the app is running (a double-click, <em>Open with</em>,
-          <code>leggimi file.md</code>) gets a <strong>window of its own</strong>; if it is already open, its
-          window comes to the front. Inside the app, files open in the same window: <kbd>Ctrl</kbd>+click
-          (or the middle button) on a file, a recent document, a search result or a link opens it in a new
-          window instead, as does <em>Open in a new window</em> in its right-click menu, and
-          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> opens an empty one. Several files opened together
-          (<kbd>Ctrl</kbd>+<kbd>O</kbd> or dragged) go one per window.
+          Documents open in <strong>tabs</strong>, in the toolbar. A file opened from outside while the app is
+          running (a double-click, <em>Open with</em>, <code>leggimi file.md</code>) gets a new tab in the
+          window you used last; if it is already open, its tab comes to the front. Inside the app, a click on
+          a file, a recent document, a search result or a link opens it in the current tab;
+          <kbd>Ctrl</kbd>+click (or the middle button) opens it in a new tab behind the current one,
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+click in a new tab in front and <kbd>Shift</kbd>+click in a new
+          window, as do <em>Open in a new tab</em> and <em>Open in a new window</em> in its right-click menu.
+          Files opened with <kbd>Ctrl</kbd>+<kbd>O</kbd> or dragged onto the window get a tab each. A document
+          is never open twice in the same window: opening it again brings its tab to the front.
         </p>
         <p>
-          With no document open, the window lists the files you opened recently: click one to
-          reopen it. Every document also <strong>remembers where you stopped reading</strong> and
+          A new tab starts on the start page, which lists the files you opened recently: click one to
+          open it there. Every document also <strong>remembers where you stopped reading</strong> and
           scrolls back there when you open it again.
         </p>
         <p>
           From a terminal, <code>leggimi file.md</code> opens a file and <code>--line 40</code> opens
           it at that line (the <code>leggimi</code> command is available once the app is installed).
+        </p>
+
+        <h3>Tabs and windows</h3>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>T</kbd>, or the <strong>+</strong> after the last tab, opens a new tab, and
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> a new window. <kbd>Ctrl</kbd>+<kbd>W</kbd> closes the tab,
+          as do its × and a middle click on it: closing the last document leaves the start page, and
+          <kbd>Ctrl</kbd>+<kbd>W</kbd> on a lone start page closes the window.
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> closes the window with all its tabs, and
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> reopens the last tab you closed. A tab with unsaved
+          changes asks before it closes: <strong>Save</strong>, <strong>Don't save</strong> or
+          <strong>Cancel</strong>; closing the window asks once, listing the documents with unsaved changes.
+        </p>
+        <p>
+          <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> and the other tab keys under
+          <em>Keyboard shortcuts</em> switch tabs from the keyboard. Each tab keeps its own reading position,
+          edits and undo, Back / Forward history and file browser folder. Point at a tab to see its folder and
+          reading time; when the tabs run out of room, the arrow at the end of the strip lists them all.
+          Right-click a tab for <strong>Move to a new window</strong>, <strong>Close other tabs</strong>,
+          <strong>Close tabs to the right</strong>, <strong>Copy path</strong> and <strong>Show in File
+          Explorer</strong>.
+        </p>
+        <p>
+          Drag a tab along the strip to reorder it (<kbd>Esc</kbd> puts it back). Pull it off the strip and it opens in a window of its own,
+          which follows the pointer; drop it on another Leggimi window's tabs and it moves there, unsaved edits
+          and undo included. Dragging the only tab of a window moves the whole window, and dropping it on
+          another window's tabs merges the two.
+        </p>
+        <p>
+          The toolbar is also the window's title bar, in the colours of the theme: drag its empty part to move
+          the window, double-click it to maximize or restore the window, and point at the maximize button for
+          the snap layouts of Windows 11.
         </p>
 
         <h3>Reading keys</h3>
@@ -37,7 +71,7 @@
             <tr><td><kbd>?</kbd></td><td>Show or hide the quick reference of the keys</td></tr>
           </tbody>
         </table>
-        <p>A thin bar along the top of the document shows how far you are, and the toolbar shows the estimated reading time.</p>
+        <p>A thin bar along the top of the document shows how far you are; point at the document's tab to see the estimated reading time.</p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>C</kbd> on a selection copies it with its formatting, ready for Word or
           Outlook, as well as plain text. The document can also be dragged like a sheet of paper:
@@ -55,7 +89,7 @@
           does; print or save as PDF.
         </p>
         <p>
-          Like in a browser, <kbd>Alt</kbd>+<kbd>←</kbd> (or the mouse's side <em>back</em> button) returns to where you were before a link to a section, a click in the outline or a move to another document; <kbd>Alt</kbd>+<kbd>→</kbd> (or the <em>forward</em> button) goes forward again. <strong>Back</strong> and <strong>Forward</strong> are also at the top of the right-click menu. Each window has its own history.
+          Like in a browser, <kbd>Alt</kbd>+<kbd>←</kbd> (or the mouse's side <em>back</em> button) returns to where you were before a link to a section, a click in the outline or a move to another document; <kbd>Alt</kbd>+<kbd>→</kbd> (or the <em>forward</em> button) goes forward again. <strong>Back</strong> and <strong>Forward</strong> are also at the top of the right-click menu. Each tab has its own history.
         </p>
 
         <h3>Keyboard shortcuts</h3>
@@ -75,11 +109,18 @@
             <tr><td><kbd>Shift</kbd>+<kbd>F10</kbd></td><td>Open the right-click menu (also the menu key)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd></td><td>Larger / smaller text</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Reset the text size</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Keep the window on top</td></tr>
             <tr><td><kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Reload the file from disk</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>New tab</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Close the tab</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>Reopen the last closed tab</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Next / previous tab (also <kbd>Ctrl</kbd>+<kbd>PgDn</kbd> / <kbd>Ctrl</kbd>+<kbd>PgUp</kbd>)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>8</kbd> / <kbd>Ctrl</kbd>+<kbd>9</kbd></td><td>Tab 1 to 8 / last tab (in the editor, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>3</kbd> are the headings)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PgUp</kbd> / <kbd>PgDn</kbd></td><td>Move the tab left / right</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>New window</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+click / middle click</td><td>Open a file, a recent document, a search result or a link in a new window</td></tr>
-            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd></td><td>Close the window</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd></td><td>Close the window</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+click / middle click</td><td>Open a file, a recent document, a search result or a link in a new tab</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+click</td><td>The same, in a new tab in front</td></tr>
+            <tr><td><kbd>Shift</kbd>+click</td><td>The same, in a new window</td></tr>
             <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Back / forward (also the mouse's side buttons)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Quick reference of the keys</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Show this help</td></tr>
@@ -87,10 +128,11 @@
           </tbody>
         </table>
         <p>
-          From the keyboard, <kbd>Tab</kbd> reaches the toolbar buttons and the <strong>Aa</strong> reading
-          settings, and the focus is always visible; in the menus (Share, the right-click menu, the preview's
-          copy menu) <kbd>↑</kbd> / <kbd>↓</kbd> and <kbd>Home</kbd> / <kbd>End</kbd> move between the
-          entries, and <kbd>Esc</kbd> closes them.
+          From the keyboard, <kbd>Tab</kbd> reaches the tabs, the toolbar buttons and the <strong>Aa</strong>
+          reading settings, and the focus is always visible; on the tabs <kbd>←</kbd> / <kbd>→</kbd> move from
+          one to the next, <kbd>Enter</kbd> shows one and <kbd>Delete</kbd> closes it; in the menus (Share, the
+          right-click menu, the preview's copy menu) <kbd>↑</kbd> / <kbd>↓</kbd> and <kbd>Home</kbd> /
+          <kbd>End</kbd> move between the entries, and <kbd>Esc</kbd> closes them.
         </p>
 
         <h3>Editing</h3>
@@ -102,7 +144,7 @@
           back to reading.
         </p>
         <p>
-          An orange dot next to the file name marks unsaved changes — save with <kbd>Ctrl</kbd>+<kbd>S</kbd>,
+          An orange dot on the document's tab, in place of its ×, marks unsaved changes — save with <kbd>Ctrl</kbd>+<kbd>S</kbd>,
           and the dot turns into a check for a moment (screen readers hear "Saved"). Leaving edit mode or
           opening another document with unsaved changes asks for confirmation first. If the file
           changes on disk while you have unsaved edits, a warning appears instead of overwriting your
@@ -180,7 +222,7 @@
           From the keyboard the list works as a tree: <kbd>↑</kbd> / <kbd>↓</kbd> move, <kbd>→</kbd> opens a
           folder or steps into it, <kbd>←</kbd> closes it or goes up to its parent, <kbd>Home</kbd> /
           <kbd>End</kbd> reach the ends, <kbd>Enter</kbd> or <kbd>Space</kbd> opens, and
-          <kbd>Ctrl</kbd>+<kbd>Enter</kbd> opens in a new window.
+          <kbd>Ctrl</kbd>+<kbd>Enter</kbd> opens in a new tab.
         </p>
         <p>
           Both side panels can be widened by dragging their inner edge — double-click the edge to
@@ -213,7 +255,7 @@
         </p>
 
         <h3>Live reload</h3>
-        <p>The open file is watched on disk. When it changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
+        <p>Open files are watched on disk. When one changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated; a tab in the background catches up when you return to it. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
         <p><kbd>F5</kbd> or <kbd>Ctrl</kbd>+<kbd>R</kbd> reads the file again on request, keeping your place; with unsaved edits it does nothing.</p>
 
         <h3>Rendering</h3>
@@ -271,10 +313,11 @@
           always <em>Markdown document</em>.
         </p>
         <p>
-          Right-click a file in the browser panel, or the file name in the toolbar, for <strong>Open in a
+          Right-click a file in the browser panel for <strong>Open in a new tab</strong>, <strong>Open in a
           new window</strong>, <strong>Show in File Explorer</strong>, <strong>Copy path</strong> or
-          <strong>Copy as Markdown link</strong> (relative to the open document). The pin button
-          (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>) keeps the window on top of the others.
+          <strong>Copy as Markdown link</strong> (relative to the open document). The pin button keeps the
+          window on top of the others; it no longer has a shortcut, since
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> now reopens the last closed tab.
         </p>
         <p>
           In the Microsoft Store version, after a few days of use a small card asks <em>Enjoying

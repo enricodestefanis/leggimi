@@ -8,6 +8,23 @@
   Files live in memory (window.__harness.files); saves land there too, and
   window.__harness.load(markdown) swaps the open document. Not part
   of the production build: vite only bundles index.html.
+
+  Options (query string):
+    ?doc=<url>     the first document's text (default: a generated one); ?doc=none starts on the home
+    ?line=N        the first launch's --line
+    ?lang=it       forces the UI language (what the Aa popover stores)
+    ?store=1       behaves like the Store build (is_store_install)
+    ?root=Name     the folder the files live in (C:\Name), listed as a nested tree
+    ?label=doc-1   the window this page plays (default "main"); several pages with different labels
+                   in one browser talk to each other through a BroadcastChannel, as windows do
+                   through Rust (emitTo, open_window, window_at)
+
+  Multi-window (2.0): emitTo(label, …) reaches the page with that label; open_window answers a new
+  label ("doc-N") and leaves the launch (path, transfer, from, token and a copy of the files) in
+  localStorage for the page opened with ?label=doc-N; window_at answers from harness.boxes
+  (top-most first, {label: null} is another app's window). hold(cmd) / release(cmd) keep calls
+  pending; answers queues the replies of plugin:dialog|message (an index, a role such as "save",
+  "dontsave", "cancel", "discard", or a button's label).
 -->
 <html lang="en">
   <head>
@@ -18,7 +35,6 @@
   <body>
     <script type="module">
       import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-      import { emit } from "@tauri-apps/api/event";
 
       // Automation tabs flip to visibilityState "hidden", where rAF callbacks
       // stall (even ones requested while visible) and scroll sync would freeze.
@@ -48,17 +64,69 @@
         clearTimeout(f.timer);
       };
 
-      const DIR = "C:\\harness";
-      const PATH = DIR + "\\test.md";
       const params = new URLSearchParams(location.search);
+      const LABEL = params.get("label") || "main";
+      // ?root=Northwind names the folder the files live in (C:\Northwind)
+      const NESTED = params.has("root");
+      const DIR = "C:\\" + (params.get("root") || "harness");
+      const PATH = DIR + "\\test.md";
       // ?lang=it forces the UI language (what the Aa popover stores)
       if (params.has("lang")) localStorage.setItem("lang", params.get("lang"));
       const src = params.get("doc");
+      // a window opened through open_window: its launch, left by the page that asked for it
+      const LAUNCH_KEY = "harness-launch:" + LABEL;
+      let launch = null;
+      try {
+        launch = JSON.parse(localStorage.getItem(LAUNCH_KEY) || "null");
+      } catch {
+        launch = null;
+      }
+      localStorage.removeItem(LAUNCH_KEY);
       // ?doc=none starts on the empty screen (the home with the recent files)
       const content = src && src !== "none" ? await (await fetch(src)).text() : defaultDoc();
 
+      const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+      const bus = new BroadcastChannel("leggimi-harness-bus");
+      const held = new Map();
+
+      // The in-memory disk outlives a reload of the page (a language change reloads it, and the
+      // tabs it carries across must still find their files): kept in this page's sessionStorage.
+      const DISK_KEY = "harness-disk";
+      let diskReady = false;
+      const saveDisk = () => {
+        if (!diskReady) return;
+        try {
+          sessionStorage.setItem(DISK_KEY, JSON.stringify({ files: [...harness.files], modified: harness.modified }));
+        } catch {
+          /* too large for sessionStorage: a reload starts from the files of the query */
+        }
+      };
+      class Disk extends Map {
+        set(k, v) {
+          super.set(k, v);
+          saveDisk();
+          return this;
+        }
+        delete(k) {
+          const had = super.delete(k);
+          saveDisk();
+          return had;
+        }
+        clear() {
+          super.clear();
+          saveDisk();
+        }
+      }
+      let kept = null;
+      try {
+        kept = JSON.parse(sessionStorage.getItem(DISK_KEY) || "null");
+      } catch {
+        kept = null;
+      }
+
       const harness = (window.__harness = {
-        files: new Map([
+        label: LABEL,
+        files: new Disk([
           [PATH, content],
           [DIR + "\\notes.md", "# Notes\n\nA second file for the recent list.\n"],
         ]),
@@ -67,109 +135,500 @@
         modified: 1_700_000_000_000,
         /** set to true to make the next guarded write report a conflict */
         conflict: false,
-        /** replace the open document, as if the file had been reopened */
+        /** replies for plugin:dialog|message, first in first out (see answerFor) */
+        answers: [],
+        /** every message dialog asked: { message, title, kind, labels, answer } */
+        dialogs: [],
+        /** this window on the screen, physical px: outer position and size, border and caption inside it */
+        win: { x: 0, y: 0, w: null, h: null, border: 0, caption: 0, scale: null, maximized: false, minimized: false },
+        /** the windows on the screen for window_at, top-most first: { label, x, y, w, h } (label null: another app) */
+        boxes: [],
+        /** the pointer on the screen for cursor_position (physical px); null: where the page last saw it */
+        cursor: null,
+        /** events this page does not hear from the other pages (a window that never answers) */
+        deaf: new Set(),
+        /** what went to other windows ({ to, event, payload }) and came from them ({ from, event, payload }) */
+        emitted: [],
+        received: [],
+        ignored: [],
+        /** the labels open_window gave out, with their requests */
+        opened: [],
+        /** print_to_pdf: the page as it was at each call ({ path, title, text, theme }) */
+        printed: [],
+        /** the latest state the page reported (set_tabs, watch_files, set_closing, set_caption, set_strip) */
+        state: { tabs: null, watched: null, closing: false, caption: null, strip: null },
+        destroyed: false,
+        /**
+         * replace the open document, as if the file had been rewritten and reopened: with tabs
+         * (the page reports them with set_tabs), a file a tab holds is kept current by the watch
+         * of every tab's file, so its "file-changed" comes first, then the launch (mode activate)
+         */
         async load(text, line = null) {
+          const changed = harness.files.get(PATH) !== text;
+          const watched = harness.inTabs(PATH);
+          if (changed && watched) harness.modified += 1000;
           harness.files.set(PATH, text);
-          await emit("open-file", { path: PATH, line });
+          if (changed && watched) await localEmit("file-changed", { kind: "changed", path: PATH, to: null });
+          await harness.open(PATH, line);
         },
-        /** open another in-memory file, like a second `leggimi` launch */
-        async open(path, line = null) {
-          await emit("open-file", { path, line });
+        /**
+         * open an in-memory file, like a `leggimi` launch: Rust's routing sends it to this window
+         * with mode "activate" when one of its tabs has it (set_tabs), "tab" otherwise
+         */
+        async open(path, line = null, extra = {}) {
+          const mode = extra.mode ?? (harness.inTabs(path) ? "activate" : "tab");
+          await localEmit("open-file", { path, line, ...extra, mode });
         },
         /** the folder watch's event: files came or went */
         async treeChanged() {
-          await emit("tree-changed", null);
+          await localEmit("tree-changed", null);
         },
         /** the document watch's event: kind "changed", "renamed" (with `to`) or "removed" */
         async fileChanged(kind, path, to = null) {
-          await emit("file-changed", { kind, path, to });
+          await localEmit("file-changed", { kind, path, to });
+        },
+        /** an event to this page, as Rust sends one */
+        emit: (event, payload = null) => localEmit(event, payload),
+        /** an event to the page of window `label` (this one included), as emitTo does */
+        emitTo: (label, event, payload = null) => route({ kind: "AnyLabel", label }, event, payload, "rust"),
+        /** whether the tabs this page reported (set_tabs) hold `path` */
+        inTabs(path) {
+          const tabs = harness.state.tabs;
+          return !!tabs && (tabs.paths || []).some((p) => p && p.toLowerCase() === String(path).toLowerCase());
+        },
+        /** files dropped from File Explorer at (x, y), CSS px of the page */
+        async drop(paths, x = innerWidth / 2, y = innerHeight / 2) {
+          const position = { x: Math.round(x * devicePixelRatio), y: Math.round(y * devicePixelRatio) };
+          await localEmit("tauri://drag-enter", { paths, position });
+          await localEmit("tauri://drag-over", { position });
+          await localEmit("tauri://drag-drop", { paths, position });
+        },
+        /** the window's X button or Alt+F4: close-requested, then destroy unless the page prevents it */
+        requestClose: () => localEmit("tauri://close-requested", null),
+        /** keep every later call of `cmd` pending until release(cmd) */
+        hold(cmd) {
+          if (!held.has(cmd)) held.set(cmd, []);
+        },
+        /**
+         * settles the pending calls of `cmd` in order (all, or `count`), each run as if it came
+         * now, or rejected with `error`; holding stops unless `keep`. Returns how many settled.
+         */
+        release(cmd, opts = {}) {
+          const queue = held.get(cmd) || [];
+          if (!opts.keep) held.delete(cmd);
+          const batch = queue.splice(0, opts.count ?? queue.length);
+          for (const c of batch) {
+            if (opts.error !== undefined) {
+              c.entry.error = opts.error;
+              c.reject(opts.error);
+            } else {
+              Promise.resolve()
+                .then(() => handle(c.cmd, c.args))
+                .then((ret) => {
+                  c.entry.ret = ret;
+                  return ret;
+                })
+                .then(c.resolve, c.reject);
+            }
+          }
+          return batch.length;
+        },
+        pending: (cmd) => (held.get(cmd) || []).length,
+        /** queue the replies of the next message dialogs */
+        answer(...replies) {
+          harness.answers.push(...replies);
+        },
+        /** the same z-order map in every page */
+        setBoxes(boxes) {
+          harness.boxes = clone(boxes);
+          bus.postMessage({ kind: "boxes", boxes: clone(boxes) });
+        },
+        /** a file written here and in every other page */
+        setFile(path, text) {
+          harness.files.set(path, text);
+          bus.postMessage({ kind: "file", path, content: text, modified: harness.modified });
+        },
+        deleteFile(path) {
+          harness.files.delete(path);
+          bus.postMessage({ kind: "file", path, deleted: true });
+        },
+        snapshot: () => [...harness.files],
+        seed(entries) {
+          for (const [k, v] of entries) harness.files.set(k, v);
+        },
+        /** the app's own module instances, wherever Vite keeps its dependency cache */
+        modules: {
+          view: () => import("@codemirror/view"),
+          commands: () => import("@codemirror/commands"),
+          event: () => import("@tauri-apps/api/event"),
+          window: () => import("@tauri-apps/api/window"),
+          webviewWindow: () => import("@tauri-apps/api/webviewWindow"),
+        },
+        /** the editor on screen (CodeMirror's EditorView), or null */
+        async editor() {
+          const el = document.querySelector("#editor-pane .cm-editor");
+          return el ? (await import("@codemirror/view")).EditorView.findFromDOM(el) : null;
         },
       });
 
-      mockWindows("main");
+      // a reload keeps the page's own disk; a new window starts with the files of the one that asked for it
+      if (kept && Array.isArray(kept.files)) {
+        harness.files = new Disk(kept.files);
+        if (kept.modified) harness.modified = kept.modified;
+      } else if (launch && Array.isArray(launch.files)) {
+        harness.files = new Disk(launch.files);
+        if (launch.modified) harness.modified = launch.modified;
+      }
+      diskReady = true;
+      saveDisk();
+
+      /* ---- events: this page, and the other pages through the bus ---- */
+
+      let mockInvoke = null;
+      const localEmit = (event, payload) => mockInvoke("plugin:event|emit", { event, payload: clone(payload) });
+
+      function route(target, event, payload, from = LABEL) {
+        const label = typeof target === "string" ? target : target && target.label;
+        const all = !target || (typeof target === "object" && target.kind === "Any") || label === undefined;
+        harness.emitted.push({ to: all ? "*" : label, event, payload: clone(payload), from, t: performance.now() });
+        if (all || label === LABEL) void localEmit(event, payload);
+        if (all || label !== LABEL) bus.postMessage({ kind: "event", to: all ? "*" : label, from, event, payload: clone(payload) });
+        return null;
+      }
+
+      bus.addEventListener("message", (e) => {
+        const m = e.data || {};
+        if (m.kind === "event" && (m.to === LABEL || m.to === "*")) {
+          if (harness.deaf.has(m.event)) {
+            harness.ignored.push({ from: m.from, event: m.event, payload: m.payload, t: performance.now() });
+            return;
+          }
+          harness.received.push({ from: m.from, event: m.event, payload: m.payload, t: performance.now() });
+          void localEmit(m.event, m.payload);
+        } else if (m.kind === "file") {
+          if (m.modified) harness.modified = Math.max(harness.modified, m.modified);
+          if (m.deleted) harness.files.delete(m.path);
+          else harness.files.set(m.path, m.content);
+        } else if (m.kind === "boxes") {
+          harness.boxes = m.boxes;
+        }
+      });
+
+      /* ---- the window on the screen ---- */
+
+      const scale = () => harness.win.scale ?? devicePixelRatio;
+      const outerSize = () => ({
+        width: harness.win.w ?? Math.round(innerWidth * scale()) + 2 * harness.win.border,
+        height: harness.win.h ?? Math.round(innerHeight * scale()) + harness.win.caption + harness.win.border,
+      });
+      const innerPos = () => ({ x: harness.win.x + harness.win.border, y: harness.win.y + harness.win.caption });
+      const boxOf = (label) =>
+        label === LABEL || label === undefined
+          ? { label: LABEL, x: harness.win.x, y: harness.win.y, w: outerSize().width, h: outerSize().height }
+          : harness.boxes.find((b) => b.label === label) || null;
+      const MONITOR = {
+        name: "Harness",
+        size: { width: 2560, height: 1440 },
+        position: { x: 0, y: 0 },
+        workArea: { position: { x: 0, y: 0 }, size: { width: 2560, height: 1400 } },
+        scaleFactor: 1,
+      };
+
+      // where the page last saw the pointer, on the screen (physical px)
+      let lastPointer = null;
+      for (const type of ["pointermove", "pointerdown", "pointerup", "mousemove"]) {
+        window.addEventListener(
+          type,
+          (e) => {
+            const o = innerPos();
+            lastPointer = { x: Math.round(o.x + e.clientX * scale()), y: Math.round(o.y + e.clientY * scale()) };
+          },
+          true,
+        );
+      }
+
+      // window_at: the top-most box at the point, past `exclude`; another app's box on top hides ours
+      function windowAt(x, y, exclude) {
+        const boxes = harness.boxes.length ? harness.boxes : [boxOf(LABEL)];
+        for (const b of boxes) {
+          if (x < b.x || y < b.y || x >= b.x + b.w || y >= b.y + b.h) continue;
+          if (b.label === null) return null;
+          if (exclude && b.label === exclude) continue;
+          return b.label;
+        }
+        return null;
+      }
+
+      // plugin:dialog|message: the clicked button's label (ask() and confirm() compare it)
+      const ROLE = { ok: 0, yes: 0, save: 0, first: 0, no: 1, dontsave: 1, second: 1 };
+      function answerFor(args) {
+        const b = args.buttons;
+        const NAMED = { Ok: ["Ok"], OkCancel: ["Ok", "Cancel"], YesNo: ["Yes", "No"], YesNoCancel: ["Yes", "No", "Cancel"] };
+        const labels = !b
+          ? ["Ok"]
+          : typeof b === "string"
+            ? NAMED[b] || ["Ok"]
+            : b.OkCancelCustom || b.YesNoCancelCustom || (b.OkCustom ? [b.OkCustom] : ["Ok"]);
+        let a = harness.answers.length ? harness.answers.shift() : null;
+        if (typeof a === "function") a = a(args, labels);
+        let out;
+        // a native dialog would block the automation: with no answer queued, the first button
+        // (OK, Discard), or of three (Save / Don't save / Cancel) the second, as 1.15 discarded
+        if (a === null || a === undefined) out = labels.length === 3 ? labels[1] : labels[0];
+        else if (typeof a === "number") out = labels[a] ?? labels[0];
+        else if (typeof a === "string") {
+          const k = a.toLowerCase().replace(/[^a-z]/g, "");
+          if (k === "cancel" || k === "last") out = labels[labels.length - 1];
+          else if (k === "discard") out = labels[labels.length === 3 ? 1 : 0];
+          else if (k in ROLE && labels.length > 1) out = labels[Math.min(ROLE[k], labels.length - 1)];
+          else out = a;
+        } else out = labels[0];
+        harness.dialogs.push({ message: args.message, title: args.title, kind: args.kind, labels, answer: out });
+        return out;
+      }
+
+      function handle(cmd, args) {
+        switch (cmd) {
+          case "get_initial_file":
+            if (launch) {
+              const { files, modified, ...request } = launch;
+              return request;
+            }
+            return src === "none" ? null : { path: PATH, line: params.has("line") ? Number(params.get("line")) : null };
+          case "read_markdown":
+            // the Rust command's sentinel for a file that is not there
+            if (!harness.files.has(args.path)) throw "not-found";
+            return {
+              path: args.path,
+              dir: args.path.slice(0, args.path.lastIndexOf("\\")) || DIR,
+              content: harness.files.get(args.path) ?? "",
+              modified: harness.modified,
+            };
+          case "write_markdown":
+            // simulates the save guard: harness.conflict makes the next write refuse once
+            if (harness.conflict && args.expectedModified) {
+              harness.conflict = false;
+              throw "conflict";
+            }
+            harness.modified += 1000;
+            harness.files.set(args.path, args.content);
+            bus.postMessage({ kind: "file", path: args.path, content: args.content, modified: harness.modified });
+            return harness.modified;
+          case "existing_paths":
+            return args.paths.filter((p) => harness.files.has(p));
+          case "parent_dir":
+            return DIR;
+          case "list_tree":
+            if (NESTED) return treeOf(DIR);
+            return {
+              name: DIR.split("\\").pop(),
+              path: DIR,
+              isDir: true,
+              children: [...harness.files.keys()].map((p) => ({ name: p.slice(DIR.length + 1), path: p, isDir: false, children: [] })),
+            };
+          case "search_in_tree":
+            return searchFiles(args.dir || DIR, args.query || "");
+          case "resolve_path":
+            // names in harness.missing are files that do not exist
+            if (harness.missing?.has(args.rel)) throw `Cannot resolve ${args.rel}`;
+            return `${args.dir || DIR}\\${args.rel}`;
+          case "resolve_doc": {
+            // like the Rust command: the path itself, then .md, then index.md / README.md inside it
+            const base = `${args.dir || DIR}\\${args.rel.replace(/\//g, "\\").replace(/\\$/, "")}`;
+            for (const c of [base, `${base}.md`, `${base}\\index.md`, `${base}\\README.md`]) {
+              if (harness.files.has(c)) return c;
+            }
+            return null;
+          }
+          case "print_to_pdf":
+            // what the printer would see at this moment
+            harness.pdf = {
+              args,
+              meta: (document.getElementById("print-page-meta") || {}).textContent,
+              theme: document.documentElement.dataset.theme,
+              title: (document.getElementById("doc-title") || {}).textContent,
+              text: (document.getElementById("article") || {}).innerText,
+            };
+            return null;
+          case "import_image":
+            // the image copied next to the document: its relative name
+            return harness.importAs || (args.source || "").split("\\").pop();
+          case "save_clipboard_image":
+            return harness.importAs || "pasted.png";
+          case "plugin:dialog|save":
+            return harness.savePath || null;
+          case "plugin:dialog|open":
+            // the files "picked" in the open dialog (an array when several)
+            return harness.openPaths || null;
+          case "plugin:dialog|message":
+            return answerFor(args);
+          case "plugin:window|set_always_on_top":
+          case "plugin:opener|reveal_item_in_dir":
+            return null;
+          case "open_window": {
+            // a new window cannot open here: its launch waits in localStorage for the page
+            // opened with ?label=<the label answered> (hx.follow_open_window)
+            if (args.path && !harness.files.has(args.path)) throw "not-found";
+            const n = Number(localStorage.getItem("harness-next-window") || "0") + 1;
+            localStorage.setItem("harness-next-window", String(n));
+            const label = `doc-${n}`;
+            const request = {
+              path: args.path ?? null,
+              line: args.line ?? null,
+              anchor: args.anchor ?? null,
+              mode: "tab",
+              transfer: args.transfer ?? null,
+              from: args.from ?? (args.transfer ? LABEL : null),
+              token: args.token ?? null,
+            };
+            localStorage.setItem("harness-launch:" + label, JSON.stringify({ ...request, files: [...harness.files], modified: harness.modified }));
+            harness.opened.push({ label, at: args.at ?? null, follow: !!args.follow, request });
+            return label;
+          }
+          case "set_tabs":
+            harness.state.tabs = { paths: args.paths || [], active: args.active ?? null };
+            return null;
+          case "watch_files":
+            harness.state.watched = args.paths || [];
+            return null;
+          case "set_closing":
+            harness.state.closing = !!args.closing;
+            return null;
+          case "set_caption":
+            harness.state.caption = args.layout ?? args;
+            return null;
+          case "set_strip":
+            harness.state.strip = { x: args.x, y: args.y, w: args.w, h: args.h };
+            return null;
+          case "window_at":
+            return windowAt(args.x, args.y, args.exclude ?? null);
+          case "begin_window_drag":
+          case "watch_tree":
+            // the folder watch: harness.treeChanged() plays its event
+            return null;
+          case "is_store_install":
+            return params.has("store"); // ?store=1 behaves like the Store build
+          case "request_store_rating":
+            // the Store's own rating dialog: harness.rateResult picks its answer
+            return harness.rateResult ?? "succeeded";
+          case "plugin:app|version":
+            return "harness";
+          // the window, as Windows would answer (harness.win, harness.boxes)
+          case "plugin:window|outer_position": {
+            const b = boxOf(args?.label);
+            return b ? { x: b.x, y: b.y } : { x: 0, y: 0 };
+          }
+          case "plugin:window|inner_position": {
+            if (args?.label && args.label !== LABEL) {
+              const b = boxOf(args.label);
+              return b ? { x: b.x, y: b.y } : { x: 0, y: 0 };
+            }
+            return innerPos();
+          }
+          case "plugin:window|outer_size": {
+            const b = boxOf(args?.label);
+            return b ? { width: b.w, height: b.h } : outerSize();
+          }
+          case "plugin:window|inner_size": {
+            if (args?.label && args.label !== LABEL) {
+              const b = boxOf(args.label);
+              return b ? { width: b.w, height: b.h } : outerSize();
+            }
+            return { width: Math.round(innerWidth * scale()), height: Math.round(innerHeight * scale()) };
+          }
+          case "plugin:window|scale_factor":
+            return scale();
+          case "plugin:window|cursor_position":
+            return harness.cursor ?? lastPointer ?? innerPos();
+          case "plugin:window|is_maximized":
+            return !!harness.win.maximized;
+          case "plugin:window|is_minimized":
+            return !!(args?.label && args.label !== LABEL ? boxOf(args.label)?.minimized : harness.win.minimized);
+          case "plugin:window|is_visible":
+            return !!boxOf(args?.label);
+          case "plugin:window|is_focused":
+            return document.hasFocus();
+          case "plugin:window|toggle_maximize":
+            harness.win.maximized = !harness.win.maximized;
+            return null;
+          case "plugin:window|maximize":
+            harness.win.maximized = true;
+            return null;
+          case "plugin:window|unmaximize":
+            harness.win.maximized = false;
+            return null;
+          case "plugin:window|set_position": {
+            // the mock gets the Position object itself (not its IPC form)
+            const raw = args?.value && typeof args.value.toJSON === "function" ? args.value.toJSON() : args?.value;
+            const logical = !!raw?.Logical;
+            const v = raw?.Physical || raw?.Logical || raw || {};
+            const k = logical ? scale() : 1;
+            if (typeof v.x === "number") harness.win.x = Math.round(v.x * k);
+            if (typeof v.y === "number") harness.win.y = Math.round(v.y * k);
+            return null;
+          }
+          case "plugin:window|title":
+            return harness.title ?? document.title;
+          case "plugin:window|set_title":
+            harness.title = args?.value ?? args?.title;
+            return null;
+          case "plugin:window|get_all_windows":
+            return [...new Set([LABEL, ...harness.boxes.map((b) => b.label).filter(Boolean)])];
+          case "plugin:window|current_monitor":
+          case "plugin:window|primary_monitor":
+          case "plugin:window|monitor_from_point":
+            return MONITOR;
+          case "plugin:window|available_monitors":
+            return [MONITOR];
+          case "plugin:window|close":
+            // as in Tauri: close() asks first (close-requested), the page then destroys
+            if (harness.closeEmits !== false) setTimeout(() => void harness.requestClose(), 0);
+            return null;
+          case "plugin:window|destroy":
+            harness.destroyed = true;
+            return null;
+          default:
+            return null;
+        }
+      }
+
+      mockWindows(LABEL);
       // local files become http://asset.localhost/… URLs, as on Windows (nothing serves them here)
       mockConvertFileSrc("windows");
       mockIPC(
         (cmd, args) => {
-          harness.calls.push({ cmd, args });
-          switch (cmd) {
-            case "get_initial_file":
-              return src === "none" ? null : { path: PATH, line: params.has("line") ? Number(params.get("line")) : null };
-            case "read_markdown":
-              // the Rust command's sentinel for a file that is not there
-              if (!harness.files.has(args.path)) throw "not-found";
-              return { path: args.path, dir: DIR, content: harness.files.get(args.path) ?? "", modified: harness.modified };
-            case "write_markdown":
-              // simulates the save guard: harness.conflict makes the next write refuse once
-              if (harness.conflict && args.expectedModified) {
-                harness.conflict = false;
-                throw "conflict";
-              }
-              harness.files.set(args.path, args.content);
-              harness.modified += 1000;
-              return harness.modified;
-            case "existing_paths":
-              return args.paths.filter((p) => harness.files.has(p));
-            case "parent_dir":
-              return DIR;
-            case "list_tree":
-              return {
-                name: "harness",
-                path: DIR,
-                isDir: true,
-                children: [...harness.files.keys()].map((p) => ({ name: p.slice(DIR.length + 1), path: p, isDir: false, children: [] })),
-              };
-            case "search_in_tree":
-              return [];
-            case "resolve_path":
-              // names in harness.missing are files that do not exist
-              if (harness.missing?.has(args.rel)) throw `Cannot resolve ${args.rel}`;
-              return `${DIR}\\${args.rel}`;
-            case "resolve_doc": {
-              // like the Rust command: the path itself, then .md, then index.md / README.md inside it
-              const base = `${DIR}\\${args.rel.replace(/\//g, "\\").replace(/\\$/, "")}`;
-              for (const c of [base, `${base}.md`, `${base}\\index.md`, `${base}\\README.md`]) {
-                if (harness.files.has(c)) return c;
-              }
-              return null;
-            }
-            case "print_to_pdf":
-              // what the printer would see at this moment
-              harness.pdf = { args, meta: (document.getElementById("print-page-meta") || {}).textContent, theme: document.documentElement.dataset.theme };
-              return null;
-            case "plugin:dialog|save":
-              return harness.savePath || null;
-            case "plugin:dialog|open":
-              // the files "picked" in the open dialog (an array when several)
-              return harness.openPaths || null;
-            case "plugin:window|set_always_on_top":
-            case "plugin:opener|reveal_item_in_dir":
-              return null;
-            case "open_window":
-              // a new window cannot open here: the request is only logged in `calls`
-              if (args.path && !harness.files.has(args.path)) throw "not-found";
-              return null;
-            case "watch_tree":
-              // the folder watch: harness.treeChanged() plays its event
-              return null;
-            case "is_store_install":
-              return params.has("store"); // ?store=1 behaves like the Store build
-            case "request_store_rating":
-              // the Store's own rating dialog: harness.rateResult picks its answer
-              return harness.rateResult ?? "succeeded";
-            case "plugin:app|version":
-              return "harness";
-            case "plugin:dialog|message":
-              // ask() and confirm() both go through it and compare the clicked
-              // button's label; a native dialog would block the automation,
-              // so always answer with the OK button
-              return args.buttons && args.buttons.OkCancelCustom ? args.buttons.OkCancelCustom[0] : "Yes";
-            default:
-              return null;
-          }
+          const entry = { cmd, args, t: performance.now() };
+          harness.calls.push(entry);
+          const ret = handle(cmd, args);
+          entry.ret = ret;
+          return ret;
         },
         { shouldMockEvents: true },
       );
+      // emit_to (which the mock drops) goes through the bus; held commands wait for release()
+      mockInvoke = window.__TAURI_INTERNALS__.invoke;
+      window.__TAURI_INTERNALS__.invoke = (cmd, args, options) => {
+        // what the printer sees is the page at the call (Rust prints the webview then), even when
+        // the call is held and settles later
+        if (cmd === "print_to_pdf") {
+          harness.printed.push({
+            path: args?.path,
+            title: (document.getElementById("doc-title") || {}).textContent,
+            text: ((document.getElementById("article") || {}).innerText || "").slice(0, 4000),
+            theme: document.documentElement.dataset.theme,
+          });
+        }
+        if (cmd === "plugin:event|emit_to") {
+          harness.calls.push({ cmd, args: clone(args), t: performance.now() });
+          return Promise.resolve(route(args.target, args.event, args.payload));
+        }
+        if (held.has(cmd)) {
+          const entry = { cmd, args, t: performance.now(), held: true };
+          harness.calls.push(entry);
+          return new Promise((resolve, reject) => held.get(cmd).push({ cmd, args, entry, resolve, reject }));
+        }
+        return mockInvoke(cmd, args, options);
+      };
 
       // the app's own markup, without its entry script, then the entry itself
       const html = await (await fetch("/index.html")).text();
@@ -177,6 +636,49 @@
       doc.querySelectorAll("script").forEach((s) => s.remove());
       document.body.replaceChildren(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
       await import("/src/main.ts");
+
+      // the in-memory files under `dir` as the Rust list_tree returns them:
+      // nested folders, folders first, then by name
+      function treeOf(dir) {
+        const root = { name: dir.split("\\").pop(), path: dir, isDir: true, children: [] };
+        for (const p of harness.files.keys()) {
+          if (!p.startsWith(dir + "\\")) continue;
+          let node = root;
+          const parts = p.slice(dir.length + 1).split("\\");
+          parts.forEach((part, i) => {
+            const path = `${node.path}\\${part}`;
+            if (i === parts.length - 1) {
+              node.children.push({ name: part, path, isDir: false, children: [] });
+              return;
+            }
+            let sub = node.children.find((c) => c.isDir && c.name === part);
+            if (!sub) node.children.push((sub = { name: part, path, isDir: true, children: [] }));
+            node = sub;
+          });
+        }
+        const sort = (n) => {
+          n.children.sort((a, b) => b.isDir - a.isDir || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+          n.children.forEach(sort);
+        };
+        sort(root);
+        return root;
+      }
+
+      // search_in_tree: the file name (line 0), then each line holding the words, as Rust answers
+      function searchFiles(dir, query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+        const hits = [];
+        for (const [path, text] of harness.files) {
+          if (!path.toLowerCase().startsWith(dir.toLowerCase() + "\\") || !/\.(md|markdown|txt)$/i.test(path)) continue;
+          const name = path.split("\\").pop();
+          if (name.toLowerCase().includes(q)) hits.push({ name, path, line: 0, preview: "" });
+          text.split("\n").forEach((line, i) => {
+            if (line.toLowerCase().includes(q)) hits.push({ name, path, line: i + 1, preview: line.trim().slice(0, 200) });
+          });
+        }
+        return hits.slice(0, 200);
+      }
 
       function defaultDoc() {
         const parts = ["# Harness document", ""];

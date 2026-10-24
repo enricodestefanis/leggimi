@@ -7,11 +7,11 @@ use std::{
 
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 
-use serde::Serialize;
-use tauri::{AppHandle, Manager, State, WebviewWindow};
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 use walkdir::WalkDir;
 
-use crate::{watcher, AppState, Launch};
+use crate::{drag, same_file, watcher, AppState, Launch, WindowSlot};
 
 #[derive(Serialize)]
 pub struct MarkdownDoc {
@@ -99,24 +99,115 @@ pub(crate) fn listed_path(root: &Path, path: &Path) -> bool {
 /// more): the page says so in its own words.
 pub const NOT_FOUND: &str = "not-found";
 
-/// What this window opens with, once: the command line for the first window,
-/// the file a new window was made for. Its page calls this with its
-/// listeners live, so from now on launches may be routed to it. The path is
-/// canonicalized; a file that is not there keeps the full path it came with,
-/// so the page shows the home and says the file is missing.
+/// What this window opens with, once (OpenRequest): the command line for the
+/// first window, the file or the torn-off tab a new window was made for. Its
+/// page calls this with its listeners live, so from now on launches may be
+/// routed to it; those routed before it has shown itself come then, in
+/// order (show_window). The path is canonicalized; a file that is not there
+/// keeps the full path it came with, so the page says the file is missing.
 #[tauri::command]
 pub fn get_initial_file(window: WebviewWindow, state: State<'_, AppState>) -> Option<Launch> {
     let mut windows = state.windows.lock().unwrap();
-    let slot = windows.entry(window.label().to_owned()).or_default();
+    start(windows.entry(window.label().to_owned()).or_default())
+}
+
+/// get_initial_file on the window's slot: its page listens from now on. A
+/// window opened on its start page takes the first launch queued for it as
+/// its own.
+pub(crate) fn start(slot: &mut WindowSlot) -> Option<Launch> {
     slot.ready = true;
-    let mut launch = slot.launch.take()?;
-    let canon = launch.path.as_deref().and_then(|p| dunce::canonicalize(p).ok());
-    // busy until watch_file says the document is on screen
-    slot.opening = canon.clone();
-    if let Some(canon) = canon {
+    let own = slot.launch.take();
+    let empty = own.as_ref().is_none_or(|l| l.path.is_none() && l.transfer.is_none());
+    let launch = if empty && !slot.queued.is_empty() {
+        let mut first = slot.queued.remove(0);
+        first.mode = None;
+        Some(first)
+    } else {
+        own
+    };
+    let mut launch = launch?;
+    if let Some(canon) = launch.path.as_deref().and_then(|p| dunce::canonicalize(p).ok()) {
+        // on its way until set_tabs says a tab has it
+        slot.expect(canon.clone());
         launch.path = Some(canon.to_string_lossy().into_owned());
     }
     Some(launch)
+}
+
+/// show_window on the window's slot: its page has opened what it started
+/// with; the launches routed here meanwhile, to send in order.
+pub(crate) fn shown(slot: &mut WindowSlot) -> Vec<Launch> {
+    slot.shown = true;
+    std::mem::take(&mut slot.queued)
+}
+
+/// The documents in the window's tabs, as its page has them, and the one in
+/// front: what routing goes by (a launch of one of them brings its tab
+/// forward, and only a window without any is a free start page). The page
+/// calls it whenever a tab is created, closed, moved, renamed or activated.
+#[tauri::command]
+pub fn set_tabs(window: WebviewWindow, state: State<'_, AppState>, paths: Vec<String>, active: Option<String>) {
+    let mut windows = state.windows.lock().unwrap();
+    // a window closed meanwhile has no slot, and must not get one back
+    let Some(slot) = windows.get_mut(window.label()) else {
+        return;
+    };
+    let docs: Vec<PathBuf> = paths.iter().map(|p| tab_doc(p, &slot.docs)).collect();
+    let active = active.map(|p| tab_doc(&p, &slot.docs));
+    tabs_changed(slot, docs, active);
+}
+
+/// set_tabs on the window's slot: the documents that have arrived in a tab
+/// are no longer on their way.
+pub(crate) fn tabs_changed(slot: &mut WindowSlot, docs: Vec<PathBuf>, active: Option<PathBuf>) {
+    slot.opening.retain(|o| !docs.iter().any(|d| same_file(d, o)));
+    slot.docs = docs;
+    slot.active = active;
+}
+
+/// A tab's document as routing compares it: as already known (the page
+/// passes the paths it got from Rust, canonical, so this is the usual case
+/// and no disk is touched), else canonical, else (a file gone) the full path.
+fn tab_doc(path: &str, known: &[PathBuf]) -> PathBuf {
+    let p = Path::new(path);
+    if let Some(k) = known.iter().find(|k| same_file(k, p)) {
+        return k.clone();
+    }
+    dunce::canonicalize(p).unwrap_or_else(|_| std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf()))
+}
+
+/// The window's page is asking whether to close (unsaved edits), or has
+/// stopped asking: meanwhile launches go to other windows.
+#[tauri::command]
+pub fn set_closing(window: WebviewWindow, state: State<'_, AppState>, closing: bool) {
+    if let Some(slot) = state.windows.lock().unwrap().get_mut(window.label()) {
+        slot.closing = closing;
+    }
+}
+
+/// Where the window's tab strip is, in CSS px of its client area: a window
+/// dragged by its tab and let go over it merges there (drag.rs).
+#[tauri::command]
+pub fn set_strip(window: WebviewWindow, state: State<'_, AppState>, x: f64, y: f64, w: f64, h: f64) {
+    if let Some(slot) = state.windows.lock().unwrap().get_mut(window.label()) {
+        slot.strip = (w > 0.0 && h > 0.0).then_some(drag::Strip { x, y, w, h });
+    }
+}
+
+/// The label of the top-most Leggimi window at a point of the screen
+/// (physical px), in the true order of the windows there; null where another
+/// app's window is on top. `exclude`: a window to see through (one that moves
+/// with the pointer). Off the main thread: it looks at other apps' windows.
+#[tauri::command]
+pub async fn window_at(x: f64, y: f64, exclude: Option<String>) -> Option<String> {
+    drag::window_at(x, y, exclude.as_deref())
+}
+
+/// The page drags its window by its only tab: Windows' own move loop, the
+/// other windows' strips watched (drag.rs).
+#[tauri::command]
+pub fn begin_window_drag(window: WebviewWindow, path: Option<String>, title: String) {
+    drag::begin(&window, path, title);
 }
 
 #[tauri::command]
@@ -513,8 +604,51 @@ pub fn import_image(dir: String, source: String) -> Result<String, String> {
     Ok(rel_assets_path(&target))
 }
 
-/// Watches the document a window shows (one watch per window) and records it
-/// as that window's document, so a second launch of the file finds it.
+/// Watches the documents in the window's tabs, in front or behind: every
+/// distinct folder once (watcher::DocWatch), "file-changed" for any of the
+/// files. Replaces the window's watch; an empty list ends it. A document
+/// whose file is gone is watched by its folder, so its coming back is seen.
+#[tauri::command]
+pub fn watch_files(
+    app: AppHandle,
+    window: WebviewWindow,
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    let mut files: Vec<PathBuf> = Vec::new();
+    for file in paths.iter().filter_map(|p| watched_file(Path::new(p))) {
+        if !files.iter().any(|f| same_file(f, &file)) {
+            files.push(file);
+        }
+    }
+    let label = window.label().to_owned();
+    let mut windows = state.windows.lock().unwrap();
+    // a window closed meanwhile has no slot, and must not get one back
+    let Some(slot) = windows.get_mut(&label) else {
+        return Ok(());
+    };
+    if files.is_empty() {
+        slot.watcher = None;
+        return Ok(());
+    }
+    let watch = match slot.watcher.as_mut() {
+        Some(watch) => watch,
+        None => slot.watcher.insert(watcher::DocWatch::new(app, label)?),
+    };
+    watch.set_files(&files)
+}
+
+/// A document as the watch knows it: canonical; a file gone, by its folder
+/// (canonical) and its name; nothing when the folder is gone too.
+fn watched_file(path: &Path) -> Option<PathBuf> {
+    dunce::canonicalize(path).ok().or_else(|| {
+        let folder = dunce::canonicalize(path.parent()?).ok()?;
+        Some(folder.join(path.file_name()?))
+    })
+}
+
+/// The one document of a page from before the tabs: watch_files with it,
+/// until the page calls watch_files itself.
 #[tauri::command]
 pub fn watch_file(
     app: AppHandle,
@@ -522,15 +656,7 @@ pub fn watch_file(
     state: State<'_, AppState>,
     path: String,
 ) -> Result<(), String> {
-    let canon = dunce::canonicalize(&path).map_err(|e| e.to_string())?;
-    let label = window.label().to_owned();
-    let mut windows = state.windows.lock().unwrap();
-    let slot = windows.entry(label.clone()).or_default();
-    slot.doc = Some(canon.clone());
-    slot.opening = None;
-    // replacing the old debouncer drops it, which stops the previous watch
-    slot.watcher = Some(watcher::watch(app, label, &canon)?);
-    Ok(())
+    watch_files(app, window, state, vec![path])
 }
 
 /// Watches the folder of the calling window's file pane (watcher::watch_tree).
@@ -598,28 +724,69 @@ pub async fn watch_tree(
     }
 }
 
+/// The page has rendered what it started with: its window shows, and the
+/// launches routed to it meanwhile follow as "open-file", in order. A
+/// torn-off tab's window born with `follow` comes up under the pointer and
+/// follows it while the button is still down (drag.rs).
 #[tauri::command]
-pub fn show_window(window: WebviewWindow) {
-    let _ = window.show();
-    let _ = window.set_focus();
+pub fn show_window(app: AppHandle, window: WebviewWindow, state: State<'_, AppState>) {
+    let (queued, follow) = {
+        let mut windows = state.windows.lock().unwrap();
+        match windows.get_mut(window.label()) {
+            Some(slot) => (shown(slot), slot.follow.take()),
+            None => (Vec::new(), None),
+        }
+    };
+    let followed = follow.is_some_and(|f| drag::follow(&window, f));
+    if !followed {
+        // a window left unseen by a drop on another's strip comes back
+        drag::uncloak(&window);
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+    for launch in queued {
+        let _ = app.emit_to(window.label(), "open-file", &launch);
+    }
 }
 
-/// A new window, for a file (Ctrl+click, "Open in a new window") or empty, on
-/// the home (Ctrl+Shift+N). Async because on Windows a window built from a
-/// sync command deadlocks WebView2 (tauri-apps/wry#583).
+/// A point on screen, physical px.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct ScreenPoint {
+    pub x: f64,
+    pub y: f64,
+}
+
+/// A new window, for a file (Shift+click, "Open in a new window"), empty on
+/// the start page (Ctrl+Shift+N), or for a torn-off tab: `transfer` (its
+/// state) reaches the new page through get_initial_file with `from` and
+/// `token`, for its answer ("tab-accepted"); `at` places it (outer top-left,
+/// physical px); `follow` has it follow the pointer while the button that
+/// tore it is down. Returns its label. Async because on Windows a window
+/// built from a sync command deadlocks WebView2 (tauri-apps/wry#583).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn open_window(
     app: AppHandle,
     window: WebviewWindow,
     path: Option<String>,
     line: Option<u32>,
     anchor: Option<String>,
-) -> Result<(), String> {
-    // a file renamed or deleted since it was listed: no window on the home
-    if path.as_deref().is_some_and(|p| !Path::new(p).is_file()) {
+    transfer: Option<serde_json::Value>,
+    from: Option<String>,
+    token: Option<String>,
+    at: Option<ScreenPoint>,
+    follow: Option<bool>,
+) -> Result<String, String> {
+    // a file renamed or deleted since it was listed: no window on the start
+    // page. A tab carried over keeps its text, its file there or not
+    if transfer.is_none() && path.as_deref().is_some_and(|p| !Path::new(p).is_file()) {
         return Err(NOT_FOUND.to_owned());
     }
-    crate::windowing::create_window(&app, Some(&window), Launch { path, line, anchor })
+    let at = at.map(|p| (p.x.round() as i32, p.y.round() as i32));
+    let launch = Launch { path, line, anchor, mode: None, transfer, from, token };
+    // the pointer is measured now, against where the page wants the window
+    let follow = (follow == Some(true)).then(|| drag::Follow::new(at, launch.file().map(str::to_owned)));
+    crate::windowing::create_window(&app, Some(&window), launch, at, follow)
 }
 
 /// True when running from the Microsoft Store (MSIX) package, where the app has a

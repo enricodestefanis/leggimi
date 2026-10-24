@@ -7,6 +7,58 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [2.0.0] - 2026-10-24
+
+Tabs (*Schede*): several documents in one window, tabs that move between windows as in a
+browser, and a title bar drawn in the colours of the theme.
+
+### Added
+- **Tabs**: every window holds several documents, a tab each, in the toolbar where the file
+  name was. Each tab keeps its own place in the text, its edits (undo included), its Back and
+  Forward history, find bar, outline filter and file-browser folder; coming back to a recent
+  tab is instant, diagrams included.
+- **Where a click opens**: a click opens in the tab in front; **Ctrl+click** or the middle
+  button opens a new tab behind it, **Ctrl+Shift+click** a new tab in front, **Shift+click** a
+  new window. This holds for the file browser, the recent files, the folder search and the links
+  in a document; the right-click menus have **Open in a new tab** next to **Open in a new
+  window**. A document already open in a tab of the window brings that tab forward.
+- **Files opened from outside** (a double-click in File Explorer, `leggimi file.md`, Open with)
+  arrive in a new tab of the window used last, or bring forward the tab that shows them; a
+  start page in front becomes the document.
+- **Ctrl+O** and files dropped on the window open a tab each; dropped on the tab strip, they go
+  where they were let go.
+- **Keys**: Ctrl+T new tab, Ctrl+W / Ctrl+F4 close the tab, Ctrl+Shift+T reopen the last
+  closed tab (at the place it was read), Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+PgDn / Ctrl+PgUp the
+  next and previous tab, Ctrl+1…8 / Ctrl+9 a tab by its place, Ctrl+Shift+PgUp / PgDn move the
+  tab, Ctrl+Shift+W close the window. The digits go by the key's place, so they work on AZERTY
+  keyboards too; in the editor Ctrl+1–3 stay its heading commands.
+- **Closing**: a tab with unsaved edits asks **Save / Don't save / Cancel**; closing the window
+  asks once, naming the documents with unsaved edits. Closing the last document leaves the start
+  page, and Ctrl+W on a lone start page closes the window.
+- **Dragging tabs**: along the strip to reorder them (Esc puts one back), off the strip to give
+  a tab a window of its own, onto another Leggimi window to move it there, unsaved edits and undo
+  included. Dragging the only tab of a window carries the window, which can join another one.
+- A card under the pointer shows a tab's folder and reading time; the ⌄ list shows every tab
+  when they run over; a tab's right-click menu has New tab, Move to a new window, Copy path,
+  Show in folder, Close, Close other tabs, Close tabs to the right and Reopen closed tab.
+- **A title bar in the colours of the theme**: the toolbar is the title bar, with Minimize,
+  Maximize and Close drawn by Leggimi. Drag its empty part to move the window, double-click it to
+  maximize, and point at Maximize for the Windows 11 Snap layouts.
+- A change of language brings every tab back after its reload, unsaved edits included.
+
+### Changed
+- The app's icon is on the start page and at the top of the help, since the title bar drawn by
+  Leggimi no longer shows it.
+- **Ctrl+W closes the tab**, not the window (Ctrl+Shift+W closes the window).
+- **Ctrl+click and the middle button open a new tab**, not a new window; Shift+click opens a new
+  window.
+- **Keep on top** has no shortcut any more (Ctrl+Shift+T reopens a closed tab); its toolbar
+  button stays.
+- The file name, its dot of unsaved edits (and the check after Ctrl+S) and the reading time
+  moved into the tab, the reading time on its card.
+- In narrow windows Open and Help step out of the toolbar (Ctrl+O, F1 and the start page keep
+  them), and below 560 px the + too (Ctrl+T, and the list of the tabs).
+
 ## [1.15.2] - 2026-10-22
 
 ### Fixed

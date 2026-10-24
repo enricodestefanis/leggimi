@@ -1,4 +1,4 @@
-import { EditorSelection, EditorState, type Line } from "@codemirror/state";
+import { EditorSelection, EditorState, type Extension, type Line } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -8,7 +8,7 @@ import {
   highlightActiveLineGutter,
   scrollPastEnd,
 } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab, toggleTabFocusMode } from "@codemirror/commands";
+import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, toggleTabFocusMode } from "@codemirror/commands";
 import { search, searchKeymap, searchPanelOpen, findNext, findPrevious } from "@codemirror/search";
 import { syntaxHighlighting, syntaxTree, HighlightStyle } from "@codemirror/language";
 import {
@@ -33,6 +33,8 @@ import {
   openReplace as openReplaceCmd,
   syncSearchPanel,
   searchPanelClosed,
+  searchFace,
+  setSearchFace,
 } from "./editCommands";
 import { mountFormatBar } from "./formatBar";
 
@@ -368,68 +370,140 @@ const cmPhrases = EditorState.phrases.of({
 });
 
 function makeState(content: string): EditorState {
-  return EditorState.create({
-    doc: content,
-    extensions: [
-      cmPhrases,
-      lineNumbers(),
-      highlightActiveLineGutter(),
-      drawSelection(),
-      highlightActiveLine(),
-      history(),
-      EditorView.lineWrapping,
-      scrollPastEnd(),
-      markdown({ base: markdownLanguage, codeLanguages: languages }),
-      slashMenu,
-      search({ top: true }),
-      spellCompartment.of(spellAttrs(spellcheckEnabled())),
-      syntaxHighlighting(mdHighlight),
-      appTheme,
-      keymap.of([
-        {
-          key: "Mod-s",
-          run: () => {
-            callbacks?.requestSave();
-            return true;
-          },
-        },
-        // also from inside the panel's fields, so Ctrl+F / Ctrl+H switch its face
-        { key: "Mod-f", run: openFindCmd, scope: "editor search-panel", preventDefault: true },
-        { key: "Mod-h", run: openReplaceCmd, scope: "editor search-panel", preventDefault: true },
-        ...formatKeymap,
-        indentWithTab,
-        ...historyKeymap,
-        ...searchKeymap,
-        ...baseKeymap,
-      ]),
-      EditorView.updateListener.of((update) => {
-        if (update.docChanged) {
-          callbacks?.onDocChanged();
-          computeDirty();
-        }
-        if (update.docChanged || update.selectionSet) formatsListener?.(activeFormats(update.state));
-        if (update.selectionSet && !update.docChanged) callbacks?.onCaretMoved();
-        // a panel opened by any path (F3 too) gets the right face
-        const panelWas = searchPanelOpen(update.startState);
-        const panelIs = searchPanelOpen(update.state);
-        if (panelIs && !panelWas) syncSearchPanel(update.view);
-        else if (panelWas && !panelIs) searchPanelClosed();
-      }),
-      // clipboard images (screenshots) land as files; text paste stays native.
-      // Native file *drops* never reach the DOM here — Tauri intercepts them.
-      EditorView.domEventHandlers({
-        paste: (e) => {
-          const file = [...(e.clipboardData?.items ?? [])]
-            .find((i) => i.kind === "file" && i.type.startsWith("image/"))
-            ?.getAsFile();
-          if (!file) return false;
-          e.preventDefault();
-          callbacks?.onImagePasted(file);
+  return EditorState.create({ doc: content, extensions: extensions() });
+}
+
+// everything a state is made with: a state rebuilt from JSON (a tab moved to
+// another window) needs the same set
+function extensions(): Extension[] {
+  return [
+    cmPhrases,
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    drawSelection(),
+    highlightActiveLine(),
+    history(),
+    EditorView.lineWrapping,
+    scrollPastEnd(),
+    markdown({ base: markdownLanguage, codeLanguages: languages }),
+    slashMenu,
+    search({ top: true }),
+    spellCompartment.of(spellAttrs(spellcheckEnabled())),
+    syntaxHighlighting(mdHighlight),
+    appTheme,
+    keymap.of([
+      {
+        key: "Mod-s",
+        run: () => {
+          callbacks?.requestSave();
           return true;
         },
-      }),
-    ],
-  });
+      },
+      // also from inside the panel's fields, so Ctrl+F / Ctrl+H switch its face
+      { key: "Mod-f", run: openFindCmd, scope: "editor search-panel", preventDefault: true },
+      { key: "Mod-h", run: openReplaceCmd, scope: "editor search-panel", preventDefault: true },
+      ...formatKeymap,
+      indentWithTab,
+      ...historyKeymap,
+      ...searchKeymap,
+      ...baseKeymap,
+    ]),
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        callbacks?.onDocChanged();
+        computeDirty();
+      }
+      if (update.docChanged || update.selectionSet) formatsListener?.(activeFormats(update.state));
+      if (update.selectionSet && !update.docChanged) callbacks?.onCaretMoved();
+      // a panel opened by any path (F3 too) gets the right face
+      const panelWas = searchPanelOpen(update.startState);
+      const panelIs = searchPanelOpen(update.state);
+      if (panelIs && !panelWas) syncSearchPanel(update.view);
+      else if (panelWas && !panelIs) searchPanelClosed();
+    }),
+    // clipboard images (screenshots) land as files; text paste stays native.
+    // Native file *drops* never reach the DOM here — Tauri intercepts them.
+    EditorView.domEventHandlers({
+      paste: (e) => {
+        const file = [...(e.clipboardData?.items ?? [])]
+          .find((i) => i.kind === "file" && i.type.startsWith("image/"))
+          ?.getAsFile();
+        if (!file) return false;
+        e.preventDefault();
+        callbacks?.onImagePasted(file);
+        return true;
+      },
+    }),
+  ];
+}
+
+/** What the editor holds for one tab, put back exactly by restore(). */
+export interface Snapshot {
+  /** the document, the selection and the undo history */
+  state: EditorState;
+  lastSaved: string;
+  eol: "\n" | "\r\n";
+  dirty: boolean;
+  scrollTop: number;
+  /** the search panel showed its replace row */
+  replaceRow: boolean;
+}
+
+export function snapshot(): Snapshot | null {
+  if (!view) return null;
+  return { state: view.state, lastSaved, eol, dirty, scrollTop: view.scrollDOM.scrollTop, replaceRow: searchFace() };
+}
+
+/** Another tab's editor comes back: its text, its undo, its place. */
+export function restore(s: Snapshot): void {
+  if (!view) return;
+  lastSaved = s.lastSaved;
+  eol = s.eol;
+  dirty = s.dirty;
+  setSearchFace(s.replaceRow);
+  view.setState(s.state);
+  // the spelling setting may have changed while the tab was away
+  view.dispatch({ effects: spellCompartment.reconfigure(spellAttrs(spellcheckEnabled())) });
+  syncSearchPanel(view);
+  // the place once the restored text is laid out
+  const top = s.scrollTop;
+  view.requestMeasure({ read: () => null, write: () => (view!.scrollDOM.scrollTop = top) });
+  callbacks?.onDirtyChanged(dirty);
+  formatsListener?.(activeFormats(view.state));
+}
+
+/** A snapshot as plain JSON, for a tab moving to another window (undo included). */
+export function snapshotToJSON(s: Snapshot): { state: unknown; lastSaved: string; eol: "\n" | "\r\n" } {
+  return { state: s.state.toJSON({ history: historyField }), lastSaved: s.lastSaved, eol: s.eol };
+}
+
+export function snapshotFromJSON(json: { state: unknown; lastSaved: string; eol: "\n" | "\r\n" }): Snapshot {
+  const state = EditorState.fromJSON(json.state, { extensions: extensions() }, { history: historyField });
+  return {
+    state,
+    lastSaved: json.lastSaved,
+    eol: json.eol,
+    dirty: state.doc.toString() !== json.lastSaved,
+    scrollTop: 0,
+    replaceRow: false,
+  };
+}
+
+/** A snapshot's text as the file would be written (its own line ends). */
+export function snapshotText(s: Snapshot): string {
+  const text = s.state.doc.toString();
+  return s.eol === "\r\n" ? text.replace(/\n/g, "\r\n") : text;
+}
+
+/** A tab's editor saved while it was not in front: the buffer is the file now. */
+export function snapshotSaved(s: Snapshot): Snapshot {
+  return { ...s, lastSaved: s.state.doc.toString(), dirty: false };
+}
+
+/** An image inserted into a tab's editor while it was not in front. */
+export function snapshotInsert(s: Snapshot, text: string): Snapshot {
+  const state = s.state.update(s.state.replaceSelection(text)).state;
+  return { ...s, state, dirty: state.doc.toString() !== s.lastSaved };
 }
 
 export function setContent(content: string): void {

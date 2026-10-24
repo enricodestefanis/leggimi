@@ -29,6 +29,12 @@ export function searchPanelClosed(): void {
   replaceRow = false;
 }
 
+/** The panel's face, kept with each tab's editor (true: the replace row shows). */
+export const searchFace = (): boolean => replaceRow;
+export function setSearchFace(withReplace: boolean): void {
+  replaceRow = withReplace;
+}
+
 function openSearch(view: EditorView, withReplace: boolean): boolean {
   replaceRow = withReplace;
   openSearchPanel(view);

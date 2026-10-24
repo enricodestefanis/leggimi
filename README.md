@@ -19,12 +19,12 @@ live preview. Files are only modified when you save explicitly. The interface sp
 Italian, German, French, Spanish and Simplified Chinese.
 
 <p align="center">
-  <img alt="Leggimi — reading view with the file browser, the outline, a callout and a table" src="docs/screenshot-viewer.png" width="49%" />
+  <img alt="Leggimi — four documents in tabs in the title bar, a tab's card with its folder and reading time, the file browser and the outline" src="docs/screenshot-viewer.png" width="49%" />
   <img alt="Leggimi — edit mode with find &amp; replace, the format bar and the live preview" src="docs/screenshot-editor.png" width="49%" />
 </p>
 
 <p align="center">
-  <img alt="Leggimi in under a minute: a recent file reopens where it was left, the reading keys and the ? overlay, the dark theme, the view following a change on disk, find &amp; replace in the editor, a diagram full-window, the interface switching to Italian" src="docs/trailer.gif" width="98%" />
+  <img alt="Leggimi 2.0 in half a minute: documents open in tabs, a brief written by an AI agent arrives as a new tab, a tab is pulled out into a window of its own, the brief is copied into Word and saved as a PDF, then the dark theme in both windows" src="docs/trailer.gif" width="98%" />
 </p>
 
 ## Install
@@ -74,8 +74,8 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 - Documents always open in **viewer mode**; `Ctrl+E` switches to **edit mode**: CodeMirror
   editor on the left, live preview on the right, updated as you type; a double-click on the
   preview puts the editor's cursor on that word
-- Explicit save with `Ctrl+S` (the unsaved-changes dot turns into a check for a moment) and
-  confirmation guards; line endings (CRLF/LF) are preserved on save
+- Explicit save with `Ctrl+S` (the unsaved-changes dot on the tab turns into a check for a
+  moment) and confirmation guards; line endings (CRLF/LF) are preserved on save
 - If a preview render fails mid-edit, the last good preview stays on screen and a dismissable
   notice appears — the pane never goes blank
 - **Formatting help in edit mode**: a format bar (headings, bold, italic, strikethrough, code,
@@ -115,24 +115,33 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   empty screen lists your **recent files**
 - **Reading keys**: `j` / `k` scroll, `.` / `,` jump between headings, `g g` / `G` go to the
   top and the end, `n` / `N` step through find matches, `?` shows the quick reference. A
-  hairline along the top of the document shows the progress and the toolbar the estimated
-  reading time; the document can also be dragged like a sheet of paper (middle button)
+  hairline along the top of the document shows the progress, and the card of the tab under the
+  pointer the estimated reading time; the document can also be dragged like a sheet of paper
+  (middle button)
 - **Smart links**: `[text](other)` finds `other.md`, `[text](folder/)` opens the folder's
   `index.md` or `README.md` (or shows the folder in the file browser), `other.md#section` jumps to
   the heading; a link to an image opens the preview, to any other file (a PDF, a spreadsheet) a
   notice offers to open it in its own app, and `mailto:` links open the mail app
 - **Right-click menu of the document** (also `Shift+F10` or the menu key): copy the selection
-  (with its formatting or as plain text) or search for it in the document or the folder; open,
-  copy or open in a new window a link; open an image, a diagram or a table in the preview; copy
+  (with its formatting or as plain text) or search for it in the document or the folder; open a
+  link, in a new tab or a new window, or copy it; open an image, a diagram or a table in the preview; copy
   a code block or a table; **Copy link to this section** (`[Heading](file.md#heading)`,
   followed by Leggimi from any other document, and by GitHub); **Edit from here**; **Copy the
   whole document**; print or save as PDF
-- Right-click a file for **Open in a new window**, **Show in File Explorer**, **Copy path** and
-  **Copy as Markdown link**; a **pin** button (`Ctrl+Shift+T`) keeps the window on top
-- **More than one document at a time**: a file opened from outside (double-click, *Open with*,
-  `leggimi file.md`) gets a window of its own, or brings forward the window that already shows
-  it; `Ctrl`+click (or the middle button) opens a file, a recent document or a link in a new
-  window, `Ctrl+Shift+N` an empty one; the theme and the text settings follow in every window
+- Right-click a file for **Open in a new tab**, **Open in a new window**, **Show in File
+  Explorer**, **Copy path** and **Copy as Markdown link**; a **pin** button keeps the window on top
+- **Tabs**: a window holds several documents, a tab each, and every tab keeps its own place,
+  edits (undo included), Back/Forward history, find bar and file-browser folder. `Ctrl`+click
+  (or the middle button) opens a file, a recent document or a link in a new tab behind the one
+  in front, `Ctrl+Shift`+click in front, `Shift`+click in a new window; `Ctrl+T` opens a start
+  page, `Ctrl+Shift+T` reopens the last closed tab. A file opened from outside (double-click,
+  *Open with*, `leggimi file.md`) arrives in a new tab of the window used last, or brings forward
+  the tab that shows it. Tabs **drag like a browser's**: along the strip to reorder, off it into
+  a window of their own, onto another Leggimi window to move there, unsaved edits included. The
+  theme and the text settings follow in every window
+- **A title bar in the colours of the theme**: the toolbar is the title bar, with the window's
+  own Minimize, Maximize and Close; drag its empty part to move the window, double-click it to
+  maximize, and point at Maximize for the Windows 11 Snap layouts
 - **Back and forward** like a browser (`Alt+←` / `Alt+→`, the mouse's side buttons): after a
   link to a section, a jump through the outline or a move to another document
 - **File browser** for the Markdown files in the folder you opened, kept up to date as files
@@ -173,7 +182,8 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 - Opened files land in Windows' **Recent items and the taskbar jump list**
 - Double-click any `.md` file in File Explorer — the installer registers the association — and
   create one with File Explorer's **New → Markdown document**
-- Drag and drop files onto the window, or press `Ctrl+O`; several at once open one per window
+- Drag and drop files onto the window (onto the tab strip: where you let go), or press `Ctrl+O`;
+  several at once open a tab each
 - `F5` or `Ctrl+R` reads the open file again from disk, keeping your place
 - Built-in help (`F1`) showing the running version
 - **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the
@@ -186,10 +196,17 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 
 | Keys | Action |
 |---|---|
-| `Ctrl+O` | Open a file |
+| `Ctrl+O` | Open a file (in a new tab) |
+| `Ctrl+T` | New tab |
+| `Ctrl+W` / `Ctrl+F4` | Close the tab |
+| `Ctrl+Shift+T` | Reopen the last closed tab |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous tab (also `Ctrl+PgDn` / `Ctrl+PgUp`) |
+| `Ctrl+1` … `Ctrl+8` / `Ctrl+9` | Tab 1 to 8 / the last tab (outside the editor) |
+| `Ctrl+Shift+PgUp` / `Ctrl+Shift+PgDn` | Move the tab left / right |
+| `Ctrl`+click / middle click | Open a file, a recent document or a link in a new tab (`Ctrl+Shift`+click: in front) |
+| `Shift`+click | Open it in a new window |
 | `Ctrl+Shift+N` | New window |
-| `Ctrl+W` / `Ctrl+F4` | Close the window |
-| `Ctrl`+click / middle click | Open a file, a recent document or a link in a new window |
+| `Ctrl+Shift+W` | Close the window |
 | `Alt+←` / `Alt+→` | Back / forward (also the mouse's side buttons) |
 | `F5` / `Ctrl+R` | Reload the file from disk |
 | `Shift+F10` / menu key | Right-click menu |
@@ -211,7 +228,6 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 | `Ctrl+Alt+↑` / `Ctrl+Alt+↓` | Add a cursor above / below (editing) |
 | `Ctrl+Alt+G` | Go to line (editing) |
 | `Esc`, then `Tab` | Leave the editor with the keyboard (editing) |
-| `Ctrl+Shift+T` | Keep the window on top |
 | `/` | Block menu at the start of a line (editing) |
 | `Ctrl+P` | Print or save as PDF |
 | `Ctrl+Shift+C` | Copy the document as rich text |
@@ -233,8 +249,8 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 leggimi [file] [--line N]
 ```
 
-`leggimi README.md` opens the file (relative to the current folder) in a new window of the
-running app, or brings forward the window that already shows it, or starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
+`leggimi README.md` opens the file (relative to the current folder) in a new tab of the window
+of the running app used last, or brings forward the tab that already shows it, or starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
 block containing it, which lights up briefly, in edit mode the editor caret. A file that does
 not exist gets a "Not found" notice in the window in front instead of an empty window. The
 installer puts a `leggimi` command in
@@ -256,7 +272,7 @@ another program) show up at once. A document renamed while open is followed, uns
 included; one deleted or moved away stays on screen, with a notice offering **Save again**.
 From the keyboard the panel is a tree: `↑` / `↓` move, `→` opens a folder or enters it, `←`
 closes it or goes up, `Home` / `End` reach the ends, `Enter` or `Space` opens, `Ctrl+Enter`
-opens in a new window. In a narrow window it folds away; its toolbar button (or `Ctrl+B`) then
+opens in a new tab, `Shift+Enter` in a new window. In a narrow window it folds away; its toolbar button (or `Ctrl+B`) then
 opens it over the text.
 
 ## Versioning and releases

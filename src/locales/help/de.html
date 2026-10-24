@@ -7,23 +7,64 @@
           <li><kbd>Strg</kbd>+<kbd>O</kbd> drücken oder die Ordner-Schaltfläche in der Symbolleiste verwenden.</li>
         </ul>
         <p>
-          Eine Datei, die von außen geöffnet wird, während die App läuft (Doppelklick, <em>Öffnen mit</em>,
-          <code>leggimi datei.md</code>), bekommt ein <strong>eigenes Fenster</strong>; ist sie schon geöffnet,
-          kommt ihr Fenster in den Vordergrund. Innerhalb der App öffnen Dateien im selben Fenster:
-          <kbd>Strg</kbd>+Klick (oder die mittlere Maustaste) auf eine Datei, ein zuletzt geöffnetes Dokument,
-          ein Suchergebnis oder einen Link öffnet sie stattdessen in einem neuen Fenster, ebenso <em>In neuem
-          Fenster öffnen</em> im Kontextmenü, und <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>N</kbd> öffnet ein
-          leeres. Mehrere zusammen geöffnete Dateien (<kbd>Strg</kbd>+<kbd>O</kbd> oder gezogen) kommen in je
-          ein Fenster.
+          Dokumente öffnen sich in <strong>Registerkarten</strong> in der Symbolleiste. Eine Datei, die von außen
+          geöffnet wird, während die App läuft (Doppelklick, <em>Öffnen mit</em>, <code>leggimi datei.md</code>),
+          bekommt eine neue Registerkarte im zuletzt verwendeten Fenster; ist sie schon geöffnet, kommt ihre
+          Registerkarte in den Vordergrund. Innerhalb der App öffnet ein Klick auf eine Datei, ein zuletzt
+          geöffnetes Dokument, ein Suchergebnis oder einen Link sie in der aktuellen Registerkarte;
+          <kbd>Strg</kbd>+Klick (oder die mittlere Maustaste) öffnet sie in einer neuen Registerkarte im
+          Hintergrund, <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+Klick in einer neuen Registerkarte im Vordergrund
+          und <kbd>Umschalt</kbd>+Klick in einem neuen Fenster, ebenso <em>In neuer Registerkarte öffnen</em>
+          und <em>In neuem Fenster öffnen</em> im Kontextmenü. Mit <kbd>Strg</kbd>+<kbd>O</kbd> geöffnete oder
+          auf das Fenster gezogene Dateien bekommen je eine Registerkarte. Ein Dokument ist nie zweimal im
+          selben Fenster geöffnet: Wird es erneut geöffnet, kommt seine Registerkarte in den Vordergrund.
         </p>
         <p>
-          Ohne geöffnetes Dokument listet das Fenster die zuletzt geöffneten Dateien: ein Klick öffnet sie
-          wieder. Jedes Dokument <strong>merkt sich außerdem, wo Sie aufgehört haben</strong>, und
-          springt beim nächsten Öffnen dorthin zurück.
+          Eine neue Registerkarte beginnt mit der Startseite, die die zuletzt geöffneten Dateien listet: ein
+          Klick öffnet eine davon dort. Jedes Dokument <strong>merkt sich außerdem, wo Sie aufgehört
+          haben</strong>, und springt beim nächsten Öffnen dorthin zurück.
         </p>
         <p>
           Im Terminal öffnet <code>leggimi datei.md</code> eine Datei, mit <code>--line 40</code> an
           dieser Zeile (der Befehl <code>leggimi</code> steht nach der Installation zur Verfügung).
+        </p>
+
+        <h3>Registerkarten und Fenster</h3>
+        <p>
+          <kbd>Strg</kbd>+<kbd>T</kbd> oder das <strong>+</strong> nach der letzten Registerkarte öffnet eine
+          neue Registerkarte, <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>N</kbd> ein neues Fenster.
+          <kbd>Strg</kbd>+<kbd>W</kbd> schließt die Registerkarte, ebenso ihr × und ein Mittelklick darauf: Wird
+          das letzte Dokument geschlossen, bleibt die Startseite, und <kbd>Strg</kbd>+<kbd>W</kbd> auf einer
+          allein verbliebenen Startseite schließt das Fenster. <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>W</kbd>
+          schließt das Fenster mit allen Registerkarten, und <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd>
+          öffnet die zuletzt geschlossene Registerkarte erneut. Hat eine Registerkarte ungespeicherte
+          Änderungen, fragt sie vor dem Schließen nach: <strong>Speichern</strong>, <strong>Nicht
+          speichern</strong> oder <strong>Abbrechen</strong>; beim Schließen des Fensters kommt die Frage nur
+          einmal, mit der Liste der Dokumente mit ungespeicherten Änderungen.
+        </p>
+        <p>
+          <kbd>Strg</kbd>+<kbd>Tab</kbd>, <kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>9</kbd> und die übrigen Tasten für
+          Registerkarten unter <em>Tastenkürzel</em> wechseln mit der Tastatur zwischen den Registerkarten. Jede
+          Registerkarte behält ihre eigene Leseposition, ihre Änderungen samt Rückgängig-Schritten, ihren Verlauf
+          für Zurück / Vorwärts und den Ordner des Dateibrowsers. Zeigen Sie auf eine Registerkarte, um ihren
+          Ordner und die Lesezeit zu sehen; reicht der Platz nicht für alle, listet der Pfeil am Ende der Leiste
+          sie auf. Ein Rechtsklick auf eine Registerkarte bietet <strong>In neues Fenster verschieben</strong>,
+          <strong>Andere Registerkarten schließen</strong>, <strong>Registerkarten rechts schließen</strong>,
+          <strong>Pfad kopieren</strong> und <strong>Im Explorer anzeigen</strong>.
+        </p>
+        <p>
+          Ziehen Sie eine Registerkarte entlang der Leiste, um sie umzusortieren (<kbd>Esc</kbd> setzt sie zurück). Ziehen Sie sie aus der Leiste
+          heraus, öffnet sie sich in einem eigenen Fenster, das dem Mauszeiger folgt; lassen Sie sie über den
+          Registerkarten eines anderen Leggimi-Fensters los, wechselt sie dorthin, samt ungespeicherten
+          Änderungen und Rückgängig-Schritten. Ziehen Sie die einzige Registerkarte eines Fensters, bewegt sich
+          das ganze Fenster mit; lassen Sie es über den Registerkarten eines anderen Fensters los, werden die
+          beiden vereint.
+        </p>
+        <p>
+          Die Symbolleiste ist zugleich die Titelleiste des Fensters, in den Farben des Designs: Ziehen Sie an
+          ihrem freien Teil, um das Fenster zu verschieben, doppelklicken Sie darauf, um es zu maximieren oder
+          wiederherzustellen, und zeigen Sie auf die Schaltfläche Maximieren, um die Andocklayouts von
+          Windows 11 zu sehen.
         </p>
 
         <h3>Lesetasten</h3>
@@ -38,7 +79,7 @@
             <tr><td><kbd>?</kbd></td><td>Kurzübersicht der Tasten ein- oder ausblenden</td></tr>
           </tbody>
         </table>
-        <p>Eine feine Linie am oberen Rand des Dokuments zeigt, wie weit Sie sind; die Symbolleiste zeigt die geschätzte Lesezeit.</p>
+        <p>Eine feine Linie am oberen Rand des Dokuments zeigt, wie weit Sie sind; die geschätzte Lesezeit sehen Sie, wenn Sie auf die Registerkarte des Dokuments zeigen.</p>
         <p>
           <kbd>Strg</kbd>+<kbd>C</kbd> auf einer Auswahl kopiert sie mit Formatierung, fertig für Word oder
           Outlook, und zugleich als reinen Text. Das Dokument lässt sich auch wie ein Blatt Papier ziehen:
@@ -55,7 +96,7 @@
           <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd>; drucken oder als PDF speichern.
         </p>
         <p>
-          Wie in einem Browser kehrt <kbd>Alt</kbd>+<kbd>←</kbd> (oder die seitliche <em>Zurück</em>-Taste der Maus) dorthin zurück, wo Sie vor einem Link zu einem Abschnitt, einem Klick in der Gliederung oder dem Wechsel zu einem anderen Dokument waren; <kbd>Alt</kbd>+<kbd>→</kbd> (oder die <em>Vorwärts</em>-Taste) geht den Weg wieder vor. <strong>Zurück</strong> und <strong>Vorwärts</strong> stehen auch oben im Kontextmenü. Jedes Fenster hat seinen eigenen Verlauf.
+          Wie in einem Browser kehrt <kbd>Alt</kbd>+<kbd>←</kbd> (oder die seitliche <em>Zurück</em>-Taste der Maus) dorthin zurück, wo Sie vor einem Link zu einem Abschnitt, einem Klick in der Gliederung oder dem Wechsel zu einem anderen Dokument waren; <kbd>Alt</kbd>+<kbd>→</kbd> (oder die <em>Vorwärts</em>-Taste) geht den Weg wieder vor. <strong>Zurück</strong> und <strong>Vorwärts</strong> stehen auch oben im Kontextmenü. Jede Registerkarte hat ihren eigenen Verlauf.
         </p>
 
         <h3>Tastenkürzel</h3>
@@ -75,11 +116,18 @@
             <tr><td><kbd>Umschalt</kbd>+<kbd>F10</kbd></td><td>Kontextmenü öffnen (auch die Menütaste)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>=</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd></td><td>Größerer / kleinerer Text</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>0</kbd></td><td>Textgröße zurücksetzen</td></tr>
-            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd></td><td>Fenster im Vordergrund halten</td></tr>
             <tr><td><kbd>F5</kbd> / <kbd>Strg</kbd>+<kbd>R</kbd></td><td>Datei neu vom Datenträger laden</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>T</kbd></td><td>Neue Registerkarte</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>W</kbd> / <kbd>Strg</kbd>+<kbd>F4</kbd></td><td>Registerkarte schließen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd></td><td>Zuletzt geschlossene Registerkarte erneut öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Tab</kbd> / <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>Tab</kbd></td><td>Nächste / vorherige Registerkarte (auch <kbd>Strg</kbd>+<kbd>Bild↓</kbd> / <kbd>Strg</kbd>+<kbd>Bild↑</kbd>)</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>8</kbd> / <kbd>Strg</kbd>+<kbd>9</kbd></td><td>Registerkarte 1 bis 8 / letzte Registerkarte (im Editor sind <kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>3</kbd> die Überschriften)</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>Bild↑</kbd> / <kbd>Bild↓</kbd></td><td>Registerkarte nach links / rechts verschieben</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>N</kbd></td><td>Neues Fenster</td></tr>
-            <tr><td><kbd>Strg</kbd>+Klick / Mittelklick</td><td>Datei, zuletzt geöffnetes Dokument, Suchergebnis oder Link in neuem Fenster öffnen</td></tr>
-            <tr><td><kbd>Strg</kbd>+<kbd>W</kbd> / <kbd>Strg</kbd>+<kbd>F4</kbd></td><td>Fenster schließen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>W</kbd></td><td>Fenster schließen</td></tr>
+            <tr><td><kbd>Strg</kbd>+Klick / Mittelklick</td><td>Datei, zuletzt geöffnetes Dokument, Suchergebnis oder Link in neuer Registerkarte öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+Klick</td><td>Ebenso, in neuer Registerkarte im Vordergrund</td></tr>
+            <tr><td><kbd>Umschalt</kbd>+Klick</td><td>Ebenso, in neuem Fenster</td></tr>
             <tr><td><kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd></td><td>Zurück / vorwärts (auch die Seitentasten der Maus)</td></tr>
             <tr><td><kbd>?</kbd></td><td>Kurzübersicht der Tasten</td></tr>
             <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
@@ -87,10 +135,12 @@
           </tbody>
         </table>
         <p>
-          Mit der Tastatur erreicht <kbd>Tab</kbd> die Schaltflächen der Symbolleiste und die Leseeinstellungen
-          <strong>Aa</strong>, und der Fokus ist immer sichtbar; in den Menüs (Teilen, das Kontextmenü, das
-          Kopiermenü der Vorschau) wechseln <kbd>↑</kbd> / <kbd>↓</kbd> und <kbd>Pos1</kbd> / <kbd>Ende</kbd>
-          zwischen den Einträgen, und <kbd>Esc</kbd> schließt sie.
+          Mit der Tastatur erreicht <kbd>Tab</kbd> die Registerkarten, die Schaltflächen der Symbolleiste und
+          die Leseeinstellungen <strong>Aa</strong>, und der Fokus ist immer sichtbar; auf den Registerkarten
+          wechseln <kbd>←</kbd> / <kbd>→</kbd> von einer zur nächsten, <kbd>Eingabe</kbd> zeigt eine an und
+          <kbd>Entf</kbd> schließt sie; in den Menüs (Teilen, das Kontextmenü, das Kopiermenü der Vorschau)
+          wechseln <kbd>↑</kbd> / <kbd>↓</kbd> und <kbd>Pos1</kbd> / <kbd>Ende</kbd> zwischen den Einträgen, und
+          <kbd>Esc</kbd> schließt sie.
         </p>
 
         <h3>Bearbeiten</h3>
@@ -102,7 +152,7 @@
           Fenster breiter ist oder Sie zum Lesen zurückkehren.
         </p>
         <p>
-          Ein orangefarbener Punkt neben dem Dateinamen zeigt ungespeicherte Änderungen an – speichern Sie mit
+          Ein orangefarbener Punkt auf der Registerkarte des Dokuments, anstelle ihres ×, zeigt ungespeicherte Änderungen an – speichern Sie mit
           <kbd>Strg</kbd>+<kbd>S</kbd>, dann wird der Punkt kurz zu einem Häkchen (Bildschirmleser melden
           „Gespeichert“). Beim Verlassen des Bearbeitungsmodus oder beim Öffnen eines anderen Dokuments mit
           ungespeicherten Änderungen wird zuerst nachgefragt. Ändert sich die Datei auf der Festplatte, während
@@ -184,7 +234,7 @@
           Mit der Tastatur funktioniert die Liste wie ein Baum: <kbd>↑</kbd> / <kbd>↓</kbd> bewegen,
           <kbd>→</kbd> öffnet einen Ordner oder geht hinein, <kbd>←</kbd> schließt ihn oder geht zum
           übergeordneten Ordner, <kbd>Pos1</kbd> / <kbd>Ende</kbd> springen an die Enden, <kbd>Eingabe</kbd>
-          oder <kbd>Leertaste</kbd> öffnet, und <kbd>Strg</kbd>+<kbd>Eingabe</kbd> öffnet in einem neuen Fenster.
+          oder <kbd>Leertaste</kbd> öffnet, und <kbd>Strg</kbd>+<kbd>Eingabe</kbd> öffnet in einer neuen Registerkarte.
         </p>
         <p>
           Beide Seitenbereiche lassen sich an der Innenkante breiter ziehen – ein Doppelklick auf die Kante stellt
@@ -217,7 +267,7 @@
         </p>
 
         <h3>Automatisches Neuladen</h3>
-        <p>Die geöffnete Datei wird auf der Festplatte beobachtet. Ändert sie sich, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
+        <p>Geöffnete Dateien werden auf der Festplatte beobachtet. Ändert sich eine, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird; eine Registerkarte im Hintergrund holt das nach, sobald Sie zu ihr zurückkehren. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
         <p><kbd>F5</kbd> oder <kbd>Strg</kbd>+<kbd>R</kbd> liest die Datei auf Wunsch neu ein und behält die Leseposition; bei ungespeicherten Änderungen geschieht nichts.</p>
 
         <h3>Darstellung</h3>
@@ -275,11 +325,12 @@
           Microsoft Store heißt der Eintrag immer <em>Markdown document</em>.
         </p>
         <p>
-          Rechtsklick auf eine Datei im Browserbereich oder auf den Dateinamen in der Symbolleiste:
+          Rechtsklick auf eine Datei im Browserbereich: <strong>In neuer Registerkarte öffnen</strong>,
           <strong>In neuem Fenster öffnen</strong>, <strong>Im Explorer anzeigen</strong>, <strong>Pfad
           kopieren</strong> oder <strong>Als Markdown-Link kopieren</strong> (relativ zum geöffneten Dokument).
-          Die Pin-Schaltfläche (<kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd>) hält das Fenster über den
-          anderen.
+          Die Pin-Schaltfläche hält das Fenster über den anderen; sie hat kein Tastenkürzel mehr, denn
+          <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd> öffnet jetzt die zuletzt geschlossene Registerkarte
+          erneut.
         </p>
         <p>
           In der Version aus dem Microsoft Store fragt nach einigen Tagen eine kleine Karte <em>Gefällt Ihnen
