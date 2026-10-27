@@ -25,6 +25,7 @@ const zh: Dict = {
   "tab.allTabs": "所有标签页",
   "tab.unsaved": "未保存的更改",
   "tab.startPage": "列出最近文件的起始页",
+  "tab.minutes": "{n} 分钟",
   "caption.group": "窗口",
   "caption.minimize": "最小化",
   "caption.maximize": "最大化",

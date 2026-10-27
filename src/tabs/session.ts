@@ -54,6 +54,8 @@ export interface Tab {
   dirty: boolean;
   /** the reading time last shown for it, for its hover card */
   meta: string;
+  /** the same in minutes (0: none), after its name while it is in front (strip.ts) */
+  minutes: number;
   /** on its way out (the strip animates it away) */
   closing: boolean;
   /** on its way to another window: out of the strip until that window has it */
@@ -81,6 +83,7 @@ export function make(path: string | null, at: Tab["at"] = null): Tab {
     stale: false,
     dirty: false,
     meta: "",
+    minutes: 0,
     closing: false,
     leaving: false,
     shownAt: 0,

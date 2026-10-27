@@ -25,6 +25,7 @@ const fr: Dict = {
   "tab.allTabs": "Tous les onglets",
   "tab.unsaved": "Modifications non enregistrées",
   "tab.startPage": "Page d'accueil avec les fichiers récents",
+  "tab.minutes": "{n} min",
   "caption.group": "Fenêtre",
   "caption.minimize": "Réduire",
   "caption.maximize": "Agrandir",

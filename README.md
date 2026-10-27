@@ -115,9 +115,9 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   empty screen lists your **recent files**
 - **Reading keys**: `j` / `k` scroll, `.` / `,` jump between headings, `g g` / `G` go to the
   top and the end, `n` / `N` step through find matches, `?` shows the quick reference. A
-  hairline along the top of the document shows the progress, and the card of the tab under the
-  pointer the estimated reading time; the document can also be dragged like a sheet of paper
-  (middle button)
+  hairline along the top of the document shows the progress, and the tab in front the estimated
+  reading time after its name; the document can also be dragged like a sheet of paper (middle
+  button)
 - **Smart links**: `[text](other)` finds `other.md`, `[text](folder/)` opens the folder's
   `index.md` or `README.md` (or shows the folder in the file browser), `other.md#section` jumps to
   the heading; a link to an image opens the preview, to any other file (a PDF, a spreadsheet) a

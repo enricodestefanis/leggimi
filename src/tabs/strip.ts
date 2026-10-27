@@ -1,6 +1,7 @@
-// The tab strip in the toolbar: the tabs as wide as their names, a + after
-// the last one, the list of every tab when they run over, a card with the
-// folder and the reading time under the pointer, the right-click menus, and
+// The tab strip in the toolbar: the tabs as wide as their names, the reading
+// time after the name of the one in front, a + after the last one, the list of
+// every tab when they run over, a card with the folder and the reading time
+// under the pointer, the right-click menus, and
 // dragging: along the strip to reorder, off it to tear the tab out into a
 // window of its own, and (the only tab) to carry the whole window, which can
 // then join another window's strip. What a tab is and what moving it means
@@ -70,6 +71,8 @@ const btnNew = document.createElement("button");
 const btnList = document.createElement("button");
 const fill = document.createElement("div");
 const card = document.createElement("div");
+// measures the reading time's text before a tab is given room for it
+const ruler = document.createElement("span");
 const els = new Map<number, HTMLElement>();
 let ghost: HTMLElement | null = null;
 let frozen = false;
@@ -109,7 +112,9 @@ export function init(h: StripHost, parent: HTMLElement, before: Element | null):
   strip.append(newWrap);
   // a strip to grab the window by, even when the tabs fill the toolbar
   fill.className = "tabbar-fill";
-  bar.append(strip, btnList, fill);
+  ruler.className = "tab-meta tab-meta-ruler";
+  ruler.setAttribute("aria-hidden", "true");
+  bar.append(strip, btnList, fill, ruler);
   parent.insertBefore(bar, before);
 
   card.className = "tab-card";
@@ -158,6 +163,7 @@ function createTab(tab: Tab): HTMLElement {
   el.innerHTML =
     '<span class="tab-icon" aria-hidden="true"></span>' +
     '<span class="tab-title"></span>' +
+    '<span class="tab-meta" aria-hidden="true"></span>' +
     '<button class="tab-close" type="button" tabindex="-1">' +
     `${svg(ICON.close, 13, 2.2)}<span class="tab-dot"></span><span class="tab-saved"></span></button>`;
   setTitle(el.querySelector(".tab-close")!, t("tab.close"));
@@ -213,6 +219,8 @@ function flash(el: HTMLElement, cls: string, animation: string): void {
     if (e.animationName !== animation) return;
     el.classList.remove(cls);
     el.removeEventListener("animationend", done);
+    // a tab grown in to its width: the reading time may have room now
+    scheduleOverflow();
   };
   el.addEventListener("animationend", done);
 }
@@ -255,6 +263,8 @@ function unfreezeWidths(): void {
   if (!frozen) return;
   frozen = false;
   for (const el of els.values()) el.style.flex = "";
+  // the reading time waited for the widths to be free again
+  scheduleOverflow();
 }
 
 // the strip and every tab: a tab growing in or out, the window resized
@@ -282,6 +292,83 @@ function updateOverflow(): void {
   for (const title of strip.querySelectorAll<HTMLElement>(".tab-title")) {
     title.classList.toggle("clipped", title.scrollWidth > title.clientWidth + 0.5);
   }
+  fitMeta(over);
+}
+
+/* ---- the reading time of the tab in front ---- */
+
+// After its name, as the title bar of 1.x had it: in full when it is the
+// window's only tab ("4 min read"), short among several ("4 min"). The tab
+// grows to hold it while the strip has room to spare; when the tabs would have
+// to shrink or scroll for it, it is the first thing to go (the card keeps it).
+function fitMeta(over: boolean): void {
+  const front = session.hasActive() ? session.active() : null;
+  // a tab on its way out, or to another window, has none
+  const el = front && !front.closing && !front.leaving ? els.get(front.id) : undefined;
+  for (const x of els.values()) if (x !== el) setMeta(x, null);
+  // a tab in hand, or the widths held under the pointer: nothing moves now
+  // (the pointer leaving the strip, or the drop, brings it back)
+  if (!front || !el || drag?.started || frozen) return;
+  const n = front.minutes;
+  if (!n) {
+    setMeta(el, null);
+    return;
+  }
+  const forms = [t("tab.minutes", { n })];
+  if (session.live().length === 1) forms.unshift(t("msg.minRead", { n }));
+  // a little to spare before it comes in, so that it never comes and goes
+  const slack = el.classList.contains("meta-on") ? 0.5 : 2;
+  const room = over || [...els.values()].some(squeezed) ? -1 : freeRoom();
+  const fit = forms.find((f) => textWidth(f) + slack <= room) ?? null;
+  setMeta(el, fit, t("msg.minRead", { n }));
+}
+
+function setMeta(el: HTMLElement, text: string | null, spoken = ""): void {
+  const meta = el.querySelector<HTMLElement>(".tab-meta");
+  if (!meta) return;
+  // going away, the text stays until it has slid out
+  if (text !== null && meta.textContent !== text) meta.textContent = text;
+  el.classList.toggle("meta-on", text !== null);
+  // a screen reader hears it after the tab's name
+  if (text === null) el.removeAttribute("aria-description");
+  else if (el.getAttribute("aria-description") !== spoken) el.setAttribute("aria-description", spoken);
+}
+
+// The empty end of the strip, plus what the reading time takes now: the room
+// it may have.
+function freeRoom(): number {
+  const sr = strip.getBoundingClientRect();
+  let right = sr.left;
+  for (const child of strip.children) {
+    const r = child.getBoundingClientRect();
+    if (r.width > 0) right = Math.max(right, r.right);
+  }
+  let room = sr.right - (parseFloat(getComputedStyle(strip).paddingRight) || 0) - right;
+  for (const x of els.values()) room += x.querySelector<HTMLElement>(".tab-meta")?.getBoundingClientRect().width ?? 0;
+  return room;
+}
+
+// A tab narrower than its name wants (its name cut short before the tabs'
+// cap): the strip has no room left. Tabs growing in or going away do not count.
+function squeezed(el: HTMLElement): boolean {
+  if (el.matches(".opening, .closing, .detached")) return false;
+  const title = el.querySelector<HTMLElement>(".tab-title");
+  if (!title || title.scrollWidth <= title.clientWidth + 0.5) return false;
+  const cap = parseFloat(getComputedStyle(title).maxWidth);
+  return !(title.clientWidth >= cap - 1);
+}
+
+const textWidths = new Map<string, number>();
+function textWidth(text: string): number {
+  let w = textWidths.get(text);
+  if (w === undefined) {
+    ruler.textContent = text;
+    w = ruler.getBoundingClientRect().width;
+    // not laid out (the toolbar hidden, a print): no room for it, measured again later
+    if (w <= 0) return Infinity;
+    textWidths.set(text, w);
+  }
+  return w;
 }
 
 function revealTab(tab: Tab, instant = false): void {
@@ -474,6 +561,10 @@ function onDragMove(e: PointerEvent): void {
 function beginDrag(d: Drag): void {
   d.started = true;
   hideCard();
+  // first: a reading time sliding in or out (the press brought this tab
+  // forward) takes its final width at once (tabs.css), and the tabs are
+  // measured as they will stay
+  bar.classList.add("reordering");
   measure(d);
   // the moves keep coming outside the window, for as long as the button is down
   try {
@@ -481,7 +572,6 @@ function beginDrag(d: Drag): void {
   } catch {
     /* the pointer is gone already */
   }
-  bar.classList.add("reordering");
   d.el.classList.add("dragging");
 }
 
@@ -530,6 +620,8 @@ function settle(d: Drag): void {
   for (const slot of d.slots) slot.el.style.transition = "";
   d.el.classList.remove("dragging");
   bar.classList.remove("reordering");
+  // the reading time waited for the tab in hand to be let go
+  scheduleOverflow();
 }
 
 function tearOff(d: Drag, e: PointerEvent): void {
@@ -568,6 +660,7 @@ function endDrag(e: PointerEvent): void {
   d.el.classList.remove("dragging");
   bar.classList.remove("reordering");
   d.el.style.transform = "";
+  scheduleOverflow();
 }
 
 /** Escape, or the pointer taken away: the tab goes back where it was. */

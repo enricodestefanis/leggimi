@@ -25,6 +25,9 @@ export default {
   "tab.allTabs": "All tabs",
   "tab.unsaved": "Unsaved changes",
   "tab.startPage": "Start page with the recent files",
+  // the reading time after the name of the tab in front, when there are several
+  // (the only tab has msg.minRead)
+  "tab.minutes": "{n} min",
   "caption.group": "Window",
   "caption.minimize": "Minimize",
   "caption.maximize": "Maximize",

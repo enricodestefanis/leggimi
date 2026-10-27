@@ -25,6 +25,7 @@ const de: Dict = {
   "tab.allTabs": "Alle Registerkarten",
   "tab.unsaved": "Ungespeicherte Änderungen",
   "tab.startPage": "Startseite mit den zuletzt geöffneten Dateien",
+  "tab.minutes": "{n} Min.",
   "caption.group": "Fenster",
   "caption.minimize": "Minimieren",
   "caption.maximize": "Maximieren",

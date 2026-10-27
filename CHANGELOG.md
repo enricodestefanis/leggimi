@@ -7,6 +7,15 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [2.0.1] - 2026-10-27
+
+### Changed
+- **The reading time is back in sight**: since 2.0 only a tab's card showed it. The tab in front
+  now gives it after its name, in full when it is the window's only tab (*4 min read*, as the
+  title bar of 1.x had it) and short among several (*4 min*). It takes no room from the
+  document: when the tab strip is full it is the first thing to go (the tab's card still has
+  it), it hides while editing, and screen readers hear it with the tab's name.
+
 ## [2.0.0] - 2026-10-24
 
 Tabs (*Schede*): several documents in one window, tabs that move between windows as in a

@@ -25,6 +25,7 @@ const it: Dict = {
   "tab.allTabs": "Tutte le schede",
   "tab.unsaved": "Modifiche non salvate",
   "tab.startPage": "Pagina iniziale con i file recenti",
+  "tab.minutes": "{n} min",
   "caption.group": "Finestra",
   "caption.minimize": "Riduci a icona",
   "caption.maximize": "Ingrandisci",

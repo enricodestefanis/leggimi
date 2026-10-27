@@ -3180,6 +3180,7 @@ const CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=H
 function updateDocMeta(): void {
   if (!currentDoc || article.hidden) {
     docMeta.hidden = true;
+    setTabReading(0);
     return;
   }
   const text = article.textContent ?? "";
@@ -3189,8 +3190,19 @@ function updateDocMeta(): void {
   docMeta.textContent = t("msg.minRead", { n: minutes });
   docMeta.title = t("msg.words", { n: i18n.fmtNumber(words + cjk) });
   docMeta.hidden = false;
-  // the card of the tab shows it (the toolbar no longer does)
-  if (session.hasActive()) session.active().meta = docMeta.textContent;
+  setTabReading(minutes);
+}
+
+// The reading time goes to the tab in front (the toolbar no longer has it):
+// after the tab's name (strip.ts) and on its card. 0: there is none, a start
+// page or an error card.
+function setTabReading(minutes: number): void {
+  if (!session.hasActive()) return;
+  const tab = session.active();
+  tab.meta = minutes ? (docMeta.textContent ?? "") : "";
+  if (tab.minutes === minutes) return;
+  tab.minutes = minutes;
+  strip.render();
 }
 
 /* ---- outline filter ---- */
@@ -3379,6 +3391,9 @@ function showError(message: string): void {
   card.className = "error-card";
   card.textContent = message;
   article.append(card);
+  // an error card is not a read: its tab says no reading time
+  docMeta.hidden = true;
+  setTabReading(0);
 }
 
 function showEmpty(): void {
@@ -3386,6 +3401,7 @@ function showEmpty(): void {
   article.hidden = true;
   emptyState.hidden = false;
   docMeta.hidden = true;
+  setTabReading(0);
   readProgress.hidden = true;
   renderRecents().catch(() => {});
 }

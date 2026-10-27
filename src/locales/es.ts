@@ -25,6 +25,7 @@ const es: Dict = {
   "tab.allTabs": "Todas las pestañas",
   "tab.unsaved": "Cambios sin guardar",
   "tab.startPage": "Página de inicio con los archivos recientes",
+  "tab.minutes": "{n} min",
   "caption.group": "Ventana",
   "caption.minimize": "Minimizar",
   "caption.maximize": "Maximizar",
