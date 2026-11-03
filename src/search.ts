@@ -127,9 +127,27 @@ function paint(): void {
 
 function scrollToCurrent(): void {
   if (idx < 0) return;
+  revealSideways(ranges[idx]);
   const r = ranges[idx].getBoundingClientRect();
   const p = els.pane.getBoundingClientRect();
   if (r.top < p.top + 60 || r.bottom > p.bottom - 60) {
     els.pane.scrollBy({ top: r.top - p.top - p.height / 2 });
+  }
+}
+
+// A match in a part of a box that scrolls sideways (a wide table, a long
+// code line) may sit out of sight to the left or right: that box scrolls it
+// to its middle first, as the pane then does up and down.
+function revealSideways(range: Range): void {
+  const margin = 40;
+  for (let el = range.startContainer.parentElement; el && el !== els.pane; el = el.parentElement) {
+    if (el.scrollWidth <= el.clientWidth + 1) continue;
+    const ov = getComputedStyle(el).overflowX;
+    if (ov !== "auto" && ov !== "scroll") continue;
+    const r = range.getBoundingClientRect();
+    const left = el.getBoundingClientRect().left + el.clientLeft;
+    if (r.left < left + margin || r.right > left + el.clientWidth - margin) {
+      el.scrollLeft += r.left - left - (el.clientWidth - r.width) / 2;
+    }
   }
 }

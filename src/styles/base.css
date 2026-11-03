@@ -41,6 +41,9 @@
   --code-chip-bg: #eae8df;
   --code-chip-border: #d5d1c5;
   --shadow: 0 4px 24px rgba(26, 25, 21, 0.1);
+  /* the soft shade along an edge that holds still while the text goes
+     under it: a table's stuck header, its bar at the bottom (markdown.css) */
+  --edge-shade: rgba(26, 25, 21, 0.09);
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --serif: Georgia, Cambria, "Times New Roman", serif;
   --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
@@ -79,6 +82,7 @@
   --code-chip-bg: #3a3835;
   --code-chip-border: #4c4a44;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --edge-shade: rgba(0, 0, 0, 0.32);
 }
 
 /* Sepia: a warm paper, in the light scheme (hljs, alerts, mermaid stay light) */
@@ -101,6 +105,7 @@
   --code-chip-bg: #e6d9bf;
   --code-chip-border: #cfbf9f;
   --shadow: 0 4px 24px rgba(59, 47, 34, 0.14);
+  --edge-shade: rgba(59, 47, 34, 0.11);
 }
 
 /* Black: true black for OLED panels, in the dark scheme */
@@ -126,6 +131,8 @@
   --code-chip-bg: #1f1f1f;
   --code-chip-border: #333333;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  /* a shade vanishes on #000: the stuck header's own fill marks it */
+  --edge-shade: rgba(0, 0, 0, 0.6);
 }
 
 /* non-default reading preferences, set as data attributes by prefs.ts */

@@ -176,12 +176,13 @@
           <li>代码块带语法高亮，悬停时有复制按钮。</li>
           <li><code>mermaid</code> 代码块渲染为图表；语法无效时回退为代码块并附错误说明。</li>
           <li>比阅读栏更宽的表格或图表会居中展开，最宽可占满全部可用宽度：无需横向滚动，图表的文字也保持原有大小。</li>
+          <li>阅读长表格时，表头行会停留在窗口顶部，直到表格的最后一行滚过。即使占满整个窗口仍然过宽的表格可以横向滚动：只要表格还在视野中，它的滚动条就会停留在窗口底部，无需滚到表格末尾才能左右移动；在表格任意位置也可以使用 <kbd>Shift</kbd>+滚轮或触摸板。</li>
           <li>单击图表或图片可全窗口打开：<kbd>+</kbd> / <kbd>−</kbd> 或滚轮缩放，拖动平移，<kbd>Esc</kbd> 关闭。<strong>适应</strong>（<kbd>0</kbd>）使其适应窗口，<strong>宽度</strong>（<kbd>W</kbd>）使其适应宽度并从顶部开始，<strong>100%</strong>（<kbd>1</kbd>）按实际大小显示。复制按钮可提供 PNG 图片（普通或大图），图表还可提供 SVG，两者都可以保存为文件。</li>
           <li>公式使用 KaTeX 渲染：行内 <code>$…$</code>，独立公式用 <code>$$…$$</code> 或 <code>math</code> 代码块。</li>
           <li>GitHub 风格的提示框：以 <code>[!NOTE]</code>、<code>[!TIP]</code>、<code>[!IMPORTANT]</code>、<code>[!WARNING]</code> 或 <code>[!CAUTION]</code> 开头的引用。</li>
           <li>脚注：正文中的 <code>[^1]</code> 和任意位置的 <code>[^1]: …</code>；脚注汇集在文末，带有来回跳转链接。</li>
           <li>任务列表是可交互的：单击复选框会立即更新文件中的 <code>[ ]</code> / <code>[x]</code>（提示中有<em>撤销</em>），编辑时则更新编辑器缓冲区。只有复选框才能勾选任务：单击或双击任务文字（例如为了选中一个词）不会改变任何内容。</li>
-          <li>表格右上角有两个按钮，鼠标悬停或用键盘到达时显示：<strong>复制表格（用于 Excel）</strong>把表格以制表符分隔的文本放入剪贴板，可直接粘贴到 Excel 或 Google 表格；<strong>打开预览</strong>以窗口宽度全窗口显示表格（右键菜单中也有）。</li>
+          <li>表格右上角有两个按钮，鼠标悬停或用键盘到达时显示：<strong>复制表格（用于 Excel）</strong>把表格以制表符分隔的文本放入剪贴板，可直接粘贴到 Excel 或 Google 表格；<strong>打开预览</strong>以全窗口打开表格，便于阅读（右键菜单中也有）：它像页面一样滚动，标题行停留在顶部；表格横向滚动时，第一列也停留在左侧；<kbd>+</kbd> / <kbd>−</kbd> 或 <kbd>Ctrl</kbd>+滚轮调整文字大小，<strong>宽度</strong>（<kbd>W</kbd>）使表格适应窗口。<strong>筛选行</strong>（<kbd>Ctrl</kbd>+<kbd>F</kbd>）只保留包含所输入词语的行；单击列标题即按该列排序：升序、降序、恢复原始顺序（能识别数字、金额、百分比和日期）。文档不会改变，预览中的<strong>复制表格（用于 Excel）</strong>按你看到的样子复制行。</li>
           <li>指向其他文档的链接像 wiki 一样工作：<code>[文字](other)</code> 找到 <code>other.md</code>，<code>[文字](folder/)</code> 打开该文件夹的 <code>index.md</code> 或 <code>README.md</code>，<code>other.md#section</code> 跳转到该标题。标题的锚点与 GitHub 相同（<code>## 1. 简介</code> → <code>#1-简介</code>），因此为 GitHub 编写或由 AI 助手生成的目录在这里同样可用；为早期版本写的链接也仍然有效。</li>
           <li><code>---</code> 行之间的 YAML front matter 会折叠成顶部的 <em>Front matter</em> 区块：单击可以表格形式查看字段。</li>
           <li>只包含 <code>[TOC]</code> 的段落会变成后续标题的目录，打印、HTML 和 DOCX 中也会保留。</li>

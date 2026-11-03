@@ -119,22 +119,258 @@
   box-shadow: var(--shadow);
 }
 
-/* A table: a copy on a sheet of the page, with the document's own styles
-   (lightbox.ts gives it .markdown-body and makes it inert), framed like the
-   table in the text. The pointer goes through it to the pan. */
-#zoom-stage > .zoom-table {
-  overflow: hidden;
+/* A table (tableView.ts) is read, not looked at: a scroller of its own takes
+   the viewport's place, with the copy on a sheet of the page (the document's
+   styles, .markdown-body), framed like the table in the text. */
+#zoom-dialog[data-kind="table"] #zoom-viewport,
+#zoom-dialog:not([data-kind="table"]) #zoom-table-view {
+  display: none;
+}
+
+#zoom-table-view {
+  position: absolute;
+  inset: 24px 24px 76px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* the focus is the view's, as the viewport's: no ring around the window */
+  outline: none;
+  /* the shades below follow its scrolling, down and sideways */
+  scroll-timeline: --zt-y block, --zt-x inline;
+}
+
+#zoom-dialog[open] #zoom-table-view {
+  animation: zoom-enter 0.18s var(--ease);
+}
+
+#zoom-table-view.panning {
+  cursor: grabbing;
+}
+
+/* as wide as the table, centred when narrower than the view; zoom (set by
+   tableView.ts) sizes the whole of it, laid out again, so text stays sharp */
+#zoom-table-view > .zoom-table-sheet {
+  width: fit-content;
+  margin: 0 auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg);
   box-shadow: var(--shadow);
-  pointer-events: none;
+  /* the corners round the table: a clip, not a scroller, so the header
+     sticks to the view */
+  overflow: clip;
 }
 
-/* as wide as its content asks, within the window's width: build() then
-   fits the sheet, and the stage, to it */
-#zoom-stage > .zoom-table table {
+/* as wide as its content asks, within the view's width */
+#zoom-table-view table {
   width: auto;
+}
+
+/* separate borders, as for the document's sticky headers (markdown.css):
+   the collapsed ones are the table's, and would stay behind */
+#zoom-table-view table:not([border]) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#zoom-table-view table > thead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* a shade under the header once rows pass under it; and each cell laying its
+   colour one pixel over the next, where a fractional scale would leave a
+   thin line the rows show through (as in markdown.css) */
+#zoom-table-view thead th {
+  animation: zt-head-shade linear both;
+  animation-timeline: --zt-y;
+  animation-range: 0px 16px;
+}
+
+@keyframes zt-head-shade {
+  from {
+    box-shadow:
+      1px 0 0 var(--surface-2),
+      0 6px 8px -6px transparent;
+  }
+  to {
+    box-shadow:
+      1px 0 0 var(--surface-2),
+      0 6px 8px -6px var(--edge-shade, transparent);
+  }
+}
+
+/* The first column, while the table scrolls sideways (zt-freeze): stuck to
+   the left, opaque, an edge and a shade on its right once the rest passes
+   under it. The corner above everything. */
+#zoom-table-view table.zt-freeze tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--bg);
+}
+
+#zoom-table-view table.zt-freeze thead tr > :first-child {
+  background-color: var(--surface-2);
+}
+
+#zoom-table-view table.zt-freeze tbody tr > :first-child {
+  animation: zt-col-shade linear both;
+  animation-timeline: --zt-x;
+  animation-range: 0px 16px;
+}
+
+@keyframes zt-col-shade {
+  from {
+    box-shadow:
+      1px 0 0 transparent,
+      6px 0 8px -6px transparent;
+  }
+  to {
+    box-shadow:
+      1px 0 0 var(--border),
+      6px 0 8px -6px var(--edge-shade, transparent);
+  }
+}
+
+/* the row under the pointer, its stuck cell too (on its own opaque ground) */
+#zoom-table-view table.zt-freeze tbody tr:hover > :first-child {
+  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--bg);
+}
+
+/* the rows left by the filter: what matched */
+::highlight(table-filter) {
+  background-color: rgba(250, 204, 21, 0.45);
+  color: inherit;
+}
+
+.zoom-table-empty {
+  margin: 0;
+  padding: 18px 20px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* A header that sorts its column: the whole cell answers the click
+   (tableView.ts), the button inside is for the keyboard and the screen
+   reader, and the arrows say the order. */
+#zoom-table-view th[data-col] {
+  cursor: pointer;
+}
+
+#zoom-table-view .zt-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  white-space: inherit;
+  cursor: inherit;
+}
+
+#zoom-table-view .zt-sort:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+#zoom-table-view .zt-arrow {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s var(--ease);
+}
+
+#zoom-table-view th[data-col]:hover .zt-arrow,
+#zoom-table-view .zt-sort:focus-visible .zt-arrow {
+  opacity: 0.7;
+}
+
+/* the column sorted by: its arrow always full, under the pointer too */
+#zoom-table-view th[aria-sort] .zt-arrow,
+#zoom-table-view th[aria-sort]:hover .zt-arrow {
+  opacity: 1;
+  color: var(--accent);
+}
+
+#zoom-table-view th[aria-sort="ascending"] .zt-down,
+#zoom-table-view th[aria-sort="descending"] .zt-up {
+  opacity: 0.25;
+}
+
+/* the filter in the toolbar: a field like the find bar's */
+.zoom-filter {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: text;
+  transition:
+    border-color 0.12s var(--ease),
+    box-shadow 0.12s var(--ease);
+}
+
+.zoom-filter[hidden] {
+  display: none;
+}
+
+.zoom-filter:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.zoom-filter > svg {
+  flex: none;
+}
+
+#zoom-filter-input {
+  width: 150px;
+  min-width: 40px;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+
+#zoom-filter-input::placeholder {
+  color: var(--text-muted);
+}
+
+#zoom-filter-count {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* a narrow window: the field narrows, and widens again to be typed in */
+@media (max-width: 720px) {
+  #zoom-filter-input {
+    width: 70px;
+  }
+
+  .zoom-filter:focus-within #zoom-filter-input {
+    width: 120px;
+  }
+
+  #zoom-filter-count {
+    display: none;
+  }
 }
 
 /* the copy/save menu sits inside the dialog: a body-level menu would be

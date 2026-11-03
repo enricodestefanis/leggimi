@@ -114,7 +114,8 @@
   }
 
   .code-copy,
-  .markdown-body .table-actions {
+  .markdown-body .table-actions,
+  .markdown-body .table-hbar {
     display: none;
   }
 

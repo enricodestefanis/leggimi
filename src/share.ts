@@ -59,9 +59,18 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
   const clone = article.cloneNode(true) as HTMLElement;
   for (const el of clone.querySelectorAll(".code-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-source-line]")) el.removeAttribute("data-source-line");
-  // a table's buttons (copy for Excel, preview); its wrappers stay for now:
-  // the HTML export's stylesheet knows them, the Word family unwraps them
-  for (const el of clone.querySelectorAll(".table-actions, .table-copy, .table-expand")) el.remove();
+  // a table's buttons (copy for Excel, preview) and the scrollbar that sticks
+  // to the pane (tableScroll.ts); its wrappers stay for now: the HTML
+  // export's stylesheet knows them, the Word family unwraps them
+  for (const el of clone.querySelectorAll(".table-actions, .table-copy, .table-expand, .table-hbar")) el.remove();
+  // whether a table fits its box or scrolls in it was measured in the app's
+  // pane (tableScroll.ts), and so was everything below
+  for (const el of clone.querySelectorAll(".table-scroll.fits")) el.classList.remove("fits");
+  for (const el of clone.querySelectorAll(".table-block.hscroll")) el.classList.remove("hscroll");
+  for (const el of clone.querySelectorAll<HTMLElement>(".table-scroll[style]")) {
+    for (const name of ["--head-from", "--head-travel", "--head-end"]) el.style.removeProperty(name);
+    if (!el.getAttribute("style")) el.removeAttribute("style");
+  }
   // Content too wide for the reading column breaks out of it on screen
   // (wide.ts), sized against the app's pane, which output does not have (and
   // shrunk for paper while a print is being prepared); the highlight of a

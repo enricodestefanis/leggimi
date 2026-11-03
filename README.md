@@ -98,6 +98,13 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   width of the window, instead of scrolling sideways or shrinking; when printing, a table wider
   than the page is scaled to fit. Every table has **Copy table (for Excel)** and **Open
   preview** buttons
+- **Long tables keep their header in sight**: the header row stays at the top of the window
+  while the rows go by, until the table ends, also in a table that scrolls sideways; a table too
+  wide even for the window keeps its scrollbar at the bottom of the window, so it can be moved
+  sideways from anywhere in it
+- **A table preview made for reading**: full-window, with the header row and the first column
+  in sight, sharp text at any size, **Filter rows** (`Ctrl+F`) and sorting by any column
+  (numbers, amounts, percentages and dates read as such), without touching the document
 - **YAML front matter** folded into a block at the top of the document: click it to see the
   fields as a table, instead of reading them as stray text
 - Syntax-highlighted code blocks with a copy button

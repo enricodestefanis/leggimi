@@ -202,10 +202,212 @@
   border-radius: 8px;
 }
 
+/* How a table scrolls (tableScroll.ts). The screen's affair: paper prints
+   tables whole (print.css) and exports carry neither mark. */
+@media screen {
+  /* A table that fits its box (fits) is clipped instead of scrolled: with
+     no scroller left between its header row and the pane, the header stays
+     at the top while the rows go by, and leaves with the last one. A soft
+     shade under it shows that it is holding there: while the table crosses
+     the top of the pane, from its top edge passing it to its bottom edge
+     (a view timeline: a sticky table part cannot be a scroll-state
+     container, as the bar below is). */
+  .markdown-body .table-scroll.fits {
+    overflow: clip;
+  }
+
+  .markdown-body .table-scroll.fits > table {
+    view-timeline: --table-crossing block;
+  }
+
+  /* In the collapsing border model the lines between rows are the table's,
+     drawn where the rows were: under a header holding the top they would
+     leave a 1px gap the rows show through. Separate borders, no spacing:
+     the same lines (bottom borders only), drawn by the cells themselves. A
+     raw HTML table with a border attribute keeps its model (its cells'
+     borders would double). */
+  .markdown-body .table-scroll.fits > table:not([border]) {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .markdown-body .table-scroll.fits > table > thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  /* At a fractional scale the header cells' edges fall between device
+     pixels, which they then cover only in part: the rows passing under the
+     header would show through thin lines between its cells, and, when it is
+     moved (below), through its top edge. Each cell lays its own colour one
+     pixel over the next, the first row two pixels over the top: the box clips
+     both while the header is in its place, the pane once it holds the top. */
+  .markdown-body .table-scroll.fits > table > thead th,
+  .markdown-body .table-block.hscroll > .table-scroll > table > thead th {
+    box-shadow: 1px 0 0 var(--surface-2);
+  }
+
+  .markdown-body .table-scroll.fits > table > thead > tr:first-child > th,
+  .markdown-body .table-block.hscroll > .table-scroll > table > thead > tr:first-child > th {
+    box-shadow:
+      1px 0 0 var(--surface-2),
+      0 -2px 0 var(--surface-2);
+  }
+
+  /* A table still wider than its box (hscroll, below) keeps its scroller,
+     which a sticky header would stick to: its header is moved down the table
+     instead, by an animation that the pane's scrolling drives (the box's view
+     timeline: the table's own nearest scroller is the box, the box's is the
+     pane). From the box's top edge reaching the top of the pane, plus where
+     the header starts (--head-from), it goes down one pixel per pixel
+     scrolled, until it sits on the last row (--head-travel), and leaves with
+     it. It stays inside the box, so it scrolls sideways with its columns.
+     tableScroll.ts measures the lengths. Separate borders as above. */
+  .markdown-body .table-block.hscroll > .table-scroll {
+    view-timeline: --table-crossing block;
+  }
+
+  .markdown-body .table-block.hscroll > .table-scroll > table:not([border]) {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .markdown-body .table-block.hscroll > .table-scroll > table > thead {
+    position: relative;
+    z-index: 1;
+    animation: table-head-follow linear both;
+    animation-timeline: --table-crossing;
+    animation-range:
+      exit-crossing var(--head-from, 0px)
+      exit-crossing calc(var(--head-from, 0px) + var(--head-travel, 0px));
+  }
+
+  @keyframes table-head-follow {
+    from {
+      translate: 0 0;
+    }
+    to {
+      translate: 0 var(--head-travel, 0px);
+    }
+  }
+
+  /* one shade per table, the width of the header: the sticky (or moved)
+     header is the containing block of its first cell's pseudo-element */
+  .markdown-body .table-scroll.fits > table > thead > tr:first-child > :first-child::after,
+  .markdown-body .table-block.hscroll > .table-scroll > table > thead > tr:first-child > :first-child::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: linear-gradient(var(--edge-shade, transparent), transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: table-head-held linear;
+    animation-timeline: --table-crossing;
+    animation-range: exit-crossing 0% exit-crossing 100%;
+  }
+
+  /* the moved header holds the top from where it starts to where the table's
+     bottom passes the top: the box's timeline, measured in from the box */
+  .markdown-body .table-block.hscroll > .table-scroll > table > thead > tr:first-child > :first-child::after {
+    animation-range: exit-crossing var(--head-from, 0px) exit-crossing var(--head-end, 100%);
+  }
+
+  @keyframes table-head-held {
+    from,
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* A table still wider than its box (hscroll) scrolls sideways, and its
+     own scrollbar, under the last row, is out of reach while the table is
+     read: a stand-in (.table-hbar) takes its place inside the frame and
+     sticks to the bottom of the pane as long as the table goes on below.
+     It is taller than the other bars, to be easy to catch, with the same
+     4px thumb; held at the bottom over the rows, it gets an edge, and a
+     thumb that can be seen at a glance. */
+  .markdown-body .table-block.hscroll > .table-scroll {
+    scrollbar-width: none;
+    padding-bottom: 12px;
+  }
+
+  /* the block keeps the box's height: the bar's own bottom margin would
+     collapse into the block's */
+  .markdown-body .table-block.hscroll {
+    padding-bottom: 1px;
+  }
+
+  .markdown-body .table-hbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    /* over the box's padding, inside its border. The sides are borders, not
+       margins, like the box's own: at a fractional scale a 1px border is
+       drawn on whole device pixels (0.8px at 125%), so the bar comes out
+       exactly as wide as the box's inside and scrolls exactly as far. */
+    margin-top: -13px;
+    border-inline: 1px solid transparent;
+    container-type: scroll-state;
+  }
+
+  .markdown-body .table-hbar-scroll {
+    height: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 0 0 7px 7px;
+    transition:
+      background-color 0.15s var(--ease),
+      box-shadow 0.15s var(--ease);
+  }
+
+  .markdown-body .table-hbar-track {
+    height: 1px;
+  }
+
+  .markdown-body .table-hbar-scroll::-webkit-scrollbar {
+    height: 12px;
+  }
+
+  .markdown-body .table-hbar-scroll::-webkit-scrollbar-thumb {
+    border-width: 4px;
+    border-radius: 6px;
+  }
+
+  /* the thumb fills out under the pointer, as Windows' own bars do */
+  .markdown-body .table-hbar-scroll:hover::-webkit-scrollbar-thumb {
+    border-width: 3px;
+    background-color: var(--text-muted);
+  }
+
+  @container scroll-state(stuck: bottom) {
+    .markdown-body .table-hbar-scroll {
+      border-radius: 0;
+      background-color: var(--bg);
+      box-shadow:
+        0 -1px 0 var(--border),
+        0 -8px 12px -10px var(--edge-shade, transparent);
+    }
+
+    .markdown-body .table-hbar-scroll::-webkit-scrollbar-thumb {
+      background-color: color-mix(in srgb, var(--text-muted) 60%, transparent);
+    }
+
+    .markdown-body .table-hbar-scroll:hover::-webkit-scrollbar-thumb {
+      background-color: var(--text-muted);
+    }
+  }
+}
+
 /* copy for Excel, open in the preview: a small bar over the top-right
-   corner, shown on hover, and to the keyboard, like a code block's button */
+   corner, shown on hover, and to the keyboard, like a code block's button.
+   Above the header row, which is lifted to stick (z-index 1). */
 .markdown-body .table-actions {
   position: absolute;
+  z-index: 2;
   top: 5px;
   right: 5px;
   display: flex;

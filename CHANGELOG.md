@@ -7,6 +7,35 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [2.1.0] - 2026-11-03
+
+### Added
+- **A long table keeps its header in sight**: while you read down a table, its header row stays
+  at the top of the window, with a soft shade under it, until the table's last row goes by, and
+  then leaves with the table; in a table too wide for the window it also scrolls sideways with its
+  columns. A jump to a row (a link to an anchor in it, `--line`, the editor's live preview
+  following the text) lands below the header, never under it. Print and the exports are
+  unchanged.
+- **A table too wide for the window can be moved sideways from anywhere in it**: its scrollbar,
+  which sat under the table's last row, now stays at the bottom of the window as long as the
+  table is in sight, and goes back under the last row at the table's end. It is easier to catch,
+  and its thumb fills out under the pointer. Shift+wheel, the touchpad and the arrow keys keep
+  working on the table itself.
+- **The table preview is made for reading tables**: **Open preview** on a table no longer shows a
+  picture to zoom and drag, but the table itself, full-window. It scrolls like the page, its text
+  can be selected and made bigger or smaller (`+` / `−`, Ctrl+wheel, **Width**) and stays sharp,
+  its header row stays at the top and, when it scrolls sideways, its first column stays on the
+  left. **Filter rows** (Ctrl+F) keeps the rows that contain the words typed, with the matches
+  highlighted and a count; a click on a column's header sorts the rows by it, ascending,
+  descending and back to the document's order, reading numbers (Italian and English formats),
+  amounts, percentages and dates as such. Links work, and **Copy table (for Excel)** copies the
+  rows as shown. The document never changes.
+
+### Fixed
+- **Find (Ctrl+F) shows a match hidden sideways**: in a table too wide for the window, or in a
+  code block with a long line, a match in the part scrolled out of sight is now scrolled into view,
+  instead of being counted but left hidden.
+
 ## [2.0.1] - 2026-10-27
 
 ### Changed

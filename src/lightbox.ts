@@ -4,8 +4,8 @@
 // duplicates every id in the document, so its url(#marker) references would
 // resolve to the article's copy — and silently break the moment edit mode
 // rebuilds that copy. Re-rendering also answers the theme switch for free.
-// A table is cloned, without its ids: HTML refers to nothing by id the way
-// SVG markers do, and the theme reaches the copy through the CSS variables.
+// A table is not looked at but read: tableView.ts shows a copy of it in a
+// scroller of its own, in this same dialog, with this same toolbar.
 
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import * as ipc from "./ipc";
@@ -15,6 +15,7 @@ import * as theme from "./theme";
 import { t } from "./i18n";
 import { handleMenuKey } from "./menuKeys";
 import { tableToTsv } from "./tables";
+import * as tableView from "./tableView";
 
 export interface LightboxOpts {
   article: HTMLElement;
@@ -32,8 +33,6 @@ const MARGIN = 40; // breathing room around the stage
 const BAR_SPACE = 64; // the toolbar at the bottom of the viewport
 const HINT_SIZE = 28;
 const HINT_GAP = 8;
-// a table is laid out as wide as the window allows, but never narrower than this
-const TABLE_MIN_WIDTH = 480;
 
 let o: LightboxOpts;
 let viewport: HTMLElement;
@@ -48,8 +47,6 @@ let modeButtons: Record<Mode, HTMLButtonElement>;
 
 let kind: "mermaid" | "image" | "table" = "image";
 let source = "";
-// the document's table on screen, copied into the stage by build()
-let table: HTMLTableElement | null = null;
 let natW = 0;
 let natH = 0;
 let scale = 1;
@@ -67,6 +64,8 @@ let drag: { x: number; y: number; tx: number; ty: number } | null = null;
 let dragged = false;
 let hintTarget: HTMLElement | null = null;
 let copyTimer: number | undefined;
+// where the click that may dismiss the preview was pressed
+let downTarget: EventTarget | null = null;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
@@ -93,10 +92,23 @@ export function init(opts: LightboxOpts): void {
   };
   btnFit.after(modeButtons.width, modeButtons.actual);
   copyMenu.prepend(copyTableItem());
+  tableView.init({
+    dialog: opts.dialog,
+    bar: q("#zoom-bar"),
+    caption,
+    levelOut,
+    btnIn,
+    btnOut,
+    width: modeButtons.width,
+    actual: modeButtons.actual,
+    close,
+  });
 
-  btnIn.addEventListener("click", () => zoomBy(STEP));
-  btnOut.addEventListener("click", () => zoomBy(1 / STEP));
-  for (const m of ["fit", "width", "actual"] as const) modeButtons[m].addEventListener("click", () => setMode(m));
+  btnIn.addEventListener("click", () => (kind === "table" ? tableView.zoomBy(STEP) : zoomBy(STEP)));
+  btnOut.addEventListener("click", () => (kind === "table" ? tableView.zoomBy(1 / STEP) : zoomBy(1 / STEP)));
+  for (const m of ["fit", "width", "actual"] as const) {
+    modeButtons[m].addEventListener("click", () => (kind === "table" && m !== "fit" ? tableView.setMode(m) : setMode(m)));
+  }
   q("#zoom-close").addEventListener("click", close);
   btnCopy.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -107,6 +119,9 @@ export function init(opts: LightboxOpts): void {
     if (!action) return;
     e.stopPropagation();
     copyMenu.hidden = true;
+    // the focus back on the button, as Escape and Tab do: the item it was on
+    // is gone, and a focus left nowhere would leave the preview's keys too
+    btnCopy.focus({ preventScroll: true });
     void runCopyAction(action);
   });
   // the keys every menu of the app has (menuKeys.ts); Escape and Tab put it
@@ -139,14 +154,16 @@ export function init(opts: LightboxOpts): void {
     // it lands would otherwise empty the stage that was just rebuilt
     if (opts.dialog.open) return;
     stage.replaceChildren();
+    tableView.reset();
     source = "";
-    table = null;
     copyMenu.hidden = true;
   });
   // the backdrop and the empty space around the stage dismiss the preview; a
-  // pan that happens to end on empty space must not, hence the dragged guard
+  // pan, or a selection of a table's text, that happens to end on empty space
+  // must not, hence the guards: pressed and released there, nothing dragged
+  opts.dialog.addEventListener("pointerdown", (e) => (downTarget = e.target), true);
   opts.dialog.addEventListener("click", (e) => {
-    if (dragged) return;
+    if (dragged || e.target !== downTarget) return;
     if (e.target === opts.dialog || e.target === viewport) close();
   });
 
@@ -179,7 +196,10 @@ export function init(opts: LightboxOpts): void {
   });
 
   window.addEventListener("resize", () => {
-    if (isOpen()) refit();
+    if (isOpen()) {
+      if (kind === "table") tableView.refit();
+      else refit();
+    }
     if (hintTarget) positionHint(hintTarget);
   });
 }
@@ -283,20 +303,30 @@ export async function openFor(el: HTMLElement): Promise<void> {
     caption.textContent = t("zoom.diagram");
   } else {
     const found = tableIn(el);
-    if (!found) return;
+    if (!found?.isConnected) return;
     kind = "table";
-    table = found;
     source = "";
     caption.textContent = t("zoom.table");
+    positionHint(null);
+    o.dialog.dataset.kind = kind;
+    modeButtons.fit.hidden = true;
+    o.dialog.showModal();
+    if (!tableView.open(found)) {
+      close();
+      return;
+    }
+    tableView.focus();
+    return;
   }
   positionHint(null);
+  o.dialog.dataset.kind = kind;
+  modeButtons.fit.hidden = false;
   o.dialog.showModal();
   if (!(await build())) {
     close();
     return;
   }
-  // a table is read from its top, across the window's width
-  setMode(kind === "table" ? "width" : "fit");
+  setMode("fit");
   viewport.focus();
 }
 
@@ -328,9 +358,6 @@ async function build(): Promise<boolean> {
     const box = svg.viewBox.baseVal;
     natW = Math.round(box?.width || svg.getBoundingClientRect().width || 800);
     natH = Math.round(box?.height || svg.getBoundingClientRect().height || 600);
-  } else if (kind === "table") {
-    if (!table?.isConnected) return false;
-    if (!buildTable(table)) return false;
   } else {
     const img = document.createElement("img");
     img.src = source;
@@ -344,31 +371,6 @@ async function build(): Promise<boolean> {
   stage.style.visibility = "hidden";
   stage.setAttribute("aria-label", caption.textContent ?? t("zoom.dialog"));
   return true;
-}
-
-// The copy sits on a sheet with the document's styles (markdown-body), laid
-// out as wide as the window allows: a table that fits wraps no more than it
-// must, and its own width becomes the stage's. Measured in layout pixels,
-// which the stage's transform does not touch.
-function buildTable(from: HTMLTableElement): boolean {
-  const copy = from.cloneNode(true) as HTMLTableElement;
-  // a second element with a document id would answer its links and lookups
-  for (const el of [copy, ...copy.querySelectorAll("[id]")]) el.removeAttribute("id");
-  const sheet = document.createElement("div");
-  sheet.className = "markdown-body zoom-table";
-  // a picture of the table: nothing in it takes the focus or a click
-  sheet.inert = true;
-  sheet.append(copy);
-  stage.style.width = "";
-  stage.style.height = "";
-  stage.replaceChildren(sheet);
-  sheet.style.width = `${Math.max(TABLE_MIN_WIDTH, Math.floor(area().w))}px`;
-  const frame = sheet.offsetWidth - sheet.clientWidth;
-  natW = copy.offsetWidth + frame;
-  if (natW <= frame) return false;
-  sheet.style.width = `${natW}px`;
-  natH = sheet.offsetHeight;
-  return natH > 0;
 }
 
 /* ---- zoom and pan ---- */
@@ -397,9 +399,8 @@ const centre = (a: { x: number; y: number; w: number; h: number }): { x: number;
 
 // How far fitting may enlarge. A diagram is a vector, so filling the window
 // costs nothing and is the whole point of opening it; a raster image is
-// capped at 1:1, where upscaling only adds blur; a table's text grows a
-// little, no more.
-const fitCap = (): number => (kind === "mermaid" ? 4 : kind === "table" ? 2 : 1);
+// capped at 1:1, where upscaling only adds blur.
+const fitCap = (): number => (kind === "mermaid" ? 4 : 1);
 
 function computeFit(): number {
   const a = area();
@@ -409,8 +410,7 @@ function computeFit(): number {
 const widthScale = (): number => Math.min(area().w / natW, fitCap());
 
 // Fit (0): all of it, centred. Width (W): the window's width, from the top.
-// 100% (1): the natural size, around what is in the middle of the view; a
-// table from its top-left corner, where its rows and columns start.
+// 100% (1): the natural size, around what is in the middle of the view.
 function setMode(m: Mode): void {
   fit = computeFit();
   const a = area();
@@ -422,10 +422,6 @@ function setMode(m: Mode): void {
     scale = widthScale();
     tx = 0;
     ty = (scale * natH - a.h) / 2; // applyNow clamps it: the top edge, or centred when it all fits
-  } else if (kind === "table") {
-    scale = 1;
-    tx = (natW - a.w) / 2;
-    ty = (natH - a.h) / 2;
   } else {
     const c = centre(a);
     const r = viewport.getBoundingClientRect();
@@ -559,9 +555,14 @@ function wireViewport(): void {
   );
 
   o.dialog.addEventListener("keydown", (e) => {
-    if (e.ctrlKey || e.altKey || e.metaKey) return;
     // the copy menu has the keys while it has the focus (menuKeys.ts)
     if (copyMenu.contains(e.target as Node)) return;
+    // a table scrolls itself, and has keys of its own
+    if (kind === "table") {
+      tableView.onKey(e);
+      return;
+    }
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
     const pan = e.shiftKey ? 160 : 40;
     if (e.key === "+" || e.key === "=") zoomBy(STEP);
     else if (e.key === "-" || e.key === "_") zoomBy(1 / STEP);
@@ -601,7 +602,7 @@ async function runCopyAction(action: string): Promise<void> {
   try {
     switch (action) {
       case "copy-table": {
-        const shown = stage.querySelector("table");
+        const shown = tableView.shownTable();
         if (shown) await navigator.clipboard.writeText(tableToTsv(shown));
         break;
       }

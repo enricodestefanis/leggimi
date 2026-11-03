@@ -24,6 +24,7 @@ import * as search from "./search";
 import * as lightbox from "./lightbox";
 import * as panes from "./panes";
 import * as wide from "./wide";
+import * as tableScroll from "./tableScroll";
 import * as theme from "./theme";
 import * as prefs from "./prefs";
 import * as positions from "./positions";
@@ -759,7 +760,15 @@ function syncPreviewToEditor(reveal = false, retry = true): void {
   // The editor scrolls past its end, so its top line can reach the last one
   // and the preview's end stays reachable through the plain line mapping.
   // An editor at its very top shows the preview from its very top too.
-  let target = editorMod.isAtTop() ? 0 : yInSpan(topSpan, topLine) - SYNC_MARGIN;
+  // Over a table's rows the header holds the top of the pane: what is at
+  // the editor's top goes below the header instead (tableScroll.headCover;
+  // fading out past the table, so that leaving it does not jump).
+  const cover = (y: number, after = false): number => tableScroll.headCover(contentPane, article, y, after);
+  let target = 0;
+  if (!editorMod.isAtTop()) {
+    const y = yInSpan(topSpan, topLine);
+    target = y - SYNC_MARGIN - cover(y, true);
+  }
   // After an edit or a caret move, what holds the caret must be in view: the
   // whole top-level block when it fits (a table, a formula, a short list),
   // else the innermost anchored part (a row, a list item), else the caret's
@@ -781,7 +790,8 @@ function syncPreviewToEditor(reveal = false, retry = true): void {
       caretBottom = caretSpan.y2;
     }
     if (caretBottom > target + view - pad) target = caretBottom - view + pad;
-    if (caretTop < target + SYNC_MARGIN) target = caretTop - SYNC_MARGIN;
+    const above = SYNC_MARGIN + cover(caretTop);
+    if (caretTop < target + above) target = caretTop - above;
   }
   contentPane.scrollTop = Math.max(0, Math.min(max, target));
 }
@@ -1350,12 +1360,19 @@ function elementById(id: string): HTMLElement | null {
   return findHeading(article, id);
 }
 
+// The scrollTop that puts `el` where a jump lands: 24 px below the top of
+// the pane, and below a table's header when the header will be holding the
+// top over el's row (tableScroll.ts)
+function jumpTop(el: Element): number {
+  const y = contentPane.scrollTop + el.getBoundingClientRect().top - contentPane.getBoundingClientRect().top;
+  return y - 24 - tableScroll.headCover(contentPane, article, y);
+}
+
 // the element it scrolled to, or null when there is none
 function scrollToId(id: string, smooth = false): HTMLElement | null {
   const el = elementById(id);
   if (!el) return null;
-  const paneTop = contentPane.getBoundingClientRect().top;
-  const top = contentPane.scrollTop + el.getBoundingClientRect().top - paneTop - 24;
+  const top = jumpTop(el);
   if (smooth) contentPane.scrollTo({ top, behavior: motion.behavior() });
   else contentPane.scrollTop = top;
   return el;
@@ -1370,8 +1387,7 @@ function scrollToSourceLine(line: number): HTMLElement | null {
     best = a.el;
   }
   if (!best) return null;
-  const paneTop = contentPane.getBoundingClientRect().top;
-  contentPane.scrollTop += best.getBoundingClientRect().top - paneTop - 24;
+  contentPane.scrollTop = jumpTop(best);
   if (editing) editorMod?.scrollToLine(line);
   return best;
 }
@@ -1392,7 +1408,7 @@ function noteJump(target: HTMLElement): void {
   const here = currentPlace();
   if (!here) return;
   const max = contentPane.scrollHeight - contentPane.clientHeight;
-  const dest = contentPane.scrollTop + target.getBoundingClientRect().top - contentPane.getBoundingClientRect().top - 24;
+  const dest = jumpTop(target);
   if (Math.abs(Math.max(0, Math.min(max, dest)) - contentPane.scrollTop) < 8) return;
   navHistory.record(here);
 }
@@ -3446,6 +3462,7 @@ function wireUi(): void {
     bars: [$("#find-bar"), noticeBar],
   });
   wide.init({ article, pane: contentPane });
+  tableScroll.init(article);
 
   // from the keyboard (no pointer: detail 0) the keys go into a pane that opens over the text
   $("#btn-tree").addEventListener("click", (e) => panes.toggle("tree", { focus: e.detail === 0 }));

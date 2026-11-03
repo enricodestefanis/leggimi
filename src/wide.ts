@@ -11,6 +11,12 @@
 // callout keeps its scroller, as leaving the column would mean crossing that
 // box's own edge. Screen only: print.css puts them back (preparePrint scales
 // the tables that paper is too narrow for) and exports strip both marks.
+//
+// Once the widths are settled, tableScroll.ts sees which tables now fit their
+// box (their header sticks) and which still scroll sideways (they get a bar
+// at the bottom of the pane, and their header is moved down with the pane).
+
+import * as tableScroll from "./tableScroll";
 
 let article: HTMLElement | null = null;
 let pane: HTMLElement | null = null;
@@ -86,8 +92,9 @@ interface TableJob {
 
 /**
  * Marks the blocks of `root` (the article) that do not fit its column, and
- * unmarks those that fit again. Idempotent and cheap when nothing changed:
- * call it after every render, live-preview update and Mermaid pass.
+ * unmarks those that fit again; then the tables that fit their box or scroll
+ * (tableScroll.update). Idempotent and cheap when nothing changed: call it
+ * after every render, live-preview update and Mermaid pass.
  */
 export function markWide(root: HTMLElement): void {
   const host = pane ?? root.parentElement;
@@ -178,6 +185,9 @@ export function markWide(root: HTMLElement): void {
     if (!el.classList.contains("wide")) el.classList.add("wide");
     if (el.style.getPropertyValue("--tw") !== value) el.style.setProperty("--tw", value);
   }
+
+  // measured in the widths just written: one more layout, before any paint
+  tableScroll.update(root);
 }
 
 function measure(jobs: TableJob[], cls: string, set: (j: TableJob, w: number) => void): void {
