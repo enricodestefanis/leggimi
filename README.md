@@ -24,7 +24,7 @@ Italian, German, French, Spanish and Simplified Chinese.
 </p>
 
 <p align="center">
-  <img alt="Leggimi 2.0 in half a minute: documents open in tabs, a brief written by an AI agent arrives as a new tab, a tab is pulled out into a window of its own, the brief is copied into Word and saved as a PDF, then the dark theme in both windows" src="docs/trailer.gif" width="98%" />
+  <img alt="Leggimi 2.1 in under a minute: documents open in tabs, a brief written by an AI agent arrives as a new tab, a tab is pulled out into a window of its own, the brief is copied into Word and saved as a PDF, a table opens in its preview where the rows are filtered and sorted, then the dark theme in both windows" src="docs/trailer.gif" width="98%" />
 </p>
 
 ## Install
