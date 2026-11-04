@@ -299,6 +299,8 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
 // is reported as the watcher does, and a line or an anchor is still honoured.
 async function keepEditedDoc(disk: ipc.MarkdownDoc, opts: OpenOptions): Promise<void> {
   if (!currentDoc) return;
+  // the same text with another time (see sameOnDisk) is not a change
+  if (disk.modified !== currentDoc.modified && disk.content === currentDoc.content) currentDoc.modified = disk.modified;
   if (disk.modified !== currentDoc.modified) {
     if (editorMod?.isDirty()) showFileChangedNotice();
     // first: reloading resets the editor to its top, which would undo the jump
@@ -313,6 +315,23 @@ async function keepEditedDoc(disk: ipc.MarkdownDoc, opts: OpenOptions): Promise<
   // the preview and the editor both go there
   const landed = Number.isFinite(line) ? scrollToSourceLine(line) : null;
   if (landed) motion.flash(landed);
+}
+
+// Windows reports a change of attributes as a write: OneDrive turns a new
+// file in a synced folder (the Desktop, Documents) into a reparse point a
+// couple of seconds after it appears, and antivirus or backup tools touch
+// files too. Only another text on disk is news; the same text only brings
+// its time (so a save does not take it for a conflict). Unreadable: news.
+async function sameOnDisk(doc: ipc.MarkdownDoc): Promise<boolean> {
+  try {
+    const disk = await ipc.readMarkdown(doc.path);
+    if (disk.content !== doc.content) return false;
+    // in place, as for a rename: a save in flight holds this very object
+    doc.modified = disk.modified;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function showFileChangedNotice(): void {
@@ -1788,10 +1807,13 @@ async function resumeView(tab: session.Tab): Promise<void> {
   // changed on disk while it was behind: read again, never over unsaved edits
   if (tab.stale) {
     tab.stale = false;
-    if (editing && editorMod?.isDirty()) showFileChangedNotice();
-    else if (editing) void reloadFromDisk();
-    // queued behind this switch, then read into this tab
-    else void openFile(doc.path, { preserveScroll: true });
+    void sameOnDisk(doc).then((same) => {
+      if (same || session.active() !== tab || currentDoc !== doc) return;
+      if (editing && editorMod?.isDirty()) showFileChangedNotice();
+      else if (editing) void reloadFromDisk();
+      // queued behind this switch, then read into this tab
+      else void openFile(doc.path, { preserveScroll: true });
+    });
   }
   void checkDocOnDisk();
 }
@@ -4091,13 +4113,18 @@ async function boot(): Promise<void> {
     // a document on its way replaces this one, or (a reload) reads it anew:
     // a reload queued behind it would bring the old one back
     if (opening || switching) return;
-    if (editing && editorMod?.isDirty()) {
-      // never clobber a dirty buffer
-      showFileChangedNotice();
-      return;
-    }
-    if (editing) reloadFromDisk();
-    else openFile(currentDoc.path, { preserveScroll: true });
+    const doc = currentDoc;
+    void sameOnDisk(doc).then((same) => {
+      // read meanwhile: another document, a save, or one on its way
+      if (same || currentDoc !== doc || opening || switching) return;
+      if (editing && editorMod?.isDirty()) {
+        // never clobber a dirty buffer
+        showFileChangedNotice();
+        return;
+      }
+      if (editing) void reloadFromDisk();
+      else void openFile(doc.path, { preserveScroll: true });
+    });
   });
   // files coming and going in the pane's folder; the document may be among them
   await ipc.onTreeChanged(() => {
