@@ -11,7 +11,7 @@ export interface Pasted {
   id: string;
   /** the text as it was pasted, with "\n" line ends: "changed" means different from it */
   original: string;
-  /** from its first heading or line (pastedTitle); "" when it has none */
+  /** from its first heading or line (pastedTitle), following the text until it is saved; "" when it has none */
   title: string;
   /** the folder the file pane showed when it was pasted, where "Save as…" starts; null: none */
   home: string | null;
@@ -39,6 +39,22 @@ export const docKey = (d: Doc): string => (d.path !== null ? d.path : pastedKey(
 
 /** A key of docKey's that names pasted text (a file's path starts with a drive or \\, never so). */
 export const isPastedKey = (key: string): boolean => key.startsWith(PASTED);
+
+/** The id in a key of pastedKey's. */
+export const pastedIdOf = (key: string): string => key.slice(PASTED.length);
+
+/** A new paste's id: its time, then a little randomness (two windows pasting in the same millisecond). */
+export const newPasteId = (): string => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/** Pasted text on screen, reading `content`. */
+export const pastedDoc = (paste: Pasted, content: string): PastedDoc => ({ path: null, dir: null, content, modified: 0, paste });
+
+/**
+ * Text from the clipboard as a document holds it: "\n" line ends (Windows
+ * copies "\r\n"), without a byte-order mark or the NUL some programs leave
+ * at the end.
+ */
+export const pastedText = (raw: string): string => raw.replace(/^﻿/, "").replace(/\u0000+$/, "").replace(/\r\n?/g, "\n");
 
 /* ---- what pasted text is called ---- */
 

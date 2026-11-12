@@ -64,8 +64,9 @@ pub struct Follow {
 
 impl Follow {
     /// `at`: where the page wants the window (outer top-left, physical px),
-    /// measured against the pointer now; `path`: the tab's file.
-    pub fn new(at: Option<(i32, i32)>, path: Option<String>) -> Follow {
+    /// measured against the pointer now; `path`: the tab's file, whose name
+    /// the ghost shows; `title`: the name of a tab without one (pasted text).
+    pub fn new(at: Option<(i32, i32)>, path: Option<String>, title: Option<String>) -> Follow {
         let grab = match (at, cursor()) {
             (Some((x, y)), Some((cx, cy))) => (cx - x, cy - y),
             _ => (0, 0),
@@ -74,6 +75,7 @@ impl Follow {
             .as_deref()
             .and_then(|p| Path::new(p).file_name())
             .map(|n| n.to_string_lossy().into_owned())
+            .or(title)
             .unwrap_or_default();
         Follow { grab, title, path }
     }
@@ -647,10 +649,14 @@ mod tests {
     }
 
     #[test]
-    fn a_follow_names_the_tab_by_its_file() {
-        let f = Follow::new(None, Some(r"C:\docs\notes.md".into()));
+    fn a_follow_names_the_tab_by_its_file_else_by_its_title() {
+        let f = Follow::new(None, Some(r"C:\docs\notes.md".into()), None);
         assert_eq!(f.title, "notes.md");
         assert_eq!(f.grab, (0, 0), "no place asked: no offset");
-        assert_eq!(Follow::new(None, None).title, "", "a start page");
+        let f = Follow::new(None, Some(r"C:\docs\notes.md".into()), Some("Notes".into()));
+        assert_eq!(f.title, "notes.md", "a file names it, as on its tab");
+        let f = Follow::new(None, None, Some("Meeting with Rossi".into()));
+        assert_eq!((f.title.as_str(), f.path.as_deref()), ("Meeting with Rossi", None), "pasted text: its title");
+        assert_eq!(Follow::new(None, None, None).title, "", "a start page");
     }
 }

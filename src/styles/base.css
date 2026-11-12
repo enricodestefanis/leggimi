@@ -35,6 +35,9 @@
      popovers, dialogs, the find and notice bars): a tint of the text, since
      in the dark themes --surface-2 is nearly the surface itself (1.03:1) */
   --surface-hover: color-mix(in srgb, var(--text) 9%, var(--surface));
+  /* the line being edited (editor.ts): a tint of the text, translucent so a
+     selection painted behind the line still shows through it */
+  --active-line: color-mix(in srgb, var(--text) 4%, transparent);
   /* the edge of floating surfaces (menus, popovers, dialogs, bars); only the
      black theme needs more, where shadows and backdrops vanish on #000 */
   --float-border: var(--border);
@@ -126,6 +129,9 @@
   --on-accent: #1a1915;
   --danger: #ff8f80;
   --success: #7ccf98;
+  /* 4% on #000 is #090909, 1.06:1 against the page; 8% is #121212, 1.12:1,
+     the dark theme's step */
+  --active-line: color-mix(in srgb, var(--text) 8%, transparent);
   /* 3.1:1 against the page: menus and dialogs keep an edge on #000 */
   --float-border: #5c5c5c;
   --code-chip-bg: #1f1f1f;

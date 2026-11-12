@@ -175,6 +175,16 @@
   color: var(--accent);
 }
 
+/* Pasted text, in no file yet (.tab.pasted) is drawn as the other tabs are,
+   the clipboard where a file's page is (strip.ts); its card says it is in no
+   file (.tab-card.pasted, below). */
+
+/* the Save button stays in reach while reading pasted text: it is in no file
+   yet, and Save asks where to keep it (ui.css shows it only while editing) */
+#app.pasted #btn-save {
+  display: inline-flex;
+}
+
 /* a tab of 228 px at most, the icon and the padding included */
 .tab-title {
   flex: 1;
@@ -581,6 +591,11 @@
   font-size: 12px;
   color: var(--text-muted);
   overflow-wrap: anywhere;
+}
+
+/* pasted text has no folder to show: the line says so, as a state, not a path */
+.tab-card.pasted .tab-card-path {
+  font-style: italic;
 }
 
 .tab-card-meta {

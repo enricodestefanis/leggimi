@@ -77,6 +77,11 @@ export function show(message: string, opts: NoticeOptions = {}): void {
   announce(message, kind === "error" ? "assertive" : "polite");
 }
 
+/** Something on the notice bar, sticky or not. */
+export function visible(): boolean {
+  return !!els && !els.bar.hidden;
+}
+
 /**
  * A sticky notice on screen (a file changed on disk, a draft to restore, a
  * file gone), to be shown again when its tab comes back to the front.

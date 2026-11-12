@@ -789,7 +789,8 @@ body.resizing * {
   animation: bar-in 0.16s var(--ease);
   transition:
     border-color 0.12s var(--ease),
-    box-shadow 0.12s var(--ease);
+    box-shadow 0.12s var(--ease),
+    top 0.16s var(--ease) 0.3s;
 }
 
 /* the field draws no outline of its own: the whole bar shows the focus,
@@ -853,10 +854,36 @@ body.resizing * {
   box-shadow: var(--shadow);
   font-size: 13px;
   animation: bar-in 0.16s var(--ease);
+  transition: top 0.16s var(--ease) 0.3s;
 }
 
 #notice-bar[hidden] {
   display: none;
+}
+
+/* While the path of the section being read holds the top of the pane
+   (section-line.css; it comes before both bars in index.html), the bars float
+   10px under it instead of 10px under the pane's edge, where they would hide
+   the path. Down at once, with the line's fade; back up only once the line
+   has been gone 0.3s (the transition above), so a line that blinks (a new
+   path waits 120ms, sectionLine.ts) leaves them where they are, and they
+   never cross it while it fades out. At the top of the document, where the
+   bars are in the flow, the line never shows. */
+#section-line:not([hidden]) ~ :is(#find-bar, #notice-bar) {
+  top: calc(10px + var(--section-line-h, 30px));
+  transition-delay: 0s;
+}
+
+/* Open together, the notice (in the middle of the pane) and the find bar (at
+   its right edge) need room to stand side by side. Where they would meet, the
+   notice goes 8px under the find bar instead of over its box: bars.ts sets
+   the class, and the height of the find bar. Under the section's path too. */
+#notice-bar.under-find {
+  top: calc(10px + var(--find-bar-h, 42px) + 8px);
+}
+
+#section-line:not([hidden]) ~ #notice-bar.under-find {
+  top: calc(10px + var(--section-line-h, 30px) + var(--find-bar-h, 42px) + 8px);
 }
 
 /* the kind (notices.ts) tints the icon: warnings keep the accent */
@@ -1269,6 +1296,37 @@ body.resizing * {
 }
 
 .primary-btn:active {
+  transform: scale(0.97);
+}
+
+/* the start page's two ways in: open a file, or read what was copied */
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* the second action beside a .primary-btn: the same size, a quieter face
+   (the label carries the contrast; the edge only shapes it) */
+.secondary-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--code-chip-border);
+  padding: 7px 17px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background-color 0.12s var(--ease),
+    transform 0.06s var(--ease);
+}
+
+.secondary-btn:hover {
+  background: var(--surface-hover);
+}
+
+.secondary-btn:active {
   transform: scale(0.97);
 }
 

@@ -1,4 +1,5 @@
 pub mod caption;
+mod clipboard;
 mod commands;
 pub mod drag;
 mod watcher;
@@ -28,6 +29,9 @@ pub struct WindowSlot {
     /// the documents in its tabs, canonical (set_tabs), and the one in front
     pub docs: Vec<PathBuf>,
     pub active: Option<PathBuf>,
+    /// how many of its tabs hold pasted text, which has no file (set_tabs;
+    /// get_initial_file, for a pasted tab torn off another window)
+    pub pasted: u32,
     /// documents on their way to a tab (handed out or routed, not yet in
     /// `docs`), canonical: a second launch of one finds it here, and the
     /// window is no free start page meanwhile
@@ -69,12 +73,14 @@ impl WindowSlot {
         self.docs.iter().chain(&self.opening).any(|d| same_file(d, file))
     }
 
-    /// On its start page alone, with nothing on its way: a launch takes it over.
+    /// On its start page alone, with nothing on its way: a launch takes it
+    /// over. A tab of pasted text has no file, yet it is no start page.
     pub fn idle(&self) -> bool {
         self.ready
             && !self.closing
             && self.launch.is_none()
             && self.docs.is_empty()
+            && self.pasted == 0
             && self.opening.is_empty()
             && self.queued.is_empty()
     }
@@ -116,9 +122,9 @@ pub enum Mode {
     Activate,
 }
 
-/// What a command line asks for: `leggimi [file] [--line N]`; also what a new
-/// window is made for, and what "open-file" carries (OpenRequest in
-/// src/tabs/contract.ts).
+/// What a command line asks for: `leggimi [--new-window] [file] [--line N]`;
+/// also what a new window is made for, and what "open-file" carries
+/// (OpenRequest in src/tabs/contract.ts).
 #[derive(Clone, Debug, Default, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Launch {
@@ -139,6 +145,10 @@ pub struct Launch {
     pub from: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    /// `--new-window`: a window of its own, whatever the others hold. Only
+    /// routing reads it; the pages never see it
+    #[serde(skip)]
+    pub new_window: bool,
 }
 
 impl Launch {
@@ -148,10 +158,20 @@ impl Launch {
             .as_deref()
             .or_else(|| self.transfer.as_ref()?.get("path")?.as_str())
     }
+
+    /// It carries a tab of pasted text (TabTransfer.pasted), which has no file.
+    pub fn pasted(&self) -> bool {
+        self.transfer
+            .as_ref()
+            .and_then(|t| t.get("pasted"))
+            .is_some_and(|p| !p.is_null())
+    }
 }
 
 /// `leggimi file.md`, `leggimi --line 40 file.md`, `leggimi file.md -l 40`,
-/// `--line=40`; `--` ends the options; unknown flags are ignored. A relative
+/// `--line=40`; `leggimi --new-window [file.md]`: a window of its own, empty
+/// on its start page without a file, and also for a file another window
+/// shows already; `--` ends the options; unknown flags are ignored. A relative
 /// file is resolved against `cwd`, the directory of the shell that ran it,
 /// and `.` and `..` are resolved the way Windows does, without the disk: a
 /// file that is not there still has a full path, which the page names when
@@ -163,6 +183,7 @@ pub fn parse_args<I: IntoIterator<Item = String>>(args: I, cwd: Option<&std::pat
     while let Some(a) = it.next() {
         match a.as_str() {
             "--" if !positional_only => positional_only = true,
+            "--new-window" if !positional_only => launch.new_window = true,
             "--line" | "-l" if !positional_only => launch.line = it.next().and_then(|v| v.parse().ok()),
             s if !positional_only && s.starts_with("--line=") => launch.line = s[7..].parse().ok(),
             s if !positional_only && s.starts_with('-') => {}
@@ -531,7 +552,8 @@ pub fn run() {
             caption::show_system_menu,
             commands::is_store_install,
             commands::open_store_review,
-            commands::request_store_rating
+            commands::request_store_rating,
+            clipboard::read_clipboard_text
         ])
         .run(context)
         .expect("error while running tauri application");
@@ -563,6 +585,38 @@ mod tests {
         let l = parse_args(args(&["--unknown", "--", "-dash.md", "second.md"]), Some(cwd));
         assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\notes\-dash.md"), "-- ends the options");
         assert_eq!(l.line, None);
+        assert!(!l.new_window);
         assert_eq!(parse_args(args(&[]), Some(cwd)).path, None);
+    }
+
+    #[test]
+    fn parse_args_takes_new_window_anywhere_before_the_end_of_the_options() {
+        let cwd = Path::new(r"C:\nowhere\notes");
+        let l = parse_args(args(&["--new-window", "x.md"]), Some(cwd));
+        assert!(l.new_window);
+        assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\notes\x.md"));
+        let l = parse_args(args(&["x.md", "--line", "5", "--new-window"]), Some(cwd));
+        assert!(l.new_window, "after the file");
+        assert_eq!((l.path.as_deref(), l.line), (Some(r"C:\nowhere\notes\x.md"), Some(5)));
+        let l = parse_args(args(&["--new-window"]), Some(cwd));
+        assert!(l.new_window && l.path.is_none(), "no file: an empty window");
+        assert!(!parse_args(args(&["x.md"]), Some(cwd)).new_window);
+        let l = parse_args(args(&["--", "--new-window"]), Some(cwd));
+        assert!(!l.new_window, "after --, a file of that name");
+        assert_eq!(l.path.as_deref(), Some(r"C:\nowhere\notes\--new-window"));
+        // the page's side of the contract (OpenRequest) does not change
+        let page = serde_json::to_value(parse_args(args(&["--new-window", "x.md"]), Some(cwd))).unwrap();
+        assert_eq!(page.get("newWindow"), None);
+        assert_eq!(page.get("path").and_then(|p| p.as_str()), Some(r"C:\nowhere\notes\x.md"));
+    }
+
+    #[test]
+    fn a_launch_carries_pasted_text_only_with_a_pasted_tab() {
+        let with = |transfer: serde_json::Value| Launch { transfer: Some(transfer), ..Default::default() };
+        let pasted = serde_json::json!({ "v": 1, "path": null, "pasted": { "id": "p1", "title": "Notes" } });
+        assert!(with(pasted).pasted());
+        assert!(!with(serde_json::json!({ "v": 1, "path": null, "pasted": null })).pasted(), "a start page");
+        assert!(!with(serde_json::json!({ "v": 1, "path": r"C:\docs\a.md" })).pasted(), "a file");
+        assert!(!Launch::default().pasted());
     }
 }

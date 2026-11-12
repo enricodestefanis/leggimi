@@ -72,6 +72,7 @@
         <div id="editor-pane"></div>
         <main id="content-pane">
           <div id="read-progress" aria-hidden="true" hidden></div>
+          <div id="section-line" aria-hidden="true" hidden><div class="sl-path"></div></div>
           <div id="find-bar" hidden>
             <input id="find-input" type="text" placeholder="Find in document…" data-i18n-placeholder="find.placeholder" spellcheck="false" />
             <span id="find-count">0/0</span>
@@ -99,7 +100,12 @@
               <img class="empty-icon" src="/src/assets/leggimi-icon.png" alt="" width="72" height="72" draggable="false" />
               <h2 data-i18n="empty.title">No document open</h2>
               <p class="empty-lead" data-i18n="empty.lead">Drop a Markdown file here, or</p>
-              <button id="btn-open-empty" class="primary-btn" data-i18n="empty.open">Open a file…</button>
+              <div class="empty-actions">
+                <button id="btn-open-empty" class="primary-btn" data-i18n="empty.open">Open a file…</button>
+                <button id="btn-paste-empty" class="secondary-btn" type="button" aria-keyshortcuts="Control+V"
+                        title="Read the Markdown on the clipboard (Ctrl+V)" data-i18n="empty.paste"
+                        data-i18n-title="empty.pasteHint" data-i18n-aria-label="empty.paste">Paste from clipboard</button>
+              </div>
               <section id="recent-section" class="recent-section" hidden>
                 <div class="recent-head">
                   <span class="pane-title" data-i18n="empty.recent">Recent</span>
@@ -262,7 +268,9 @@
         <section>
           <h3 data-i18n="keys.app">App</h3>
           <dl>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></dt><dd data-i18n="keys.palette">Command palette</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>O</kbd></dt><dd data-i18n="keys.open">Open a file</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd data-i18n="keys.paste">Paste Markdown as a new document</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></dt><dd data-i18n="keys.newWindow">New window</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd></dt><dd data-i18n="keys.closeWindow">Close the window</dd></div>
             <div><dt><kbd>Ctrl</kbd>+<kbd>E</kbd></dt><dd data-i18n="keys.edit">Edit / back to reading</dd></div>

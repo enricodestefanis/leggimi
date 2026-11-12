@@ -1,0 +1,319 @@
+/* The command palette (palette.ts): a modal box near the top of the window,
+   centred, like the go-to-anything boxes of editors. It wears the dialogs'
+   surface, edge, corners and shadow; its rows are the right-click menu's,
+   taller (36 px), with the shortcut on the right in the same muted ink. */
+
+#palette {
+  width: min(620px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100vh - min(12vh, 96px) - 16px);
+  /* near the top, centred: the list grows downwards, the box never jumps */
+  margin: min(12vh, 96px) auto auto;
+  padding: 0;
+  border: 1px solid var(--float-border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* [open] only: display on the id rule would outrank the UA's
+   dialog:not([open]) { display: none } and show the closed dialog */
+#palette[open] {
+  display: flex;
+  flex-direction: column;
+  animation: dialog-in 0.16s var(--ease);
+}
+
+#palette::backdrop {
+  background: rgba(0, 0, 0, 0.28);
+  animation: backdrop-in 0.16s var(--ease);
+}
+
+/* ---- the box to type in ---- */
+
+.pal-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pal-glass {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+/* the caret is its focus mark: the box is the only thing that takes the keys */
+#palette-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  caret-color: var(--accent);
+  font: inherit;
+  font-size: 15px;
+}
+
+#palette-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* ---- the results ---- */
+
+.pal-none {
+  flex: none;
+  padding: 12px 18px 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.pal-none[hidden] {
+  display: none;
+}
+
+.pal-list {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: min(440px, calc(100vh - 180px));
+  padding: 4px 6px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pal-list:empty {
+  display: none;
+}
+
+.pal-gtitle {
+  padding: 10px 10px 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.pal-group:first-child .pal-gtitle {
+  padding-top: 6px;
+}
+
+.pal-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  /* the whole outline (a bare "#") shows its shape by indenting */
+  padding: 0 10px 0 calc(10px + var(--depth, 0) * 14px);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pal-opt:hover {
+  background: var(--surface-hover);
+}
+
+/* the entry Enter would pick: after :hover, so it wins on the row under the pointer */
+.pal-opt[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+
+.pal-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  transition: color 0.12s var(--ease);
+}
+
+.pal-opt[aria-selected="true"] .pal-icon {
+  color: var(--accent);
+}
+
+/* icons that are letters: "Aa", "A+", "H1" */
+.pal-glyph {
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* the label keeps its room; the detail after it gives way first */
+.pal-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.pal-label {
+  flex: 0 1 auto;
+  min-width: 3em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13.5px;
+}
+
+/* the letters the query found */
+.pal-hit {
+  font-weight: 650;
+  color: var(--accent-text);
+}
+
+.pal-detail {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* "Editor", "current" */
+.pal-tag {
+  flex: none;
+  align-self: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* a setting: the Share menu's box (.menu-check), empty when off */
+.pal-check {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--text-muted) 80%, var(--surface));
+  border-radius: 4px;
+  color: var(--on-accent);
+  transition: background-color 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+
+.pal-opt[aria-checked="true"] .pal-check {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+}
+
+.pal-check svg {
+  stroke-width: 3.5;
+}
+
+/* the shortcut, as the right-click menu writes it (.ctx-kbd); a recent file's time */
+.pal-kbd {
+  flex: none;
+  margin-left: 4px;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* the muted ink stays readable on the tinted rows (as in the menus), and so
+   do the matched letters: the dark theme's accent ink is 4.4:1 on its hover
+   tint, 4.9:1 a step towards the text */
+.pal-opt:hover :is(.pal-detail, .pal-kbd),
+.pal-opt[aria-selected="true"] :is(.pal-detail, .pal-kbd) {
+  color: color-mix(in srgb, var(--text-muted) 75%, var(--text));
+}
+
+.pal-opt:hover .pal-hit,
+.pal-opt[aria-selected="true"] .pal-hit {
+  color: color-mix(in srgb, var(--accent-text) 85%, var(--text));
+}
+
+/* ---- the keys, under the list ---- */
+
+.pal-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.pal-foot kbd {
+  display: inline-block;
+  min-width: 18px;
+  margin: 0 1px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  font-family: var(--sans);
+  font-size: 10.5px;
+  line-height: 15px;
+  text-align: center;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  #palette {
+    width: calc(100vw - 16px);
+  }
+
+  .pal-foot {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #palette[open],
+  #palette::backdrop {
+    animation: none;
+  }
+}
+
+/* High contrast: the entry Enter would pick is framed in the system's colour */
+@media (forced-colors: active) {
+  .pal-opt[aria-selected="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .pal-opt[aria-checked="true"] .pal-check {
+    background: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+/* the screen's affair: a modal dialog in the top layer would print over the document */
+@media print {
+  #palette {
+    display: none !important;
+  }
+}

@@ -24,8 +24,34 @@
           vuelve allí cuando lo abres de nuevo.
         </p>
         <p>
-          Desde un terminal, <code>leggimi archivo.md</code> abre un archivo y <code>--line 40</code> lo
-          abre en esa línea (el comando <code>leggimi</code> está disponible una vez instalada la aplicación).
+          <strong>Pegar y leer:</strong> el Markdown copiado de ChatGPT, de Claude o de una página web se puede
+          leer sin guardarlo antes. Pulsa <kbd>Ctrl</kbd>+<kbd>V</kbd> en cualquier sitio fuera del editor y de
+          los cuadros de texto (la barra de búsqueda, los filtros), o usa <strong>Pegar desde el
+          portapapeles</strong> en la página de inicio o <strong>Pegar Markdown como documento nuevo</strong> en
+          la paleta de comandos. El texto se abre en su propia pestaña, con el nombre de su primer título (o, si
+          no lo hay, de su primera línea): si la pestaña en primer plano es una página de inicio, se convierte en
+          ese documento; si no, se abre una pestaña nueva en primer plano. Solo se pega texto (si en el
+          portapapeles hay una imagen, un aviso lo indica), y dentro del editor <kbd>Ctrl</kbd>+<kbd>V</kbd>
+          pega como siempre.
+        </p>
+        <p>
+          El texto pegado se lee como cualquier documento, con el esquema, la búsqueda, la impresión, el PDF,
+          Word y la copia. <kbd>Ctrl</kbd>+<kbd>E</kbd> lo edita y <kbd>Ctrl</kbd>+<kbd>S</kbd> lo guarda en un
+          archivo (<strong>Guardar como…</strong>, con un nombre propuesto a partir del título); desde ese
+          momento es un documento como los demás. Si cierras su pestaña sin cambios no pregunta nada, y
+          <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd> lo vuelve a abrir mientras la ventana siga abierta; con
+          cambios, Leggimi pregunta si quieres guardarlo. Al cerrar la ventana pregunta siempre, con cambios o
+          sin ellos: el texto no está en ningún archivo y se perdería con la ventana. Los enlaces y las
+          imágenes que apuntan a otros
+          archivos funcionan cuando el texto se guarda en una carpeta (hasta entonces, un enlace a otro archivo
+          lo avisa). Si Leggimi se cierra de forma inesperada con cambios, el texto vuelve en el siguiente
+          inicio, con los cambios.
+        </p>
+        <p>
+          Desde un terminal, <code>leggimi archivo.md</code> abre un archivo, <code>--line 40</code> lo abre en
+          esa línea y <code>--new-window</code>, en una ventana propia (<code>leggimi --new-window</code> sin
+          archivo abre una ventana vacía); el comando <code>leggimi</code> está disponible una vez instalada la
+          aplicación.
         </p>
 
         <h3>Pestañas y ventanas</h3>
@@ -38,7 +64,8 @@
           <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>T</kbd> vuelve a abrir la última pestaña cerrada. Una pestaña
           con cambios sin guardar pregunta antes de cerrarse: <strong>Guardar</strong>, <strong>No
           guardar</strong> o <strong>Cancelar</strong>; al cerrar la ventana se pregunta una sola vez, con la
-          lista de los documentos con cambios sin guardar.
+          lista de los documentos con cambios sin guardar y de los textos pegados que aún no están en un
+          archivo.
         </p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> y las demás teclas de las
@@ -97,7 +124,9 @@
         <h3>Atajos de teclado</h3>
         <table class="help-keys">
           <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>P</kbd></td><td>Paleta de comandos (en el editor, solo <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>P</kbd>)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Abrir un archivo</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Pegar Markdown como documento nuevo (fuera del editor)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Entrar o salir del modo de edición</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Guardar el archivo (en edición)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Buscar en el documento</td></tr>
@@ -129,6 +158,21 @@
             <tr><td><kbd>Esc</kbd></td><td>Cerrar la barra de búsqueda, la vista previa o esta ayuda</td></tr>
           </tbody>
         </table>
+        <p>
+          En la <strong>paleta de comandos</strong> bastan unas pocas letras para encontrar un comando (con su
+          atajo al lado), un título del documento, una pestaña abierta, un archivo de la carpeta o un archivo
+          reciente. Los acentos y las mayúsculas no importan, y los nombres en inglés de los comandos funcionan
+          en todos los idiomas. <kbd>Intro</kbd> ejecuta o abre; <kbd>Ctrl</kbd>+<kbd>Intro</kbd> abre un
+          archivo en una pestaña nueva, <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>Intro</kbd> en una pestaña nueva
+          en primer plano y <kbd>Mayús</kbd>+<kbd>Intro</kbd> en una ventana nueva; empieza con <kbd>&gt;</kbd>
+          para ver solo los comandos o con <kbd>#</kbd> para los títulos del documento, y <kbd>Esc</kbd> la
+          cierra. También están los comandos sin tecla propia (<strong>Guardar como PDF</strong>,
+          <strong>Exportar como HTML / DOCX</strong>, <strong>Mantener en primer plano</strong>, los temas,
+          <strong>Nueva página en cada título 1</strong>, <strong>Ajustes de lectura</strong>) y, mientras
+          editas, los del editor. En el editor <kbd>Ctrl</kbd>+<kbd>K</kbd> inserta un enlace, así que allí la
+          paleta se abre con <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>P</kbd>; <kbd>Ctrl</kbd>+<kbd>P</kbd> sigue
+          imprimiendo.
+        </p>
         <p>
           Con el teclado, <kbd>Tab</kbd> llega a las pestañas, a los botones de la barra de herramientas y a los
           ajustes de lectura <strong>Aa</strong>, y el foco siempre se ve; en las pestañas, <kbd>←</kbd> /
@@ -257,6 +301,14 @@
           <code>--line</code>), el título o el bloque al que llegas se ilumina un momento, para que la vista lo
           encuentre. Atrás y Adelante no lo iluminan.
         </p>
+        <p>
+          Cuando el esquema está cerrado, o la ventana es demasiado estrecha para él, una línea fina en la parte
+          superior del texto mantiene a la vista <strong>la sección que estás leyendo</strong>: su título y los
+          títulos que la contienen, por ejemplo <em>2. Decisiones › 2.1 Presupuesto</em>, sin el título del
+          documento. Aparece en cuanto ese título sale de la vista por arriba y se aparta mientras arriba hay un
+          título o la fila de encabezado de una tabla; un clic en una de sus partes vuelve a ese título. Solo se
+          muestra al leer (no en la vista previa del editor) y nunca se imprime.
+        </p>
 
         <h3>Recarga automática</h3>
         <p>Los archivos abiertos se vigilan en el disco. Cuando uno cambia, la vista se actualiza sola y conserva tu posición de lectura, útil mientras un documento se regenera; una pestaña en segundo plano se pone al día cuando vuelves a ella. En el modo de edición la actualización solo ocurre mientras tu búfer no tenga cambios sin guardar.</p>
@@ -265,12 +317,13 @@
         <h3>Representación</h3>
         <ul>
           <li>Markdown al estilo de GitHub: tablas, listas de tareas, tachado, enlaces automáticos. Las direcciones web se convierten en enlaces, también las que empiezan por <code>www.</code>, como en GitHub; los nombres de archivo como <code>README.md</code> siguen siendo texto.</li>
+          <li>Los saltos de línea siguen CommonMark, como GitHub al mostrar un archivo: un salto de línea simple dentro de un párrafo cuenta como un espacio; para cortar la línea, termínala con dos espacios o con una barra invertida (<code>\</code>).</li>
           <li>Los bloques de código se resaltan y tienen un botón de copia al pasar el ratón.</li>
           <li>Los bloques <code>mermaid</code> se convierten en diagramas; una sintaxis no válida vuelve al bloque de código con una nota de error.</li>
           <li>Una tabla o un diagrama más ancho que la columna de lectura se ensancha hasta todo el ancho disponible, centrado: sin desplazamiento lateral, y el texto del diagrama conserva su tamaño.</li>
           <li>En una tabla larga, la fila de encabezado se queda en la parte superior de la ventana mientras lees, hasta que pasa la última fila de la tabla. Una tabla demasiado ancha incluso para toda la ventana se desplaza de lado: su barra de desplazamiento se queda en la parte inferior de la ventana mientras la tabla esté a la vista, así que no hace falta llegar al final de la tabla para moverla; <kbd>Mayús</kbd>+rueda y el panel táctil también funcionan en cualquier punto de la tabla.</li>
           <li>Haz clic en un diagrama o una imagen para abrirlo a pantalla completa: <kbd>+</kbd> / <kbd>−</kbd> o la rueda amplían, arrastrar desplaza y <kbd>Esc</kbd> cierra. <strong>Ajustar</strong> (<kbd>0</kbd>) lo ajusta a la ventana, <strong>Ancho</strong> (<kbd>W</kbd>) al ancho, empezando por arriba, y <strong>100 %</strong> (<kbd>1</kbd>) lo muestra a su tamaño real. El botón de copia ofrece la imagen como PNG (normal o grande), un diagrama también como SVG, y ambos se pueden guardar en un archivo.</li>
-          <li>Las fórmulas usan KaTeX: <code>$…$</code> en línea, <code>$$…$$</code> o un bloque de código <code>math</code> para las fórmulas centradas.</li>
+          <li>Las fórmulas usan KaTeX: <code>$…$</code> en línea, <code>$$…$$</code> o un bloque de código <code>math</code> (también con un título tras <code>math</code>) para las fórmulas centradas. Los signos de dólar se leen como en GitHub: un bloque <code>$$</code> solo se abre si se cierra, así que un precio como <code>$$ 100</code> no convierte en fórmula el resto del documento; el texto que sigue a un <code>$$</code> de cierre se conserva; <code>$$…$$</code> en mitad de una frase muestra la fórmula sin partir el párrafo; <code>$ x $</code> con espacios dentro e importes como <code>$5 y $10</code> siguen siendo texto.</li>
           <li>Avisos al estilo de GitHub: una cita que empieza por <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>.</li>
           <li>Notas al pie: <code>[^1]</code> en el texto y <code>[^1]: …</code> en cualquier sitio; las notas se reúnen al final, con enlaces de ida y vuelta.</li>
           <li>Las listas de tareas están activas: al hacer clic en una casilla se actualiza al momento <code>[ ]</code> / <code>[x]</code> en el archivo (con <em>Deshacer</em> en el aviso), o en el búfer del editor mientras editas. Solo la casilla marca la tarea: hacer clic o doble clic en su texto, para seleccionar una palabra, no cambia nada.</li>

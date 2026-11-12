@@ -9,7 +9,16 @@ import {
   scrollPastEnd,
 } from "@codemirror/view";
 import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, toggleTabFocusMode } from "@codemirror/commands";
-import { search, searchKeymap, searchPanelOpen, findNext, findPrevious } from "@codemirror/search";
+import {
+  search,
+  searchKeymap,
+  searchPanelOpen,
+  findNext,
+  findPrevious,
+  getSearchQuery,
+  setSearchQuery,
+  SearchQuery,
+} from "@codemirror/search";
 import { syntaxHighlighting, syntaxTree, HighlightStyle } from "@codemirror/language";
 import {
   autocompletion,
@@ -37,6 +46,10 @@ import {
   setSearchFace,
 } from "./editCommands";
 import { mountFormatBar } from "./formatBar";
+
+// the editor's commands, for the command palette: it reaches them through
+// this chunk, so its own stays free of CodeMirror
+export { COMMANDS };
 
 export interface EditorCallbacks {
   onDocChanged(): void;
@@ -82,7 +95,7 @@ const appTheme = EditorView.theme({
   "&.cm-focused .cm-selectionBackground, &.cm-focused ::selection": {
     backgroundColor: "color-mix(in srgb, var(--accent) 28%, transparent) !important",
   },
-  ".cm-activeLine": { backgroundColor: "color-mix(in srgb, var(--text) 4%, transparent)" },
+  ".cm-activeLine": { backgroundColor: "var(--active-line)" },
   ".cm-gutters": {
     backgroundColor: "var(--bg)",
     color: "var(--text-muted)",
@@ -506,15 +519,20 @@ export function snapshotInsert(s: Snapshot, text: string): Snapshot {
   return { ...s, state, dirty: state.doc.toString() !== s.lastSaved };
 }
 
-export function setContent(content: string): void {
+/**
+ * The buffer becomes `content`, compared with `saved` for its unsaved state:
+ * the file's text, or for pasted text the text as it was pasted (so a change
+ * typed back to it leaves nothing unsaved).
+ */
+export function setContent(content: string, saved: string = content): void {
   if (!view) return;
   eol = content.includes("\r\n") ? "\r\n" : "\n";
   const normalized = content.replace(/\r\n/g, "\n");
-  lastSaved = normalized;
-  dirty = false;
+  lastSaved = saved.replace(/\r\n/g, "\n");
+  dirty = normalized !== lastSaved;
   // a fresh state also resets the undo history and cursor
   view.setState(makeState(normalized));
-  callbacks?.onDirtyChanged(false);
+  callbacks?.onDirtyChanged(dirty);
   formatsListener?.(activeFormats(view.state));
 }
 
@@ -530,11 +548,23 @@ export function loadDraft(text: string): void {
   callbacks?.onDocChanged();
 }
 
-/** Ctrl+F / Ctrl+H pressed outside the text (preview, toolbar) while editing. */
-export function openFind(withReplace: boolean): void {
+/**
+ * Ctrl+F / Ctrl+H pressed outside the text (preview, toolbar) while editing;
+ * with `query` (the palette's "Find …"), the panel looks for it at once, with
+ * its options (case, word, regexp) as they were.
+ */
+export function openFind(withReplace: boolean, query?: string): void {
   if (!view) return;
   if (withReplace) openReplaceCmd(view);
   else openFindCmd(view);
+  if (!query) return;
+  const was = getSearchQuery(view.state);
+  view.dispatch({
+    effects: setSearchQuery.of(
+      new SearchQuery({ search: query, caseSensitive: was.caseSensitive, regexp: was.regexp, wholeWord: was.wholeWord, replace: was.replace }),
+    ),
+  });
+  findNext(view);
 }
 
 /** F3 / Shift+F3 outside the text: next or previous match (opens the panel without a query). */

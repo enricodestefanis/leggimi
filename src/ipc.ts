@@ -24,6 +24,16 @@ export interface MarkdownDoc {
 export const WRITE_CONFLICT = "conflict";
 /** error string from read_markdown and open_window when the file is not there */
 export const NOT_FOUND = "not-found";
+/** error string from read_clipboard_text when another app keeps the clipboard open */
+export const CLIPBOARD_BUSY = "clipboard-busy";
+
+/** what the clipboard holds for "Paste and read" */
+export interface ClipboardText {
+  /** its text; null when it holds none */
+  text: string | null;
+  /** it holds a picture (which is not a document) */
+  image: boolean;
+}
 
 /** what became of the window's document on disk */
 export interface FileChange {
@@ -73,8 +83,10 @@ export const searchInTree = (dir: string, query: string) =>
 export const parentDir = (path: string) => invoke<string | null>("parent_dir", { path });
 // every file open in the window's tabs, watched for changes, renames and deletions
 export const watchFiles = (paths: string[]) => invoke<void>("watch_files", { paths });
-// the window's tabs (and the one in front), so a file opened from outside finds its tab
-export const setTabs = (paths: string[], active: string | null) => invoke<void>("set_tabs", { paths, active });
+// the window's tabs (and the one in front), so a file opened from outside finds its tab;
+// `pasted`: how many tabs hold pasted text, which keeps the window from counting as a free start page
+export const setTabs = (paths: string[], active: string | null, pasted = 0) =>
+  invoke<void>("set_tabs", { paths, active, pasted });
 // the Leggimi window at this point of the screen (physical pixels), in true stacking order
 export const windowAt = (x: number, y: number, exclude: string | null = null) =>
   invoke<string | null>("window_at", { x, y, exclude });
@@ -100,7 +112,8 @@ export const showWindow = () => invoke<void>("show_window");
  * A new window, for a file or (path null) on the home; with `transfer`, a tab
  * moving there (answered with "tab-accepted" and `token`), born at `at`
  * (physical pixels) and, with `follow`, carried by the pointer still down.
- * Resolves to its label.
+ * `title` names the ghost it shows over another window's strip when the tab
+ * has no file (pasted text); a file names it itself. Resolves to its label.
  */
 export const openWindow = (
   path: string | null,
@@ -112,6 +125,7 @@ export const openWindow = (
     token?: string;
     at?: { x: number; y: number };
     follow?: boolean;
+    title?: string;
   } = {},
 ) =>
   invoke<string>("open_window", {
@@ -123,7 +137,12 @@ export const openWindow = (
     token: opts.token ?? null,
     at: opts.at ?? null,
     follow: opts.follow ?? false,
+    title: opts.title ?? null,
   });
+// "Paste and read" from a button or the palette (Ctrl+V reads the page's own paste
+// event): the clipboard's text and whether it holds a picture; rejects with
+// CLIPBOARD_BUSY when another app keeps the clipboard open
+export const readClipboardText = () => invoke<ClipboardText>("read_clipboard_text");
 export const printToPdf = (path: string, landscape: boolean) =>
   invoke<void>("print_to_pdf", { path, landscape });
 // a file a document links to, in its default app (documents and media only)

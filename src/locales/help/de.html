@@ -25,8 +25,34 @@
           haben</strong>, und springt beim nächsten Öffnen dorthin zurück.
         </p>
         <p>
-          Im Terminal öffnet <code>leggimi datei.md</code> eine Datei, mit <code>--line 40</code> an
-          dieser Zeile (der Befehl <code>leggimi</code> steht nach der Installation zur Verfügung).
+          <strong>Einfügen und lesen:</strong> Markdown, das Sie aus ChatGPT, Claude oder einer Webseite kopiert
+          haben, lässt sich lesen, ohne es erst zu speichern. Drücken Sie <kbd>Strg</kbd>+<kbd>V</kbd> irgendwo
+          außerhalb des Editors und der Eingabefelder (Suchleiste, Filter), oder verwenden Sie <strong>Aus der
+          Zwischenablage einfügen</strong> auf der Startseite bzw. <strong>Markdown als neues Dokument
+          einfügen</strong> in der Befehlspalette. Der Text öffnet sich in einer eigenen Registerkarte, benannt
+          nach seiner ersten Überschrift (sonst nach seiner ersten Zeile): Ist die vordere Registerkarte eine
+          Startseite, wird sie zu diesem Dokument; sonst öffnet sich eine neue Registerkarte im Vordergrund.
+          Eingefügt wird nur Text (liegt ein Bild in der Zwischenablage, erscheint ein Hinweis), und im Editor
+          fügt <kbd>Strg</kbd>+<kbd>V</kbd> wie gewohnt ein.
+        </p>
+        <p>
+          Den eingefügten Text lesen Sie wie jedes Dokument, mit Gliederung, Suche, Drucken, PDF, Word und
+          Kopieren. <kbd>Strg</kbd>+<kbd>E</kbd> bearbeitet ihn, und <kbd>Strg</kbd>+<kbd>S</kbd> speichert ihn
+          als Datei (<strong>Speichern unter…</strong>, mit einem Namen aus seinem Titel); danach ist er ein ganz
+          normales Dokument. Schließen Sie seine Registerkarte ohne Änderungen, fragt Leggimi nicht nach, und
+          <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>T</kbd> holt ihn zurück, solange das Fenster offen ist; mit
+          Änderungen fragt Leggimi, ob er gespeichert werden soll. Beim Schließen des Fensters fragt Leggimi in
+          jedem Fall, mit oder ohne Änderungen: Der Text steht in keiner Datei und ginge mit dem Fenster
+          verloren. Links und Bilder, die auf andere Dateien
+          verweisen, funktionieren, sobald er in einem Ordner gespeichert ist (bis dahin weist ein Link auf eine
+          andere Datei darauf hin). Wird Leggimi mit Änderungen unerwartet beendet, ist der Text beim nächsten
+          Start samt Änderungen wieder da.
+        </p>
+        <p>
+          Im Terminal öffnet <code>leggimi datei.md</code> eine Datei, mit <code>--line 40</code> an dieser
+          Zeile und mit <code>--new-window</code> in einem eigenen Fenster (<code>leggimi --new-window</code>
+          ohne Datei öffnet ein leeres Fenster); der Befehl <code>leggimi</code> steht nach der Installation
+          zur Verfügung.
         </p>
 
         <h3>Registerkarten und Fenster</h3>
@@ -40,7 +66,8 @@
           öffnet die zuletzt geschlossene Registerkarte erneut. Hat eine Registerkarte ungespeicherte
           Änderungen, fragt sie vor dem Schließen nach: <strong>Speichern</strong>, <strong>Nicht
           speichern</strong> oder <strong>Abbrechen</strong>; beim Schließen des Fensters kommt die Frage nur
-          einmal, mit der Liste der Dokumente mit ungespeicherten Änderungen.
+          einmal, mit der Liste der Dokumente mit ungespeicherten Änderungen und der eingefügten Texte, die noch
+          in keiner Datei stehen.
         </p>
         <p>
           <kbd>Strg</kbd>+<kbd>Tab</kbd>, <kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>9</kbd> und die übrigen Tasten für
@@ -102,7 +129,9 @@
         <h3>Tastenkürzel</h3>
         <table class="help-keys">
           <tbody>
+            <tr><td><kbd>Strg</kbd>+<kbd>K</kbd> / <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>P</kbd></td><td>Befehlspalette (im Editor nur <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>P</kbd>)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>O</kbd></td><td>Datei öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>V</kbd></td><td>Markdown als neues Dokument einfügen (außerhalb des Editors)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>E</kbd></td><td>Bearbeitungsmodus ein/aus</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>S</kbd></td><td>Datei speichern (beim Bearbeiten)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>F</kbd></td><td>Im Dokument suchen</td></tr>
@@ -134,6 +163,23 @@
             <tr><td><kbd>Esc</kbd></td><td>Suchleiste, Vorschau oder diese Hilfe schließen</td></tr>
           </tbody>
         </table>
+        <p>
+          In der <strong>Befehlspalette</strong> genügen ein paar Buchstaben, um einen Befehl (mit seinem
+          Tastenkürzel daneben), eine Überschrift des Dokuments, eine geöffnete Registerkarte, eine Datei des
+          Ordners oder eine zuletzt geöffnete Datei zu finden. Akzente sowie Groß- und Kleinschreibung spielen
+          keine Rolle, und die englischen Namen der Befehle funktionieren in jeder Sprache.
+          <kbd>Eingabe</kbd> führt aus oder öffnet; <kbd>Strg</kbd>+<kbd>Eingabe</kbd> öffnet eine Datei in
+          einer neuen Registerkarte, <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>Eingabe</kbd> in einer neuen
+          Registerkarte im Vordergrund und <kbd>Umschalt</kbd>+<kbd>Eingabe</kbd> in einem neuen Fenster;
+          beginnen Sie mit <kbd>&gt;</kbd>, um nur Befehle zu sehen, oder mit <kbd>#</kbd> für die
+          Überschriften des Dokuments, und <kbd>Esc</kbd> schließt sie. Auch die Befehle ohne eigene Taste
+          sind da (<strong>Als PDF speichern</strong>, <strong>Als HTML / DOCX exportieren</strong>,
+          <strong>Im Vordergrund halten</strong>, die Designs, <strong>Neue Seite bei jeder Überschrift
+          1</strong>, <strong>Leseeinstellungen</strong>) und beim Bearbeiten die Befehle des Editors. Im
+          Editor fügt <kbd>Strg</kbd>+<kbd>K</kbd> einen Link ein, dort öffnet daher
+          <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>P</kbd> die Palette; <kbd>Strg</kbd>+<kbd>P</kbd> druckt
+          weiterhin.
+        </p>
         <p>
           Mit der Tastatur erreicht <kbd>Tab</kbd> die Registerkarten, die Schaltflächen der Symbolleiste und
           die Leseeinstellungen <strong>Aa</strong>, und der Fokus ist immer sichtbar; auf den Registerkarten
@@ -265,6 +311,15 @@
           <kbd>.</kbd> / <kbd>,</kbd> oder mit <code>--line</code> – leuchtet die Überschrift oder der Block,
           bei dem Sie landen, kurz auf, damit das Auge ihn findet. Zurück und Vorwärts lassen nichts aufleuchten.
         </p>
+        <p>
+          Ist die Gliederung geschlossen oder das Fenster zu schmal für sie, zeigt eine schmale Zeile am oberen
+          Rand des Textes <strong>den Abschnitt, den Sie gerade lesen</strong>: seine Überschrift und die
+          Überschriften, zu denen er gehört, etwa <em>2. Entscheidungen › 2.1 Budget</em>, ohne den Titel des
+          Dokuments. Sie erscheint, sobald diese Überschrift oben aus dem Bild gescrollt ist, und weicht,
+          solange eine Überschrift oder die Kopfzeile einer Tabelle oben steht; ein Klick auf einen ihrer Teile
+          führt zurück zu dieser Überschrift. Sie ist nur beim Lesen zu sehen (nicht in der Vorschau des
+          Editors) und wird nie gedruckt.
+        </p>
 
         <h3>Automatisches Neuladen</h3>
         <p>Geöffnete Dateien werden auf der Festplatte beobachtet. Ändert sich eine, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird; eine Registerkarte im Hintergrund holt das nach, sobald Sie zu ihr zurückkehren. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
@@ -273,12 +328,13 @@
         <h3>Darstellung</h3>
         <ul>
           <li>Markdown wie auf GitHub: Tabellen, Aufgabenlisten, Durchstreichen, automatische Links. Webadressen werden zu Links, auch solche, die mit <code>www.</code> beginnen, wie auf GitHub; Dateinamen wie <code>README.md</code> bleiben Text.</li>
+          <li>Zeilenumbrüche folgen CommonMark, wie bei GitHub in der Ansicht einer Datei: Ein einfacher Zeilenumbruch in einem Absatz gilt als Leerzeichen; für einen echten Umbruch beenden Sie die Zeile mit zwei Leerzeichen oder einem Backslash (<code>\</code>).</li>
           <li>Codeblöcke werden hervorgehoben und haben beim Überfahren eine Kopieren-Schaltfläche.</li>
           <li><code>mermaid</code>-Codeblöcke werden zu Diagrammen; ungültige Syntax fällt mit einem Fehlerhinweis auf den Codeblock zurück.</li>
           <li>Eine Tabelle oder ein Diagramm, breiter als die Lesespalte, wird zentriert bis auf die ganze verfügbare Breite erweitert: kein seitliches Scrollen, und der Text des Diagramms behält seine Größe.</li>
           <li>In einer langen Tabelle bleibt die Kopfzeile beim Lesen oben im Fenster, bis die letzte Zeile der Tabelle vorbeigezogen ist. Eine Tabelle, die selbst für das ganze Fenster zu breit ist, scrollt seitlich: Ihre Bildlaufleiste bleibt unten im Fenster, solange die Tabelle zu sehen ist, Sie müssen also nicht erst ans Ende der Tabelle, um sie zu verschieben; <kbd>Umschalt</kbd>+Mausrad und das Touchpad funktionieren auch überall auf der Tabelle.</li>
           <li>Ein Klick auf ein Diagramm oder Bild öffnet es bildschirmfüllend: <kbd>+</kbd> / <kbd>−</kbd> oder das Mausrad zoomen, Ziehen verschiebt, <kbd>Esc</kbd> schließt. <strong>Anpassen</strong> (<kbd>0</kbd>) passt es ins Fenster ein, <strong>Breite</strong> (<kbd>W</kbd>) an die Breite, von oben beginnend, und <strong>100 %</strong> (<kbd>1</kbd>) zeigt es in Originalgröße. Die Kopieren-Schaltfläche bietet das Bild als PNG (normal oder groß), ein Diagramm auch als SVG, und beides lässt sich als Datei speichern.</li>
-          <li>Formeln werden mit KaTeX gesetzt: <code>$…$</code> im Text, <code>$$…$$</code> oder ein <code>math</code>-Codeblock für abgesetzte Formeln.</li>
+          <li>Formeln werden mit KaTeX gesetzt: <code>$…$</code> im Text, <code>$$…$$</code> oder ein <code>math</code>-Codeblock (auch mit einem Titel nach <code>math</code>) für abgesetzte Formeln. Dollarzeichen werden wie auf GitHub gelesen: Ein <code>$$</code>-Block beginnt nur, wenn er auch geschlossen wird, sodass ein Preis wie <code>$$ 100</code> nicht den Rest des Dokuments zur Formel macht; Text nach einem schließenden <code>$$</code> bleibt erhalten; <code>$$…$$</code> mitten im Satz zeigt die Formel, ohne den Absatz zu teilen; <code>$ x $</code> mit Leerzeichen innen und Beträge wie <code>$5 und $10</code> bleiben Text.</li>
           <li>Hinweisboxen im GitHub-Stil: ein Zitat, das mit <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> oder <code>[!CAUTION]</code> beginnt.</li>
           <li>Fußnoten: <code>[^1]</code> im Text und <code>[^1]: …</code> an beliebiger Stelle; die Noten werden am Ende gesammelt, mit Links hin und zurück.</li>
           <li>Aufgabenlisten sind aktiv: ein Klick auf ein Kästchen aktualisiert sofort <code>[ ]</code> / <code>[x]</code> in der Datei (mit <em>Rückgängig</em> im Hinweis) oder im Editorpuffer, während Sie bearbeiten. Nur das Kästchen hakt die Aufgabe ab: ein Klick oder Doppelklick auf ihren Text, etwa um ein Wort zu markieren, ändert nichts.</li>

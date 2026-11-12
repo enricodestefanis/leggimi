@@ -14,8 +14,8 @@ interface RateState {
 }
 
 const KEY = "rate-prompt";
-const MIN_OPENS = 8;
-const MIN_DAYS = 3;
+const MIN_OPENS = 5;
+const MIN_DAYS = 2;
 const PENDING_DAYS = 7;
 const LATER_DAYS = 30;
 const DAY = 86_400_000;

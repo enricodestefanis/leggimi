@@ -13,12 +13,15 @@
           新标签页显示起始页，其中列出最近打开的文件：单击即可在该标签页中打开。每个文档还会<strong>记住你上次读到的位置</strong>，再次打开时自动回到那里。
         </p>
         <p>
-          在终端中，<code>leggimi 文件.md</code> 打开文件，<code>--line 40</code> 则定位到该行（安装后即可使用 <code>leggimi</code> 命令）。
+          <strong>粘贴即读：</strong>从 ChatGPT、Claude 或网页复制的 Markdown 无需先保存即可阅读。在编辑器和文本框（查找栏、筛选框）之外的任意位置按 <kbd>Ctrl</kbd>+<kbd>V</kbd>，或使用起始页上的<strong>从剪贴板粘贴</strong>或命令面板中的<strong>将 Markdown 粘贴为新文档</strong>，文本就会在单独的标签页中打开，并以其第一个标题（没有标题时为第一行）命名：如果前台是起始页，起始页就变成该文档，否则在前台新开一个标签页。它像任何文档一样可以使用大纲、查找、打印、PDF、Word 和复制；<kbd>Ctrl</kbd>+<kbd>E</kbd> 编辑，<kbd>Ctrl</kbd>+<kbd>S</kbd> 将其保存为文件（<strong>另存为…</strong>，按标题建议文件名），此后它就是普通文档。未修改时关闭其标签页不会询问，窗口关闭前可用 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> 重新打开；有修改时，Leggimi 会询问是否保存。关闭窗口时则无论是否修改都会询问：这段文本不在任何文件中，会随窗口一起消失。指向其他文件的链接和图片要在保存到文件夹后才能使用（在此之前，指向其他文件的链接会给出提示）。如果 Leggimi 在有修改时意外关闭，下次启动时文本会连同修改一起回来。只能粘贴文本（剪贴板中是图片时会有提示）；在编辑器中，<kbd>Ctrl</kbd>+<kbd>V</kbd> 照常粘贴。
+        </p>
+        <p>
+          在终端中，<code>leggimi 文件.md</code> 打开文件，<code>--line 40</code> 则定位到该行，<code>--new-window</code> 在单独的窗口中打开（不带文件的 <code>leggimi --new-window</code> 会打开一个空窗口）；安装后即可使用 <code>leggimi</code> 命令。
         </p>
 
         <h3>标签页和窗口</h3>
         <p>
-          按 <kbd>Ctrl</kbd>+<kbd>T</kbd> 或单击最后一个标签页后面的 <strong>+</strong> 可打开新标签页，按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 可打开新窗口。<kbd>Ctrl</kbd>+<kbd>W</kbd> 关闭标签页，单击标签页上的 × 或用鼠标中键单击它也一样：关闭最后一个文档后会留下起始页，只剩起始页时按 <kbd>Ctrl</kbd>+<kbd>W</kbd> 会关闭窗口。<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> 关闭窗口及其所有标签页，<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> 重新打开最近关闭的标签页。关闭有未保存更改的标签页前会先询问：<strong>保存</strong>、<strong>不保存</strong>或<strong>取消</strong>；关闭窗口时只询问一次，并列出有未保存更改的文档。
+          按 <kbd>Ctrl</kbd>+<kbd>T</kbd> 或单击最后一个标签页后面的 <strong>+</strong> 可打开新标签页，按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 可打开新窗口。<kbd>Ctrl</kbd>+<kbd>W</kbd> 关闭标签页，单击标签页上的 × 或用鼠标中键单击它也一样：关闭最后一个文档后会留下起始页，只剩起始页时按 <kbd>Ctrl</kbd>+<kbd>W</kbd> 会关闭窗口。<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> 关闭窗口及其所有标签页，<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> 重新打开最近关闭的标签页。关闭有未保存更改的标签页前会先询问：<strong>保存</strong>、<strong>不保存</strong>或<strong>取消</strong>；关闭窗口时只询问一次，并列出有未保存更改的文档和尚未保存为文件的粘贴文本。
         </p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>Tab</kbd>、<kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> 以及<em>键盘快捷键</em>中的其他标签页按键可用键盘在标签页之间切换。每个标签页都保留自己的阅读位置、编辑内容和撤销记录、后退 / 前进历史记录以及文件面板的文件夹。将鼠标指针停在标签页上可查看其所在文件夹和阅读时间；标签页放不下时，标签栏末尾的箭头会列出全部标签页。右键单击标签页可选择<strong>移至新窗口</strong>、<strong>关闭其他标签页</strong>、<strong>关闭右侧标签页</strong>、<strong>复制路径</strong>和<strong>在文件资源管理器中显示</strong>。
@@ -56,7 +59,9 @@
         <h3>键盘快捷键</h3>
         <table class="help-keys">
           <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td><td>命令面板（在编辑器中只能用 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>）</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>打开文件</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>将 Markdown 粘贴为新文档（编辑器之外）</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>进入或退出编辑模式</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>保存文件（编辑模式）</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>在文档中查找</td></tr>
@@ -88,6 +93,9 @@
             <tr><td><kbd>Esc</kbd></td><td>关闭查找栏、预览或本帮助</td></tr>
           </tbody>
         </table>
+        <p>
+          在<strong>命令面板</strong>中输入几个字母，即可找到命令（旁边显示其快捷键）、文档中的标题、已打开的标签页、文件夹中的文件或最近的文件；不区分重音符号和大小写，命令的英文名称在任何语言下都可使用。<kbd>Enter</kbd> 执行或打开；<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 在新标签页中打开文件，<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> 在前台的新标签页中打开，<kbd>Shift</kbd>+<kbd>Enter</kbd> 在新窗口中打开；以 <kbd>&gt;</kbd> 开头只显示命令，以 <kbd>#</kbd> 开头只显示文档的标题；<kbd>Esc</kbd> 关闭。没有专用按键的命令也在其中（<strong>保存为 PDF</strong>、<strong>导出为 HTML / DOCX</strong>、<strong>保持置顶</strong>、各个主题、<strong>每个一级标题另起一页</strong>、<strong>阅读设置</strong>），编辑时还有编辑器的命令。在编辑器中 <kbd>Ctrl</kbd>+<kbd>K</kbd> 用于插入链接，因此要用 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> 打开命令面板；<kbd>Ctrl</kbd>+<kbd>P</kbd> 仍用于打印。
+        </p>
         <p>
           使用键盘时，<kbd>Tab</kbd> 可以到达标签页、工具栏按钮和 <strong>Aa</strong> 阅读设置，焦点始终清晰可见；在标签页上用 <kbd>←</kbd> / <kbd>→</kbd> 在标签页之间移动，<kbd>Enter</kbd> 显示所选标签页，<kbd>Delete</kbd> 将其关闭；在菜单中（分享菜单、右键菜单、预览的复制菜单），用 <kbd>↑</kbd> / <kbd>↓</kbd> 和 <kbd>Home</kbd> / <kbd>End</kbd> 在各项之间移动，按 <kbd>Esc</kbd> 关闭菜单。
         </p>
@@ -165,6 +173,9 @@
         <p>
           跳转之后（通过大纲、章节链接、<kbd>.</kbd> / <kbd>,</kbd> 键或 <code>--line</code>），你到达的标题或段落会短暂高亮，方便目光找到它。后退和前进不会触发高亮。
         </p>
+        <p>
+          大纲关闭或窗口太窄无法显示大纲时，文字顶部的一条细栏会显示<strong>你正在阅读的章节</strong>：该章节的标题及其所属的上级标题，例如 <em>2. 决策 › 2.1 预算</em>，不含文档标题。该章节标题滚出视野后它才会出现；当顶部是标题或表格的表头行时，它会让开。单击其中某一部分可回到该标题。它只在阅读时显示（编辑器的预览中没有），也不会被打印。
+        </p>
 
         <h3>自动刷新</h3>
         <p>打开的文件都会被监视。文件变化时，视图自动刷新并保持阅读位置——在文档被重新生成时很有用；后台的标签页会在你切换回去时更新。编辑模式下，只有缓冲区没有未保存更改时才会刷新。</p>
@@ -173,12 +184,13 @@
         <h3>渲染</h3>
         <ul>
           <li>GitHub 风格的 Markdown：表格、任务列表、删除线、自动链接。网址会变成链接，以 <code>www.</code> 开头的也一样，与 GitHub 相同；<code>README.md</code> 之类的文件名仍是普通文本。</li>
+          <li>换行遵循 CommonMark，与 GitHub 显示文件时相同：段落内的单个换行视为一个空格；要换行，请在行尾加两个空格或一个反斜杠（<code>\</code>）。</li>
           <li>代码块带语法高亮，悬停时有复制按钮。</li>
           <li><code>mermaid</code> 代码块渲染为图表；语法无效时回退为代码块并附错误说明。</li>
           <li>比阅读栏更宽的表格或图表会居中展开，最宽可占满全部可用宽度：无需横向滚动，图表的文字也保持原有大小。</li>
           <li>阅读长表格时，表头行会停留在窗口顶部，直到表格的最后一行滚过。即使占满整个窗口仍然过宽的表格可以横向滚动：只要表格还在视野中，它的滚动条就会停留在窗口底部，无需滚到表格末尾才能左右移动；在表格任意位置也可以使用 <kbd>Shift</kbd>+滚轮或触摸板。</li>
           <li>单击图表或图片可全窗口打开：<kbd>+</kbd> / <kbd>−</kbd> 或滚轮缩放，拖动平移，<kbd>Esc</kbd> 关闭。<strong>适应</strong>（<kbd>0</kbd>）使其适应窗口，<strong>宽度</strong>（<kbd>W</kbd>）使其适应宽度并从顶部开始，<strong>100%</strong>（<kbd>1</kbd>）按实际大小显示。复制按钮可提供 PNG 图片（普通或大图），图表还可提供 SVG，两者都可以保存为文件。</li>
-          <li>公式使用 KaTeX 渲染：行内 <code>$…$</code>，独立公式用 <code>$$…$$</code> 或 <code>math</code> 代码块。</li>
+          <li>公式使用 KaTeX 渲染：行内 <code>$…$</code>，独立公式用 <code>$$…$$</code> 或 <code>math</code> 代码块（<code>math</code> 后带标题也可以）。美元符号的解析与 GitHub 相同：<code>$$</code> 块只有在闭合时才会开始，因此 <code>$$ 100</code> 这样的价格不会把文档其余部分变成公式；闭合的 <code>$$</code> 之后的文字会保留；句中的 <code>$$…$$</code> 会显示公式而不拆分段落；内侧带空格的 <code>$ x $</code> 以及 <code>$5 和 $10</code> 这样的金额仍是普通文本。</li>
           <li>GitHub 风格的提示框：以 <code>[!NOTE]</code>、<code>[!TIP]</code>、<code>[!IMPORTANT]</code>、<code>[!WARNING]</code> 或 <code>[!CAUTION]</code> 开头的引用。</li>
           <li>脚注：正文中的 <code>[^1]</code> 和任意位置的 <code>[^1]: …</code>；脚注汇集在文末，带有来回跳转链接。</li>
           <li>任务列表是可交互的：单击复选框会立即更新文件中的 <code>[ ]</code> / <code>[x]</code>（提示中有<em>撤销</em>），编辑时则更新编辑器缓冲区。只有复选框才能勾选任务：单击或双击任务文字（例如为了选中一个词）不会改变任何内容。</li>

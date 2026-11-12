@@ -15,6 +15,8 @@ const SETTLE_IDLE_MS = 250;
 let heads: HTMLElement[] = [];
 let items: HTMLButtonElement[] = [];
 let cursor = -1; // index into items, the keyboard-highlighted filter result
+// index into items, the entry the scroll-spy (or a jump) highlights
+let current = -1;
 // the reading keys' "next / previous heading", bound to the spy's state by build()
 let stepImpl: ((dir: 1 | -1) => boolean) | null = null;
 // drops the pinned highlight, so the spy follows the page again
@@ -25,6 +27,14 @@ let jumpListener: ((target: HTMLElement) => void) | null = null;
 
 export function onJump(fn: (target: HTMLElement) => void): void {
   jumpListener = fn;
+}
+
+// told as every glide to a heading starts, the reading keys' steps included
+// (sectionLine.ts: the path at the top steps aside until it has landed)
+let glideListener: (() => void) | null = null;
+
+export function onGlide(fn: () => void): void {
+  glideListener = fn;
 }
 
 // the page was moved by something else (Back, Forward): the highlight follows it
@@ -56,7 +66,7 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
   cursor = -1;
   list.replaceChildren();
 
-  let current = -1;
+  current = -1;
   const setActive = (index: number) => {
     if (index === current) return;
     current = index;
@@ -83,7 +93,8 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
   // Every jump (a click, Enter in the filter, the "." and "," keys) glides
   // there, or jumps at once when Windows animations are off, and the heading
   // lights up briefly once it has arrived, so the eye finds where it landed.
-  const jumpTo = (i: number) => {
+  const glideTo = (i: number) => {
+    glideListener?.();
     pinned = true;
     settling = true;
     armSettle();
@@ -100,7 +111,7 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
     item.title = h.textContent ?? "";
     item.addEventListener("click", () => {
       jumpListener?.(h);
-      jumpTo(i);
+      glideTo(i);
     });
     list.append(item);
     items.push(item);
@@ -165,12 +176,37 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
         else for (let k = tops.length - 1; k >= 0; k--) if (tops[k] < -4) { i = k; break; }
       }
       if (i < 0 || i >= items.length) return false;
-      jumpTo(i);
+      glideTo(i);
       return true;
     };
   }
 
   return heads.length;
+}
+
+/* ---- the outline from outside: the section line, the palette ---- */
+
+// The last build's headings (h1–h4 with an id), in document order. Until the
+// next build: a start page or another tab's article can leave them detached.
+export function headings(): readonly HTMLElement[] {
+  return heads;
+}
+
+// The entry the scroll-spy highlights, as an index into headings(); -1 when none.
+export function activeIndex(): number {
+  return current;
+}
+
+// Exactly a click on the heading's outline entry: the place left goes on the
+// Back list (onJump), the entry is pinned, the page glides there and the
+// heading lights up; a peeking outline closes. Even with the entry hidden by
+// the filter: click() reaches it all the same. False for a heading the
+// outline does not have.
+export function jumpTo(h: HTMLElement): boolean {
+  const item = items[heads.indexOf(h)];
+  if (!item) return false;
+  item.click();
+  return true;
 }
 
 /* ---- filter box ---- */

@@ -89,11 +89,21 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   **recovery draft** that offers your unsaved text back after a crash
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
+- **Paste and read**: Markdown copied from ChatGPT, Claude or a web page is read without saving
+  it first. `Ctrl+V` anywhere outside the editor and the text boxes, the start page's **Paste
+  from clipboard** or the command palette opens it in a tab of its own, named after its first
+  heading; it reads like any document (outline, find, print, PDF, Word), `Ctrl+E` edits it and
+  `Ctrl+S` saves it as a file (**Save as…**). Its tab closed unchanged asks nothing and
+  `Ctrl+Shift+T` brings it back; with changes it asks whether to save. Closing the window asks
+  in any case, since the text is in no file yet. If the app closes unexpectedly, the next start
+  brings the changes back
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks (`www.` addresses
   too), **footnotes**, and **heading anchors as on GitHub**, so tables of contents written for
   GitHub or by AI assistants work; task-list checkboxes are **live** (a click on the box
   updates the file, with Undo; clicking the text only selects it), and `Ctrl+C` copies a
   selection with its formatting
+- **Line breaks as on GitHub**: they follow CommonMark, as GitHub's view of a file does: a single
+  line break inside a paragraph is a space; end a line with two spaces or a backslash to break it
 - **Wide tables and diagrams** get the room they need: past the reading column, up to the
   width of the window, instead of scrolling sideways or shrinking; when printing, a table wider
   than the page is scaled to fit. Every table has **Copy table (for Excel)** and **Open
@@ -114,10 +124,19 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   to pan, `0` to fit, `W` to fit the width, `1` for 100%, `Esc` to close — and a menu to copy
   it as PNG (2× or 4×) or SVG, or save it to a file. Diagrams fill the window and stay sharp
   at any zoom
-- **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences for display blocks
+- **KaTeX math**: `$…$` inline, `$$…$$` or ` ```math ` fences (a title after `math` too) for
+  display blocks, with dollar signs read as on GitHub: a `$$` opens a block only when it is
+  closed, so a price such as `$$ 100` stays text; text after a closing `$$` is kept; `$$…$$`
+  inside a sentence shows the formula without splitting the paragraph; `$ x $` with spaces
+  inside and amounts such as `$5 and $10` stay text
 - **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - Clickable **outline** with scroll-spy, and a **filter box** on long documents (type, then
   `↑` / `↓` and `Enter` to jump); after a jump, the heading you land on lights up briefly
+- **The section you are reading stays in sight**: with the outline closed, or a window too
+  narrow for it, a thin line at the top of the text shows the section's heading and the ones
+  that contain it (`2. Decisions › 2.1 Budget`, without the document's title) once that heading
+  has scrolled away; a click on a part goes back to that heading. It steps aside for a heading
+  or a table's header row, and is never printed
 - **Picks up where you left off**: every document remembers its reading position, and the
   empty screen lists your **recent files**
 - **Reading keys**: `j` / `k` scroll, `.` / `,` jump between headings, `g g` / `G` go to the
@@ -125,6 +144,14 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   hairline along the top of the document shows the progress, and the tab in front the estimated
   reading time after its name; the document can also be dragged like a sheet of paper (middle
   button)
+- **Command palette** (`Ctrl+K` or `Ctrl+Shift+P`; in the editor `Ctrl+Shift+P`, since `Ctrl+K`
+  inserts a link there): a few letters find a command (with its shortcut), a heading of the
+  document, an open tab, a file of the folder or a recent file, whatever the accents and the
+  case, and the English command names work in every language. `Enter` runs or opens,
+  `Ctrl+Enter` opens a file in a new tab (`Ctrl+Shift+Enter` in front), `Shift+Enter` in a new
+  window; `>` keeps only the commands, `#` only the headings. It reaches the commands without a
+  key too: Save as PDF, Export as HTML / DOCX, Keep on top, the themes, the page break at every
+  heading 1, the reading settings
 - **Smart links**: `[text](other)` finds `other.md`, `[text](folder/)` opens the folder's
   `index.md` or `README.md` (or shows the folder in the file browser), `other.md#section` jumps to
   the heading; a link to an image opens the preview, to any other file (a PDF, a spreadsheet) a
@@ -143,9 +170,10 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   in front, `Ctrl+Shift`+click in front, `Shift`+click in a new window; `Ctrl+T` opens a start
   page, `Ctrl+Shift+T` reopens the last closed tab. A file opened from outside (double-click,
   *Open with*, `leggimi file.md`) arrives in a new tab of the window used last, or brings forward
-  the tab that shows it. Tabs **drag like a browser's**: along the strip to reorder, off it into
-  a window of their own, onto another Leggimi window to move there, unsaved edits included. The
-  theme and the text settings follow in every window
+  the tab that shows it; `leggimi --new-window file.md` gives it a window of its own. Tabs **drag
+  like a browser's**: along the strip to reorder, off it into a window of their own, onto another
+  Leggimi window to move there, unsaved edits included. The theme and the text settings follow in
+  every window
 - **A title bar in the colours of the theme**: the toolbar is the title bar, with the window's
   own Minimize, Maximize and Close; drag its empty part to move the window, double-click it to
   maximize, and point at Maximize for the Windows 11 Snap layouts
@@ -197,13 +225,16 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   interface and the help follow the first supported language in your Windows preferred
   languages, with an override in the reading settings
 - **Command line**: `leggimi file.md --line 40` opens a file at a line, in the running app
-  if there is one; the installer adds the `leggimi` command for terminals
+  if there is one, and `leggimi --new-window file.md` in a window of its own (without a file, an
+  empty window); the installer adds the `leggimi` command for terminals
 
 ## Keyboard shortcuts
 
 | Keys | Action |
 |---|---|
+| `Ctrl+K` / `Ctrl+Shift+P` | Command palette (in the editor only `Ctrl+Shift+P`: there `Ctrl+K` inserts a link) |
 | `Ctrl+O` | Open a file (in a new tab) |
+| `Ctrl+V` | Paste the clipboard's Markdown as a new document (outside the editor) |
 | `Ctrl+T` | New tab |
 | `Ctrl+W` / `Ctrl+F4` | Close the tab |
 | `Ctrl+Shift+T` | Reopen the last closed tab |
@@ -253,14 +284,16 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 ## Command line
 
 ```
-leggimi [file] [--line N]
+leggimi [--new-window] [file] [--line N]
 ```
 
 `leggimi README.md` opens the file (relative to the current folder) in a new tab of the window
-of the running app used last, or brings forward the tab that already shows it, or starts the app. `--line 40` (or `-l 40`) shows that source line at the top: in reading mode the
-block containing it, which lights up briefly, in edit mode the editor caret. A file that does
-not exist gets a "Not found" notice in the window in front instead of an empty window. The
-installer puts a `leggimi` command in
+of the running app used last, or brings forward the tab that already shows it, or starts the app.
+`--new-window` gives it a window of its own instead, even when a tab already shows it, and
+`leggimi --new-window` without a file opens an empty window. `--line 40` (or `-l 40`) shows that
+source line at the top: in reading mode the block containing it, which lights up briefly, in edit
+mode the editor caret. A file that does not exist gets a "Not found" notice instead of an empty
+window. The installer puts a `leggimi` command in
 `%LOCALAPPDATA%\Microsoft\WindowsApps`, which is on every user's PATH; the Store build registers
 `leggimi.exe` as an app execution alias; the portable build is run by its own path.
 

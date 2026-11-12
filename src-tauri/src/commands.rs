@@ -1,6 +1,6 @@
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -117,6 +117,11 @@ pub fn get_initial_file(window: WebviewWindow, state: State<'_, AppState>) -> Op
 pub(crate) fn start(slot: &mut WindowSlot) -> Option<Launch> {
     slot.ready = true;
     let own = slot.launch.take();
+    // a tab of pasted text torn off another window: no file, yet no free
+    // start page, already before its page first calls set_tabs
+    if own.as_ref().is_some_and(Launch::pasted) {
+        slot.pasted = slot.pasted.max(1);
+    }
     let empty = own.as_ref().is_none_or(|l| l.path.is_none() && l.transfer.is_none());
     let launch = if empty && !slot.queued.is_empty() {
         let mut first = slot.queued.remove(0);
@@ -141,12 +146,19 @@ pub(crate) fn shown(slot: &mut WindowSlot) -> Vec<Launch> {
     std::mem::take(&mut slot.queued)
 }
 
-/// The documents in the window's tabs, as its page has them, and the one in
-/// front: what routing goes by (a launch of one of them brings its tab
-/// forward, and only a window without any is a free start page). The page
-/// calls it whenever a tab is created, closed, moved, renamed or activated.
+/// The documents in the window's tabs, as its page has them, the one in
+/// front, and how many tabs hold pasted text (no file): what routing goes by
+/// (a launch of one of them brings its tab forward, and only a window with
+/// neither documents nor pasted text is a free start page). The page calls
+/// it whenever a tab is created, closed, moved, renamed or activated.
 #[tauri::command]
-pub fn set_tabs(window: WebviewWindow, state: State<'_, AppState>, paths: Vec<String>, active: Option<String>) {
+pub fn set_tabs(
+    window: WebviewWindow,
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+    active: Option<String>,
+    pasted: Option<u32>,
+) {
     let mut windows = state.windows.lock().unwrap();
     // a window closed meanwhile has no slot, and must not get one back
     let Some(slot) = windows.get_mut(window.label()) else {
@@ -154,15 +166,16 @@ pub fn set_tabs(window: WebviewWindow, state: State<'_, AppState>, paths: Vec<St
     };
     let docs: Vec<PathBuf> = paths.iter().map(|p| tab_doc(p, &slot.docs)).collect();
     let active = active.map(|p| tab_doc(&p, &slot.docs));
-    tabs_changed(slot, docs, active);
+    tabs_changed(slot, docs, active, pasted.unwrap_or(0));
 }
 
 /// set_tabs on the window's slot: the documents that have arrived in a tab
 /// are no longer on their way.
-pub(crate) fn tabs_changed(slot: &mut WindowSlot, docs: Vec<PathBuf>, active: Option<PathBuf>) {
+pub(crate) fn tabs_changed(slot: &mut WindowSlot, docs: Vec<PathBuf>, active: Option<PathBuf>, pasted: u32) {
     slot.opening.retain(|o| !docs.iter().any(|d| same_file(d, o)));
     slot.docs = docs;
     slot.active = active;
+    slot.pasted = pasted;
 }
 
 /// A tab's document as routing compares it: as already known (the page
@@ -333,19 +346,60 @@ fn read_with_retry(path: &Path) -> Result<String, String> {
     }
 }
 
+/// Error from resolve_path when the page gives no folder to resolve against.
+pub const NO_FOLDER: &str = "no folder";
+
+/// The folder of the document a link or an image is in, as the page passes
+/// it: a full path only. Pasted text has no folder, and an empty or relative
+/// one would resolve against the working directory of the process.
+fn doc_folder(dir: &str) -> Option<&Path> {
+    let dir = Path::new(dir);
+    dir.is_absolute().then_some(dir)
+}
+
+pub const OTHER_VOLUME: &str = "outside the document's drive or share";
+
+/// The drive or the share a full path is on, in one spelling: `c:`, `\\server\share`.
+fn volume(path: &Path) -> Option<String> {
+    match path.components().next()? {
+        Component::Prefix(prefix) => Some(prefix.as_os_str().to_string_lossy().replace('/', "\\").to_lowercase()),
+        _ => None,
+    }
+}
+
+/// What a document in `dir` names with `rel`: a path on the document's own drive or share,
+/// or nothing.
+///
+/// A `rel` with a root of its own (`\\server\share\a.png`, `//server/share/a.png`,
+/// `\\.\pipe\x`, `D:\a.png`) takes the folder's place in `join`. Windows calls the computer a
+/// network path names as soon as the path is looked up, so a document that could name one
+/// would choose whom the PC contacts when it is opened. `..` cannot leave a drive or a share:
+/// whatever is relative stays where the document is. `C:a.png` is refused too: it is relative
+/// to the folder the process happens to be in on that drive.
+fn doc_target(dir: &Path, rel: &str) -> Option<PathBuf> {
+    let named = Path::new(rel);
+    if matches!(named.components().next(), Some(Component::Prefix(_))) && !named.is_absolute() {
+        return None;
+    }
+    let joined = dir.join(named);
+    let home = volume(dir)?;
+    (volume(&joined)? == home).then_some(joined)
+}
+
 #[tauri::command]
 pub fn resolve_path(dir: String, rel: String) -> Result<String, String> {
-    let joined = Path::new(&dir).join(&rel);
+    let joined = doc_target(doc_folder(&dir).ok_or(NO_FOLDER)?, &rel).ok_or(OTHER_VOLUME)?;
     let canon = dunce::canonicalize(&joined).map_err(|e| format!("Cannot resolve {rel}: {e}"))?;
     Ok(canon.to_string_lossy().into_owned())
 }
 
 /// Resolves a document link the way a wiki would: `rel` itself, then
 /// `rel.<md ext>`, then `rel/index.<ext>` and `rel/README.<ext>`. None when
-/// nothing exists. Backs "smart links" between Markdown files.
+/// nothing exists, or without a folder (see doc_folder). Backs "smart links"
+/// between Markdown files.
 #[tauri::command]
 pub fn resolve_doc(dir: String, rel: String) -> Option<String> {
-    let base = Path::new(&dir).join(&rel);
+    let base = doc_target(doc_folder(&dir)?, &rel)?;
     let mut candidates: Vec<PathBuf> = Vec::new();
     if base.is_file() {
         candidates.push(base.clone());
@@ -761,8 +815,10 @@ pub struct ScreenPoint {
 /// state) reaches the new page through get_initial_file with `from` and
 /// `token`, for its answer ("tab-accepted"); `at` places it (outer top-left,
 /// physical px); `follow` has it follow the pointer while the button that
-/// tore it is down. Returns its label. Async because on Windows a window
-/// built from a sync command deadlocks WebView2 (tauri-apps/wry#583).
+/// tore it is down, its ghost over another window's strip named after the
+/// tab's file, or `title` for a tab without one (pasted text). Returns its
+/// label. Async because on Windows a window built from a sync command
+/// deadlocks WebView2 (tauri-apps/wry#583).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn open_window(
@@ -776,6 +832,7 @@ pub async fn open_window(
     token: Option<String>,
     at: Option<ScreenPoint>,
     follow: Option<bool>,
+    title: Option<String>,
 ) -> Result<String, String> {
     // a file renamed or deleted since it was listed: no window on the start
     // page. A tab carried over keeps its text, its file there or not
@@ -783,9 +840,9 @@ pub async fn open_window(
         return Err(NOT_FOUND.to_owned());
     }
     let at = at.map(|p| (p.x.round() as i32, p.y.round() as i32));
-    let launch = Launch { path, line, anchor, mode: None, transfer, from, token };
+    let launch = Launch { path, line, anchor, mode: None, transfer, from, token, new_window: false };
     // the pointer is measured now, against where the page wants the window
-    let follow = (follow == Some(true)).then(|| drag::Follow::new(at, launch.file().map(str::to_owned)));
+    let follow = (follow == Some(true)).then(|| drag::Follow::new(at, launch.file().map(str::to_owned), title));
     crate::windowing::create_window(&app, Some(&window), launch, at, follow)
 }
 
@@ -1030,5 +1087,85 @@ mod tests {
         assert!(!listed_path(&root, &root.join("a").join("b").join("c").join("d").join("x.md")), "depth 5");
         assert!(!listed_path(&root, Path::new(r"C:\elsewhere\x.md")), "outside the root");
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn links_resolve_only_against_a_full_folder() {
+        let root = std::env::temp_dir().join(format!("leggimi-resolve-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("guide")).unwrap();
+        fs::write(root.join("a.md"), "").unwrap();
+        fs::write(root.join("guide").join("README.md"), "").unwrap();
+        let canon = |p: PathBuf| dunce::canonicalize(p).unwrap().to_string_lossy().into_owned();
+        let dir = root.to_string_lossy().into_owned();
+
+        assert_eq!(resolve_path(dir.clone(), "a.md".into()), Ok(canon(root.join("a.md"))));
+        assert_eq!(resolve_doc(dir.clone(), "a".into()), Some(canon(root.join("a.md"))), "a link without .md");
+        assert_eq!(resolve_doc(dir.clone(), "guide".into()), Some(canon(root.join("guide").join("README.md"))));
+        // pasted text has no folder: never the process's working directory
+        for dir in ["", "guide", r".\guide", r"\docs", "C:docs"] {
+            assert_eq!(resolve_path(dir.into(), "a.md".into()), Err(NO_FOLDER.to_owned()), "{dir:?}");
+            assert_eq!(resolve_doc(dir.into(), "a".into()), None, "{dir:?}");
+        }
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    /// Path arithmetic only: nothing here is looked up, so no computer is called.
+    #[test]
+    fn a_document_names_files_on_its_own_drive_or_share_only() {
+        let on_disk = Path::new(r"C:\Users\someone\Documents\notes");
+        let stays = |dir: &Path, rel: &str| doc_target(dir, rel).is_some();
+
+        // what is relative stays with the document, however far up it goes
+        for rel in ["a.png", "img/a.png", r"img\a.png", "../a.png", "../../../../a.png", "./a b.png", "/a.png", r"\a.png"] {
+            assert!(stays(on_disk, rel), "{rel:?}");
+        }
+        assert_eq!(doc_target(on_disk, "img/a.png"), Some(on_disk.join("img/a.png")));
+        // the same drive spelled out, in either case
+        assert!(stays(on_disk, r"C:\Windows\a.png"));
+        assert!(stays(on_disk, "c:/Windows/a.png"));
+
+        // another computer, a device, another drive: whatever the slashes
+        for rel in [
+            r"\\server\share\a.png",
+            "//server/share/a.png",
+            r"\/server/share/a.png",
+            r"/\server\share\a.png",
+            "//server.example@8080/DavWWWRoot/a.png",
+            "//127.0.0.1/share/a.png",
+            r"\\.\pipe\leggimi",
+            "//./pipe/leggimi",
+            r"\\?\C:\Windows\a.png",
+            r"\\?\UNC\server\share\a.png",
+            r"D:\a.png",
+            "D:/a.png",
+            // relative to wherever the process is on that drive
+            "C:a.png",
+            "D:a.png",
+        ] {
+            assert!(!stays(on_disk, rel), "{rel:?}");
+        }
+
+        // a document that is itself on a share keeps its own files, and those only
+        for on_share in [r"\\nas\docs\notes", "//nas/docs/notes", r"\\NAS\Docs\notes"] {
+            let on_share = Path::new(on_share);
+            for rel in ["img/a.png", "../a.png", "/a.png", r"\\nas\docs\other\a.png", "//nas/docs/a.png"] {
+                assert!(stays(on_share, rel), "{on_share:?} {rel:?}");
+            }
+            for rel in [r"\\nas\other\a.png", "//elsewhere/docs/a.png", r"C:\Windows\a.png", r"\\.\pipe\leggimi"] {
+                assert!(!stays(on_share, rel), "{on_share:?} {rel:?}");
+            }
+        }
+        // as Windows itself names a file opened from a mapped drive
+        let verbatim = Path::new(r"\\?\UNC\nas\docs\notes");
+        assert!(stays(verbatim, r"img\a.png"));
+        assert!(!stays(verbatim, r"\\elsewhere\docs\a.png"));
+
+        // the commands answer the same, before they touch the disk
+        let dir = on_disk.to_string_lossy().into_owned();
+        assert_eq!(resolve_path(dir.clone(), "//server/share/a.png".into()), Err(OTHER_VOLUME.to_owned()));
+        assert_eq!(resolve_path(dir.clone(), r"\\server\share\a.png".into()), Err(OTHER_VOLUME.to_owned()));
+        assert_eq!(resolve_doc(dir.clone(), "//server/share/readme".into()), None);
+        assert_eq!(resolve_doc(dir, r"\\server\share\readme".into()), None);
     }
 }

@@ -25,6 +25,11 @@
   (top-most first, {label: null} is another app's window). hold(cmd) / release(cmd) keep calls
   pending; answers queues the replies of plugin:dialog|message (an index, a role such as "save",
   "dontsave", "cancel", "discard", or a button's label).
+
+  Paste and read (2.2): paste(text, {image}) sends Ctrl+V's paste event where the focus is;
+  clipboard / clipboardError answer read_clipboard_text (the start page's button, the palette);
+  savePath answers the "Save as…" dialog (a function gets its options); documents is documentDir();
+  resolve_path / resolve_doc throw without an absolute folder and note it in leaks.
 -->
 <html lang="en">
   <head>
@@ -158,6 +163,27 @@
         /** the latest state the page reported (set_tabs, watch_files, set_closing, set_caption, set_strip) */
         state: { tabs: null, watched: null, closing: false, caption: null, strip: null },
         destroyed: false,
+        /** what read_clipboard_text reads (the start page's button, the palette); clipboardError makes it fail */
+        clipboard: { text: null, image: false },
+        clipboardError: null,
+        /** documentDir(): where "Save as…" starts for pasted text with no folder of its own */
+        documents: "C:\\Users\\Harness\\Documents",
+        /** resolve_path / resolve_doc called with no folder (pasted text leaking to the disk): should stay empty */
+        leaks: [],
+        /** resolve_path / resolve_doc asked for a file on another computer (Rust refuses it): should stay empty */
+        offLimits: [],
+        /**
+         * Ctrl+V as the page sees it: a trusted-looking paste event with `text` (null: none) and, with
+         * { image: true }, a picture beside it, sent where the focus is. True when the page took it.
+         */
+        paste(text, opts = {}) {
+          const data = new DataTransfer();
+          if (text !== null && text !== undefined) data.setData("text/plain", text);
+          if (opts.image) data.items.add(new File([new Uint8Array([137, 80, 78, 71])], "image.png", { type: "image/png" }));
+          const e = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
+          (document.activeElement || document.body).dispatchEvent(e);
+          return e.defaultPrevented;
+        },
         /**
          * replace the open document, as if the file had been rewritten and reopened: with tabs
          * (the page reports them with set_tabs), a file a tab holds is kept current by the watch
@@ -429,12 +455,31 @@
           case "search_in_tree":
             return searchFiles(args.dir || DIR, args.query || "");
           case "resolve_path":
+            // a document in no folder (pasted text) must never get here: Rust would refuse it
+            // (resolve_doc answers none); here both throw, so a leak fails the test
+            if (!isAbsoluteDir(args.dir)) {
+              harness.leaks.push({ cmd, args: clone(args) });
+              throw "no-folder";
+            }
+            // "\\server\share\…" from a document that is not on that share: Rust refuses it
+            if (otherComputer(args.dir, args.rel)) {
+              harness.offLimits.push({ cmd, args: clone(args) });
+              throw "outside the document's drive or share";
+            }
             // names in harness.missing are files that do not exist
             if (harness.missing?.has(args.rel)) throw `Cannot resolve ${args.rel}`;
-            return `${args.dir || DIR}\\${args.rel}`;
+            return `${args.dir}\\${args.rel}`;
           case "resolve_doc": {
+            if (!isAbsoluteDir(args.dir)) {
+              harness.leaks.push({ cmd, args: clone(args) });
+              throw "no-folder";
+            }
+            if (otherComputer(args.dir, args.rel)) {
+              harness.offLimits.push({ cmd, args: clone(args) });
+              return null;
+            }
             // like the Rust command: the path itself, then .md, then index.md / README.md inside it
-            const base = `${args.dir || DIR}\\${args.rel.replace(/\//g, "\\").replace(/\\$/, "")}`;
+            const base = `${args.dir}\\${args.rel.replace(/\//g, "\\").replace(/\\$/, "")}`;
             for (const c of [base, `${base}.md`, `${base}\\index.md`, `${base}\\README.md`]) {
               if (harness.files.has(c)) return c;
             }
@@ -456,7 +501,15 @@
           case "save_clipboard_image":
             return harness.importAs || "pasted.png";
           case "plugin:dialog|save":
-            return harness.savePath || null;
+            // the path "picked" (null: cancelled); a function gets the dialog's options
+            return (typeof harness.savePath === "function" ? harness.savePath(args?.options ?? args) : harness.savePath) || null;
+          case "read_clipboard_text":
+            // what Rust reads off the clipboard: harness.clipboard, or harness.clipboardError ("clipboard-busy")
+            if (harness.clipboardError) throw harness.clipboardError;
+            return { text: harness.clipboard.text ?? null, image: !!harness.clipboard.image };
+          case "plugin:path|resolve_directory":
+            // documentDir() and its kin: Documents is where "Save as…" starts for pasted text in no folder
+            return args?.directory === 6 ? harness.documents : `C:\\Users\\Harness\\Dir${args?.directory ?? ""}`;
           case "plugin:dialog|open":
             // the files "picked" in the open dialog (an array when several)
             return harness.openPaths || null;
@@ -482,11 +535,12 @@
               token: args.token ?? null,
             };
             localStorage.setItem("harness-launch:" + label, JSON.stringify({ ...request, files: [...harness.files], modified: harness.modified }));
-            harness.opened.push({ label, at: args.at ?? null, follow: !!args.follow, request });
+            // `title`: what the ghost over another window's strip says for pasted text (it has no file)
+            harness.opened.push({ label, at: args.at ?? null, follow: !!args.follow, title: args.title ?? null, request });
             return label;
           }
           case "set_tabs":
-            harness.state.tabs = { paths: args.paths || [], active: args.active ?? null };
+            harness.state.tabs = { paths: args.paths || [], active: args.active ?? null, pasted: args.pasted ?? 0 };
             return null;
           case "watch_files":
             harness.state.watched = args.paths || [];
@@ -636,6 +690,17 @@
       doc.querySelectorAll("script").forEach((s) => s.remove());
       document.body.replaceChildren(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
       await import("/src/main.ts");
+
+      // a folder Rust would resolve a link against: absolute (C:\… or \\server\…), never empty
+      // a path with a root of its own on another volume than the document's (doc_target in commands.rs)
+      function otherComputer(dir, rel) {
+        if (!/^[\\/]{2}/.test(rel)) return false;
+        const share = (p) => (/^[\\/]{2}([^\\/]+)[\\/]+([^\\/]+)/.exec(p) || []).slice(1).join("\\").toLowerCase();
+        return share(rel) === "" || share(rel) !== share(dir);
+      }
+      function isAbsoluteDir(dir) {
+        return typeof dir === "string" && /^(?:[a-z]:[\\/]|[\\/]{2}[^\\/])/i.test(dir);
+      }
 
       // the in-memory files under `dir` as the Rust list_tree returns them:
       // nested folders, folders first, then by name

@@ -1,6 +1,6 @@
 [package]
 name = "leggimi"
-version = "2.1.0"
+version = "2.2.0"
 description = "Leggimi — Markdown viewer and editor for Windows"
 authors = ["Enrico De Stefanis"]
 license = "MIT"
@@ -34,8 +34,9 @@ tokio = { version = "1", features = ["sync"] }
 [target."cfg(windows)".dependencies]
 # Graphics_Dwm, Graphics_Gdi, System_LibraryLoader, UI_HiDpi and
 # UI_Input_KeyboardAndMouse: the native caption zones (caption.rs) and the
-# window drags (drag.rs)
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Storage_Packaging_Appx", "Win32_System_LibraryLoader", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+# window drags (drag.rs); System_DataExchange and System_Memory: the
+# clipboard's text for "Paste and read" (clipboard.rs)
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Storage_Packaging_Appx", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 # the Windows build, which says whether there are Snap layouts (11) to serve;
 # the version tao already uses
 windows-version = "0.1"

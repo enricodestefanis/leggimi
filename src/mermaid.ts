@@ -1,4 +1,5 @@
 import { t } from "./i18n";
+import { namesAssetHost } from "./reach";
 
 type MermaidModule = typeof import("mermaid")["default"];
 
@@ -10,11 +11,18 @@ async function load(dark: boolean): Promise<MermaidModule> {
   // mermaid's dark theme draws edge labels on light grey boxes; the page background
   // makes them part of the page (the neutral theme's white box already fits light paper)
   const bg = dark ? getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() : "";
+  // its palette also has two fills that are all but black, with no border: #0b0000 (a mind
+  // map's first branch, a pie's first slice, a timeline's second period) and #161722 (the
+  // ninth). On the black page the box and its edges were gone: the theme's own grey and a
+  // lighter shade of the same blue take their place, the same on both dark pages. A Venn
+  // diagram's second set, whose red mermaid makes out of the first of the two, stays red:
+  // it sits next to a grey set, and a second grey would be told from it by nothing
+  const scale = { cScale1: "#474949", cScale9: "#3a3c59", venn2: "#a40000" };
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: "strict",
     theme: dark ? "dark" : "neutral",
-    ...(bg ? { themeVariables: { edgeLabelBackground: bg } } : {}),
+    ...(bg ? { themeVariables: { edgeLabelBackground: bg, ...scale } } : {}),
     fontFamily: '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
   });
   return mermaid;
@@ -23,6 +31,9 @@ async function load(dark: boolean): Promise<MermaidModule> {
 // The single render entry point, so the id counter stays single-sourced: two
 // SVGs sharing an id would make their url(#marker) references collide.
 export async function renderMermaidSvg(source: string, dark: boolean): Promise<string> {
+  // Mermaid lays a diagram out in the live page, with the diagram's own CSS, before any
+  // sanitizer sees the SVG: one that names the asset protocol's host is not drawn (reach.ts)
+  if (namesAssetHost(source)) throw new Error("a diagram cannot name the app's own file protocol");
   const m = await load(dark);
   const id = `mmd-${++seq}`;
   try {

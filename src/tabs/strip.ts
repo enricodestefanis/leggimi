@@ -26,6 +26,8 @@ export interface StripHost {
   moveToNewWindow(tab: Tab): void;
   reveal(path: string): void;
   copyPath(path: string): void;
+  /** pasted text into a file: "Save as…" (the tab comes forward first) */
+  saveAs(tab: Tab): void;
   /** the order changed (a drag along the strip) */
   reordered(): void;
   /** a tab pulled off the strip: it leaves for a window of its own, born under the pointer */
@@ -54,6 +56,7 @@ const ICON = {
   folder: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
   clipboard:
     '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
+  save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
 };
 
 const fileName = (p: string): string => p.split(/[\\/]/).pop() ?? p;
@@ -730,11 +733,13 @@ export const indexAtClient = (x: number): number => indexAt(x);
 /** A tab from another window hovers over this one: the strip opens a place for it. */
 export async function showGhost(h: TabHover): Promise<void> {
   const x = await clientX(h.x);
+  // no file: a start page (named "New tab", or not at all), else pasted text named by its title
+  const pasted = !h.path && !!h.title && h.title !== t("tab.newTab");
   if (!ghost) {
     ghost = document.createElement("div");
     ghost.className = "tab ghost";
     ghost.setAttribute("aria-hidden", "true");
-    ghost.innerHTML = `<span class="tab-icon">${svg(h.path ? ICON.doc : ICON.home, 14)}</span><span class="tab-title"></span>`;
+    ghost.innerHTML = `<span class="tab-icon">${svg(h.path ? ICON.doc : pasted ? ICON.clipboard : ICON.home, 14)}</span><span class="tab-title"></span>`;
     flash(ghost, "opening", "tab-in");
   }
   ghost.querySelector(".tab-title")!.textContent = h.path ? baseName(h.path) : h.title || t("tab.newTab");
@@ -770,6 +775,8 @@ function tabMenu(tab: Tab): contextMenu.MenuSpec {
     list.length > 1 && { label: t("tab.moveToWindow"), icon: ICON.window, run: () => host.moveToNewWindow(tab) },
     path !== null && { label: t("file.copyPath"), icon: ICON.copy, run: () => host.copyPath(path) },
     path !== null && { label: t("file.reveal"), icon: ICON.folder, run: () => host.reveal(path) },
+    // pasted text has neither: it can become a file
+    tab.src.kind === "pasted" && { label: t("tab.saveAs"), icon: ICON.save, kbd: keyLabel("Ctrl+S"), run: () => host.saveAs(tab) },
     "sep",
     { label: t("tab.closeTab"), icon: ICON.close, kbd: keyLabel("Ctrl+W"), run: () => host.close(tab) },
     list.length > 1 && { label: t("tab.closeOthers"), run: () => host.closeOthers(tab) },
@@ -822,6 +829,7 @@ function showCard(tab: Tab): void {
   if (!el || tab.closing || drag?.started || contextMenu.isOpen()) return;
   cardFor = tab;
   card.replaceChildren();
+  card.classList.toggle("pasted", tab.src.kind === "pasted");
   const name = document.createElement("div");
   name.className = "tab-card-name";
   name.textContent = nameOf(tab);

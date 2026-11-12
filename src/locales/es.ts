@@ -365,13 +365,19 @@ const es: Dict = {
   "msg.pasteEmpty": "No hay texto en el portapapeles: copia antes algo de Markdown.",
   "msg.pasteImage": "El portapapeles contiene una imagen, no texto.",
   "msg.pasteFailed": "No se pudo leer el portapapeles: {err}",
+  "msg.pasteBusy": "Otro programa está usando el portapapeles: vuelve a intentarlo en un momento.",
   "msg.pastedOpened": "«{name}» abierto desde el portapapeles.",
   "msg.pastedLink": "Los enlaces a otros archivos funcionan cuando este texto se guarda como archivo.",
+  "msg.otherComputer": "Un documento no puede abrir un archivo de otro equipo: {name}",
   "msg.imageNeedsFileTitle": "Guarda antes el documento",
   "msg.imageNeedsFileQ": "Las imágenes pegadas en un documento van a una carpeta «assets» junto a él. ¿Guardar antes este texto como archivo?",
   "msg.saveAsOpenDirty": "«{name}» está abierto en otra pestaña con cambios sin guardar: guarda antes esa pestaña o elige otro nombre.",
   "msg.pastedRecovered": "Se recuperó de la última sesión un texto pegado con cambios sin guardar.",
   "msg.pastedRecoveredN": "Se recuperaron de la última sesión {n} textos pegados con cambios sin guardar.",
+  "msg.closeWindowPastedOneQ": "«{name}» es texto pegado, aún sin archivo. ¿Guardarlo antes de cerrar la ventana?",
+  "msg.closeWindowPastedQ": "Estos textos pegados aún no están en un archivo: {names}. ¿Guardarlos antes de cerrar la ventana?",
+  "msg.closeWindowMixedQ": "Cambios sin guardar: {changed}. Texto pegado aún sin archivo: {pasted}. ¿Guardar todo antes de cerrar la ventana?",
+  "msg.unsavedTextTitle": "Texto sin guardar",
   "keys.paste": "Pegar Markdown como documento nuevo",
   "keys.palette": "Paleta de comandos",
   "pal.title": "Paleta de comandos",
@@ -395,6 +401,9 @@ const es: Dict = {
   "pal.resetSize": "Restablecer el tamaño del texto",
   "pal.editor": "Editor",
   "pal.current": "actual",
+  // palette commands that have no string of their own elsewhere
+  "cmd.keys": "Atajos de teclado",
+  "cmd.kwReading": "fuente tamaño texto interlineado ancho tema idioma",
 };
 
 export default es;

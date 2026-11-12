@@ -195,7 +195,9 @@ export function headCover(pane: HTMLElement, root: HTMLElement, y: number, after
     const r = table.getBoundingClientRect();
     const top = r.top - origin;
     if (top >= y) break; // in document order: the rest start further down
-    if (!table.tHead) continue;
+    // A table in a closed <details> holds no header anywhere, though asked
+    // for its box Chromium lays the hidden content out and answers as if open
+    if (!table.tHead || !table.checkVisibility()) continue;
     const head = table.tHead.getBoundingClientRect().height;
     const bottom = r.bottom - origin;
     const c = y < bottom ? Math.min(y - top, head) : after ? head - (y - bottom) : 0;

@@ -71,7 +71,10 @@ let nextId = 1;
 export const tabs: Tab[] = [];
 let front: Tab | null = null;
 
-/** A tab closed: what it showed (never a start page), where it was, the place being read. */
+/**
+ * A tab closed: what it showed (never a start page; pasted text comes back
+ * as it was pasted, with its id), where it was, the place being read.
+ */
 export interface ClosedTab {
   src: Exclude<TabSource, { kind: "start" }>;
   index: number;
@@ -160,7 +163,7 @@ export function move(tab: Tab, to: number): void {
 }
 
 export function rememberClosed(tab: Tab, index: number, anchor: ScrollAnchor | null): void {
-  if (tab.src.kind !== "file") return;
+  if (tab.src.kind === "start") return;
   closed.push({ src: tab.src, index, anchor });
   if (closed.length > MAX_CLOSED) closed.splice(0, closed.length - MAX_CLOSED);
 }

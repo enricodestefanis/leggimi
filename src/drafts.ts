@@ -1,7 +1,8 @@
 // Crash-recovery drafts: the unsaved editor buffer is parked in localStorage
 // while it is dirty, and offered back when the same file is opened again.
 // The draft never writes the file by itself; restoring it only fills the
-// editor, and the user still saves with Ctrl+S.
+// editor, and the user still saves with Ctrl+S. Pasted text that was changed
+// is kept here too, under "pasted:<id>", and comes back by itself at the next start.
 export interface Draft {
   text: string; // LF-normalized buffer
   at: number; // last update, ms since the epoch
@@ -62,6 +63,11 @@ export function put(path: string, text: string, base: string): void {
 export function get(path: string): Draft | null {
   const d = load()[norm(path)];
   return d && typeof d.text === "string" ? d : null;
+}
+
+/** Every draft's key, in lower case: a file's path, or "pasted:<id>" (docs.ts docKey). */
+export function keys(): string[] {
+  return Object.keys(load());
 }
 
 // the file was renamed while being edited: its draft goes with it

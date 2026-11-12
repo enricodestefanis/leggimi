@@ -24,8 +24,32 @@
           torna lì quando lo riapri.
         </p>
         <p>
-          Da un terminale, <code>leggimi file.md</code> apre un file e <code>--line 40</code> lo
-          apre a quella riga (<code>leggimi</code> è nel PATH dopo l'installazione).
+          <strong>Incolla e leggi:</strong> il Markdown copiato da ChatGPT, da Claude o da una pagina web si
+          legge senza doverlo prima salvare. Premi <kbd>Ctrl</kbd>+<kbd>V</kbd> in qualsiasi punto fuori
+          dall'editor e dalle caselle di testo (la barra di ricerca, i filtri), oppure usa <strong>Incolla dagli
+          appunti</strong> nella pagina iniziale o <strong>Incolla il Markdown come nuovo documento</strong>
+          nella palette dei comandi. Il testo si apre in una scheda tutta sua, che prende il nome dal primo
+          titolo (o, se manca, dalla prima riga): se la scheda davanti è la pagina iniziale, il testo prende il
+          suo posto; altrimenti si apre in una nuova scheda in primo piano. Si incolla solo testo (se negli
+          appunti c'è un'immagine, compare un avviso), e nell'editor <kbd>Ctrl</kbd>+<kbd>V</kbd> incolla come
+          sempre.
+        </p>
+        <p>
+          Il testo incollato si legge come qualsiasi documento, con indice, ricerca, stampa, PDF, esportazione
+          per Word e copia. Con <kbd>Ctrl</kbd>+<kbd>E</kbd> lo modifichi e con <kbd>Ctrl</kbd>+<kbd>S</kbd> lo
+          salvi in un file (<strong>Salva come…</strong>, con un nome proposto dal titolo); da quel momento è un
+          documento come gli altri. Se chiudi la sua scheda senza averlo modificato, Leggimi non chiede nulla e
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> lo riapre finché la finestra resta aperta; se l'hai
+          modificato, chiede se salvarlo. Se invece chiudi la finestra lo chiede sempre, modificato o no: il
+          testo non è in nessun file e andrebbe perso con la finestra. I link e le immagini che puntano ad
+          altri file funzionano quando il
+          testo è salvato in una cartella (prima, un link a un altro file lo segnala con un avviso). Se Leggimi
+          si chiude all'improvviso con modifiche non salvate, all'avvio successivo il testo torna, modifiche comprese.
+        </p>
+        <p>
+          Da un terminale, <code>leggimi file.md</code> apre un file, <code>--line 40</code> lo apre a quella
+          riga e <code>--new-window</code> in una finestra tutta sua (<code>leggimi --new-window</code> senza
+          file apre una finestra vuota); <code>leggimi</code> è nel PATH dopo l'installazione.
         </p>
 
         <h3>Schede e finestre</h3>
@@ -38,7 +62,7 @@
           <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> riapre l'ultima scheda chiusa. Prima di chiudere una
           scheda con modifiche non salvate Leggimi chiede: <strong>Salva</strong>, <strong>Non salvare</strong>
           o <strong>Annulla</strong>; chiudendo la finestra lo chiede una volta sola, elencando i documenti con
-          modifiche non salvate.
+          modifiche non salvate e i testi incollati che non sono ancora in un file.
         </p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> e gli altri tasti delle schede
@@ -98,7 +122,9 @@
         <h3>Scorciatoie da tastiera</h3>
         <table class="help-keys">
           <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td><td>Palette dei comandi (nell'editor solo <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Apri un file</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Incolla il Markdown come nuovo documento (fuori dall'editor)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Entra o esci dalla modifica</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Salva il file (in modifica)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Trova nel documento</td></tr>
@@ -130,6 +156,20 @@
             <tr><td><kbd>Esc</kbd></td><td>Chiudi la barra di ricerca, l'anteprima o questa guida</td></tr>
           </tbody>
         </table>
+        <p>
+          Nella <strong>palette dei comandi</strong> bastano poche lettere per trovare un comando (con accanto la
+          sua scorciatoia), un titolo del documento, una scheda aperta, un file della cartella o un file
+          recente. Accenti e maiuscole non contano, e in qualsiasi lingua i comandi rispondono anche al loro
+          nome inglese. <kbd>Invio</kbd> esegue o apre; <kbd>Ctrl</kbd>+<kbd>Invio</kbd> apre un file in una
+          nuova scheda, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Invio</kbd> in una nuova scheda in primo piano e
+          <kbd>Shift</kbd>+<kbd>Invio</kbd> in una nuova finestra; inizia con <kbd>&gt;</kbd> per vedere solo i
+          comandi o con <kbd>#</kbd> per i titoli del documento, ed <kbd>Esc</kbd> la chiude. Ci sono anche i
+          comandi senza un tasto proprio (<strong>Salva come PDF</strong>, <strong>Esporta come HTML /
+          DOCX</strong>, <strong>Mantieni in primo piano</strong>, i temi, <strong>Nuova pagina a ogni titolo
+          1</strong>, <strong>Impostazioni di lettura</strong>) e, mentre modifichi, quelli dell'editor.
+          Nell'editor <kbd>Ctrl</kbd>+<kbd>K</kbd> inserisce un link, quindi lì la palette si apre con
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>; <kbd>Ctrl</kbd>+<kbd>P</kbd> stampa come sempre.
+        </p>
         <p>
           Dalla tastiera, <kbd>Tab</kbd> raggiunge le schede, i pulsanti della barra degli strumenti e le
           impostazioni di lettura <strong>Aa</strong>, e si vede sempre dove si trova il focus; sulle schede
@@ -259,6 +299,14 @@
           <code>--line</code>) il titolo o il blocco su cui arrivi si illumina per un attimo, così l'occhio lo
           trova subito. Indietro e Avanti non lo illuminano.
         </p>
+        <p>
+          Quando l'indice è chiuso, o la finestra è troppo stretta per mostrarlo, una riga sottile in cima al
+          testo tiene in vista <strong>la sezione che stai leggendo</strong>: il suo titolo e quelli che la
+          contengono, per esempio <em>2. Decisioni › 2.1 Budget</em>, senza il titolo del documento. Compare
+          quando quel titolo esce dallo schermo in alto, e si fa da parte quando in cima c'è un titolo o la riga
+          di intestazione di una tabella; un clic su una sua parte riporta a quel titolo. C'è solo in lettura
+          (non nell'anteprima dell'editor) e non viene mai stampata.
+        </p>
 
         <h3>Ricarica automatica</h3>
         <p>I file aperti vengono osservati sul disco. Quando uno cambia, la vista si aggiorna da sola e mantiene la posizione di lettura: utile mentre un documento viene rigenerato; una scheda in secondo piano si mette in pari quando ci torni. In modifica l'aggiornamento avviene solo finché il tuo buffer non ha modifiche non salvate.</p>
@@ -267,12 +315,13 @@
         <h3>Rendering</h3>
         <ul>
           <li>Markdown in stile GitHub: tabelle, elenchi di attività, barrato, link automatici. Gli indirizzi web diventano link, anche quelli che iniziano con <code>www.</code>, come su GitHub; i nomi di file come <code>README.md</code> restano testo.</li>
+          <li>Gli a capo seguono CommonMark, come fa GitHub quando mostra un file: un singolo a capo dentro un paragrafo vale come uno spazio; per andare a capo, chiudi la riga con due spazi o con una barra rovesciata (<code>\</code>).</li>
           <li>I blocchi di codice sono evidenziati e hanno un pulsante di copia al passaggio del mouse.</li>
           <li>I blocchi <code>mermaid</code> diventano diagrammi; una sintassi non valida torna al blocco di codice con una nota di errore.</li>
           <li>Una tabella o un diagramma più largo della colonna di lettura si allarga fino a tutta la larghezza disponibile, centrato: niente scorrimento laterale, e il testo del diagramma mantiene la sua dimensione.</li>
           <li>In una tabella lunga la riga di intestazione resta in cima alla finestra mentre leggi, finché non passa l'ultima riga della tabella. Una tabella troppo larga anche per tutta la finestra scorre di lato: la sua barra di scorrimento resta in fondo alla finestra finché la tabella è in vista, così non serve arrivare alla fine della tabella per spostarla; anche <kbd>Shift</kbd>+rotellina e il touchpad funzionano in qualunque punto della tabella.</li>
           <li>Fai clic su un diagramma o un'immagine per aprirlo a tutta finestra: <kbd>+</kbd> / <kbd>−</kbd> o la rotellina ingrandiscono, trascinare sposta ed <kbd>Esc</kbd> chiude. <strong>Adatta</strong> (<kbd>0</kbd>) lo adatta alla finestra, <strong>Larghezza</strong> (<kbd>W</kbd>) alla larghezza, partendo dall'alto, e <strong>100%</strong> (<kbd>1</kbd>) lo mostra alle dimensioni reali. Il pulsante di copia offre l'immagine come PNG (normale o grande), un diagramma anche come SVG, ed entrambi si possono salvare su file.</li>
-          <li>Le formule usano KaTeX: <code>$…$</code> in linea, <code>$$…$$</code> o un blocco di codice <code>math</code> per le formule centrate.</li>
+          <li>Le formule usano KaTeX: <code>$…$</code> in linea, <code>$$…$$</code> o un blocco di codice <code>math</code> (anche con un titolo dopo <code>math</code>) per le formule centrate. Il simbolo <code>$</code> si legge come su GitHub: un blocco <code>$$</code> si apre solo se viene chiuso, così un prezzo come <code>$$ 100</code> non trasforma in formula il resto del documento; il testo dopo un <code>$$</code> di chiusura resta; <code>$$…$$</code> in mezzo a una frase mostra la formula senza spezzare il paragrafo; <code>$ x $</code> con spazi all'interno e importi come <code>$5 e $10</code> restano testo.</li>
           <li>Riquadri in stile GitHub: una citazione che inizia con <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>.</li>
           <li>Note a piè di pagina: <code>[^1]</code> nel testo e <code>[^1]: …</code> ovunque; le note vengono raccolte in fondo, con i collegamenti di andata e ritorno.</li>
           <li>Gli elenchi di attività sono attivi: un clic su una casella aggiorna subito <code>[ ]</code> / <code>[x]</code> nel file (con <em>Annulla</em> nell'avviso), o nel buffer dell'editor mentre stai modificando. Spunta solo la casella: un clic o un doppio clic sul testo dell'attività, per selezionare una parola, non cambia nulla.</li>

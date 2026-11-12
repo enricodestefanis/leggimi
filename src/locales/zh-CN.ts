@@ -365,13 +365,19 @@ const zh: Dict = {
   "msg.pasteEmpty": "剪贴板中没有文本：请先复制一些 Markdown。",
   "msg.pasteImage": "剪贴板中是图片，不是文本。",
   "msg.pasteFailed": "无法读取剪贴板：{err}",
+  "msg.pasteBusy": "另一个程序正在使用剪贴板：请稍后再试。",
   "msg.pastedOpened": "已从剪贴板打开“{name}”。",
   "msg.pastedLink": "将此文本保存为文件后，指向其他文件的链接才能使用。",
+  "msg.otherComputer": "文档无法打开另一台计算机上的文件：{name}",
   "msg.imageNeedsFileTitle": "请先保存文档",
   "msg.imageNeedsFileQ": "粘贴到文档中的图片会保存在文档旁边的“assets”文件夹中。要先将此文本保存为文件吗？",
   "msg.saveAsOpenDirty": "“{name}”已在另一个标签页中打开且有未保存的更改：请先保存该标签页，或选择其他名称。",
   "msg.pastedRecovered": "已从上次会话中恢复一段有未保存更改的粘贴文本。",
   "msg.pastedRecoveredN": "已从上次会话中恢复 {n} 段有未保存更改的粘贴文本。",
+  "msg.closeWindowPastedOneQ": "“{name}”是粘贴的文本，尚未保存为文件。要在关闭窗口前保存吗？",
+  "msg.closeWindowPastedQ": "以下粘贴的文本尚未保存为文件：{names}。要在关闭窗口前保存吗？",
+  "msg.closeWindowMixedQ": "有未保存的更改：{changed}。尚未保存为文件的粘贴文本：{pasted}。要在关闭窗口前全部保存吗？",
+  "msg.unsavedTextTitle": "未保存的文本",
   "keys.paste": "将 Markdown 粘贴为新文档",
   "keys.palette": "命令面板",
   "pal.title": "命令面板",
@@ -395,6 +401,9 @@ const zh: Dict = {
   "pal.resetSize": "重置文字大小",
   "pal.editor": "编辑器",
   "pal.current": "当前",
+  // palette commands that have no string of their own elsewhere
+  "cmd.keys": "键盘快捷键",
+  "cmd.kwReading": "字体 文字大小 行距 栏宽 主题 语言",
 };
 
 export default zh;

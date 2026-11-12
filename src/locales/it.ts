@@ -365,13 +365,19 @@ const it: Dict = {
   "msg.pasteEmpty": "Negli appunti non c'è testo: copia prima del Markdown.",
   "msg.pasteImage": "Negli appunti c'è un'immagine, non del testo.",
   "msg.pasteFailed": "Non è stato possibile leggere gli appunti: {err}",
+  "msg.pasteBusy": "Gli appunti sono in uso da un altro programma: riprova tra un attimo.",
   "msg.pastedOpened": "«{name}» aperto dagli appunti.",
   "msg.pastedLink": "I link ad altri file funzionano dopo aver salvato questo testo in un file.",
+  "msg.otherComputer": "Un documento non può aprire un file su un altro computer: {name}",
   "msg.imageNeedsFileTitle": "Prima salva il documento",
   "msg.imageNeedsFileQ": "Le immagini incollate in un documento vanno in una cartella «assets» accanto al file. Vuoi prima salvare questo testo in un file?",
   "msg.saveAsOpenDirty": "«{name}» è aperto in un'altra scheda con modifiche non salvate: salva prima quella scheda o scegli un altro nome.",
   "msg.pastedRecovered": "Recuperato dall'ultima sessione un testo incollato con modifiche non salvate.",
   "msg.pastedRecoveredN": "Recuperati dall'ultima sessione {n} testi incollati con modifiche non salvate.",
+  "msg.closeWindowPastedOneQ": "«{name}» è testo incollato, non ancora in un file. Vuoi salvarlo prima di chiudere la finestra?",
+  "msg.closeWindowPastedQ": "Questi testi incollati non sono ancora in un file: {names}. Vuoi salvarli prima di chiudere la finestra?",
+  "msg.closeWindowMixedQ": "Modifiche non salvate: {changed}. Testo incollato non ancora in un file: {pasted}. Vuoi salvare tutto prima di chiudere la finestra?",
+  "msg.unsavedTextTitle": "Testo non salvato",
   "keys.paste": "Incolla il Markdown come nuovo documento",
   "keys.palette": "Palette dei comandi",
   "pal.title": "Palette dei comandi",
@@ -395,6 +401,9 @@ const it: Dict = {
   "pal.resetSize": "Ripristina la dimensione del testo",
   "pal.editor": "Editor",
   "pal.current": "attuale",
+  // palette commands that have no string of their own elsewhere
+  "cmd.keys": "Scorciatoie da tastiera",
+  "cmd.kwReading": "carattere dimensione testo interlinea larghezza tema lingua",
 };
 
 export default it;

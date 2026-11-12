@@ -3,8 +3,9 @@
 //! outside the app (double-click, "Open with", `leggimi file.md`) comes to
 //! the front where a tab has it already, else gets a new tab in the window
 //! used last (a window on its start page alone first); a window of its own
-//! only when there is none. Inside the app, Shift+click, "Open in a new
-//! window", Ctrl+Shift+N and a torn-off tab make a new window.
+//! only when there is none, or when `leggimi --new-window` asks for one.
+//! Inside the app, Shift+click, "Open in a new window", Ctrl+Shift+N and a
+//! torn-off tab make a new window.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -126,7 +127,10 @@ enum Routed {
 /// Decides where a launch goes and claims it there, under the lock: a burst
 /// of launches (they can arrive together) finds each file on its way to the
 /// window that took it, so none is lost and none opened twice. `canon`: the
-/// launch's file, canonical, when it exists.
+/// launch's file, canonical, when it exists. `--new-window` always gets a
+/// window of its own: on its start page without a file, and also for a file
+/// another window shows; a file that is not there is said missing by its
+/// page, as anywhere else.
 fn claim(
     windows: &mut HashMap<String, WindowSlot>,
     focus: &[String],
@@ -139,7 +143,8 @@ fn claim(
     if let Some(c) = &canon {
         launch.path = Some(c.to_string_lossy().into_owned());
     }
-    match target(windows, focus, file.as_deref()) {
+    let to = if launch.new_window { Target::New } else { target(windows, focus, file.as_deref()) };
+    match to {
         Target::Front(label) => Routed::Front(label),
         Target::Activate(label) => {
             let slot = &windows[&label];
@@ -175,9 +180,10 @@ fn claim(
 }
 
 /// A launch from outside the app (a second `leggimi` process forwarded by
-/// the single-instance plugin), routed as `target` says. A file that is not
-/// there (a typo, a dead jump-list entry) goes by the same rules: the page
-/// that gets it says it is missing.
+/// the single-instance plugin), routed as `target` says, or to a window of
+/// its own for `--new-window`. A file that is not there (a typo, a dead
+/// jump-list entry) goes by the same rules: the page that gets it says it is
+/// missing.
 pub fn route_launch(app: &AppHandle, launch: Launch) {
     route(app, launch, 2);
 }
@@ -415,6 +421,7 @@ mod tests {
             ..Default::default()
         };
         let opening = |file: &str| WindowSlot { opening: vec![PathBuf::from(file)], ..slot(true, &[]) };
+        let pasted = |tabs: u32| WindowSlot { pasted: tabs, ..slot(true, &[]) };
         #[rustfmt::skip]
         let table: Vec<(&str, Vec<(&str, WindowSlot)>, Vec<String>, Option<&str>, Target)> = vec![
             ("1. in a tab of the window used last",
@@ -439,6 +446,13 @@ mod tests {
                 vec![("main", slot(true, &[B])), ("doc-1", opening(GONE))], focus(&["main", "doc-1"]), Some(A), tab("main")),
             ("2. not one still loading (its own launch may hold a file)",
                 vec![("main", slot(true, &[B])), ("doc-1", loading(None))], focus(&["main"]), Some(A), tab("main")),
+            ("2. not one holding pasted text alone: no file, yet no start page",
+                vec![("main", slot(true, &[B])), ("doc-1", pasted(1))], focus(&["main", "doc-1"]), Some(A), tab("main")),
+            ("2. a start page alone still is, past one holding pasted text",
+                vec![("main", slot(true, &[B])), ("doc-1", pasted(2)), ("doc-2", slot(true, &[]))],
+                focus(&["main", "doc-1", "doc-2"]), Some(A), tab("doc-2")),
+            ("3. the window used last also when it holds pasted text alone: a new tab beside it",
+                vec![("main", slot(true, &[B])), ("doc-1", pasted(1))], focus(&["doc-1", "main"]), Some(A), tab("doc-1")),
             ("3. the window used last",
                 vec![("main", slot(true, &[B])), ("doc-1", slot(true, &[GONE]))], focus(&["doc-1", "main"]), Some(A), tab("doc-1")),
             ("3. the window used last, minimized or not: route_launch restores it",
@@ -532,7 +546,7 @@ mod tests {
         for (label, slot) in w.iter_mut() {
             let docs: Vec<PathBuf> =
                 pages.opened.iter().filter(|(l, _)| l == label).map(|(_, p)| PathBuf::from(p)).collect();
-            crate::commands::tabs_changed(slot, docs, None);
+            crate::commands::tabs_changed(slot, docs, None, 0);
         }
     }
 
@@ -644,14 +658,97 @@ mod tests {
         launch(&mut w, &focus, &mut next, &mut pages, B);
         assert_eq!(w["main"].opening.len(), 2);
         // the page reports A before B arrives
-        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![PathBuf::from(A)], Some(PathBuf::from(A)));
+        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![PathBuf::from(A)], Some(PathBuf::from(A)), 0);
         assert_eq!(w["main"].opening, vec![PathBuf::from(B)], "B is still on its way");
         assert!(!w["main"].idle());
-        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![PathBuf::from(A), PathBuf::from(B)], None);
+        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![PathBuf::from(A), PathBuf::from(B)], None, 0);
         assert!(w["main"].opening.is_empty());
-        // its tabs all closed: a start page again, free for the next launch
-        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![], None);
+        // its tabs all closed but one of pasted text: still no start page
+        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![], None, 1);
+        assert!(!w["main"].idle());
+        // that one closed too: a start page again, free for the next launch
+        crate::commands::tabs_changed(w.get_mut("main").unwrap(), vec![], None, 0);
         assert!(w["main"].idle());
+    }
+
+    #[test]
+    fn a_torn_off_pasted_tab_keeps_its_window_from_the_start_page_rule() {
+        let pasted = serde_json::json!({
+            "v": 1, "path": null,
+            "pasted": { "id": "p1", "title": "Notes", "original": "# Notes", "home": null, "content": "# Notes" }
+        });
+        let mut w = windows(vec![
+            ("main", slot(true, &[B])),
+            ("doc-1", WindowSlot::reserved(Launch { transfer: Some(pasted), ..Default::default() }, None)),
+        ]);
+        let focus = focus(&["main", "doc-1"]);
+        assert!(!w["doc-1"].idle(), "being built");
+        let initial = crate::commands::start(w.get_mut("doc-1").unwrap()).expect("its tab");
+        assert!(initial.pasted() && initial.path.is_none(), "the page gets the tab as it was");
+        assert!(crate::commands::shown(w.get_mut("doc-1").unwrap()).is_empty());
+        // shown, before its page first calls set_tabs
+        assert!(!w["doc-1"].idle(), "its pasted text is no start page");
+        assert_eq!(target(&w, &focus, Some(Path::new(A))), tab("main"), "a file goes to the window used last");
+        // the page reports its tab, then closes it: a start page again
+        crate::commands::tabs_changed(w.get_mut("doc-1").unwrap(), vec![], None, 1);
+        assert_eq!(target(&w, &focus, Some(Path::new(A))), tab("main"));
+        crate::commands::tabs_changed(w.get_mut("doc-1").unwrap(), vec![], None, 0);
+        assert_eq!(target(&w, &focus, Some(Path::new(A))), tab("doc-1"), "free again");
+
+        // a start page torn off carries no pasted text: free from the start
+        let start_page = serde_json::json!({ "v": 1, "path": null, "pasted": null });
+        let mut s = WindowSlot::reserved(Launch { transfer: Some(start_page), ..Default::default() }, None);
+        crate::commands::start(&mut s);
+        crate::commands::shown(&mut s);
+        assert!(s.idle(), "a start page torn off is free");
+    }
+
+    #[test]
+    fn new_window_launches_get_a_window_of_their_own_whatever_the_others_hold() {
+        // main: on its start page alone; doc-1 shows A
+        let mut w = windows(vec![("main", slot(true, &[])), ("doc-1", slot(true, &[A]))]);
+        let focus = focus(&["doc-1", "main"]);
+        let mut next = 1;
+        let mut new_window = |w: &mut HashMap<String, WindowSlot>, file: Option<&str>, exists: bool| {
+            let l = Launch { path: file.map(str::to_owned), new_window: true, ..Default::default() };
+            let canon = file.filter(|_| exists).map(PathBuf::from);
+            match claim(w, &focus, l, canon, || {
+                next += 1;
+                format!("doc-{next}")
+            }) {
+                Routed::Build(label) => label,
+                other => panic!("a window of its own, not {other:?}"),
+            }
+        };
+
+        // a file another window shows: a window of its own all the same
+        let label = new_window(&mut w, Some(A), true);
+        assert_eq!(label, "doc-2");
+        let made = &w[&label];
+        assert_eq!(made.launch.as_ref().and_then(|l| l.path.as_deref()), Some(A));
+        assert_eq!(made.launch.as_ref().and_then(|l| l.mode), None, "its own launch has no mode");
+        assert!(made.holds(Path::new(A)), "on its way there");
+        // no file: an empty window, the start page of main left alone
+        let label = new_window(&mut w, None, false);
+        assert_eq!(w[&label].launch.as_ref().map(|l| l.path.is_none()), Some(true));
+        assert!(w[&label].opening.is_empty());
+        assert!(w["main"].idle(), "not taken over");
+        // a file that is not there: a window of its own, whose page says it is missing
+        let label = new_window(&mut w, Some(GONE), false);
+        assert_eq!(w[&label].launch.as_ref().and_then(|l| l.path.as_deref()), Some(GONE), "its full path");
+        assert!(w[&label].opening.is_empty());
+        // a burst: one window each, none lost, none merged
+        let before = w.len();
+        let burst: Vec<String> = (0..3).map(|_| new_window(&mut w, Some(B), true)).collect();
+        assert_eq!(w.len(), before + 3);
+        assert_eq!(burst.iter().collect::<HashSet<_>>().len(), 3);
+
+        // the same launch without the flag goes by the rules: A comes forward in doc-1
+        let l = Launch { path: Some(A.to_owned()), ..Default::default() };
+        match claim(&mut w, &focus, l, Some(PathBuf::from(A)), || unreachable!("no new window")) {
+            Routed::Emit(label, l) => assert_eq!((label.as_str(), l.mode), ("doc-1", Some(Mode::Activate))),
+            other => panic!("an activate, not {other:?}"),
+        }
     }
 
     #[test]

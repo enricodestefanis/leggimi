@@ -1,0 +1,142 @@
+/* The path of the section being read (sectionLine.ts), held at the top of
+   the document pane while the outline is out of sight. It takes no room:
+   its height is given back below it, as the reading progress does, so it
+   comes and goes without moving the text, which passes under it. Over the
+   document (isolated, layout.css), under the find and notice bars (10) and
+   the progress hairline (11). While it shows, those two bars float below it
+   (ui.css), so neither hides the path. */
+#section-line {
+  /* the article's side padding (layout.css: --column-pad, which lives on
+     the article itself), for the path to start where the text does */
+  --sl-pad: 32px;
+  /* a part's own side padding, its hover fill around the name */
+  --sl-seg-x: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  /* sectionLine.ts: LINE_H */
+  height: var(--section-line-h, 30px);
+  margin-bottom: calc(-1 * var(--section-line-h, 30px));
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  user-select: none;
+  transition:
+    opacity 0.16s var(--ease),
+    display 0.16s allow-discrete;
+}
+
+/* it fades out, and only then leaves; Chromium stops hitting it as the fade
+   begins, so the text under it can be clicked at once (sectionLine.ts keeps
+   a double click on a part from reaching that text) */
+#section-line[hidden] {
+  display: none;
+  opacity: 0;
+}
+
+@starting-style {
+  #section-line {
+    opacity: 0;
+  }
+}
+
+/* the soft shade of an edge the text goes under, as below a table's stuck
+   header (markdown.css), under the border */
+#section-line::after {
+  content: "";
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(var(--edge-shade, transparent), transparent);
+  pointer-events: none;
+}
+
+/* the reading column's width and place (layout.css: article); each part's
+   padding hangs out to the left of the text's edge, as the landing band does */
+#section-line .sl-path {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: var(--reader-max-width);
+  margin-inline: auto;
+  padding-inline: calc(var(--sl-pad) - var(--sl-seg-x));
+  overflow: hidden;
+}
+
+/* The outer parts take no room of their own (a zero basis): they share,
+   equally, what the section being read leaves them, each up to its whole
+   name. So a short one stays whole while a long one gives way, and the
+   section being read keeps its name until the outer ones are down to a few
+   letters each. (Shrinking them in proportion to their length cut a short
+   one too.) A part shorter than its minimum sits in the middle of it; a
+   longer one starts at its start, cut short. */
+#section-line .sl-seg {
+  flex: 1 1 0;
+  min-width: 3em;
+  max-width: max-content;
+  padding: 3px var(--sl-seg-x);
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+
+#section-line .sl-seg:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+#section-line .sl-seg:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+#section-line .sl-sep {
+  flex: none;
+  padding: 0 1px;
+  opacity: 0.55;
+}
+
+/* the article's narrower padding in a narrow pane */
+@container (max-width: 640px) {
+  #section-line {
+    --sl-pad: 20px;
+  }
+}
+
+@container (max-width: 420px) {
+  #section-line {
+    --sl-pad: 14px;
+  }
+}
+
+/* High contrast: the part under the pointer inverted, as Windows does */
+@media (forced-colors: active) {
+  #section-line .sl-seg:hover {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+/* the screen's affair: paper and exports have the whole document */
+@media print {
+  #section-line {
+    display: none !important;
+  }
+}

@@ -2,6 +2,8 @@ interface SearchEls {
   root: HTMLElement; // the article to search in
   pane: HTMLElement; // the scroll container
   bar: HTMLElement;
+  /** the notice bar, which floats at the top of the pane too (beside the find bar, or under it) */
+  notice?: HTMLElement;
   input: HTMLInputElement;
   counter: HTMLElement;
   btnPrev: HTMLButtonElement;
@@ -130,7 +132,13 @@ function scrollToCurrent(): void {
   revealSideways(ranges[idx]);
   const r = ranges[idx].getBoundingClientRect();
   const p = els.pane.getBoundingClientRect();
-  if (r.top < p.top + 60 || r.bottom > p.bottom - 60) {
+  // the band at the top the bars float over: 60px with the find bar at its
+  // usual 10px, more when they reach lower (under the section's path, or the
+  // notice under the find bar: ui.css, bars.ts): 8px below the lowest of them
+  let low = els.bar.getBoundingClientRect().bottom;
+  if (els.notice && els.notice.offsetWidth > 0) low = Math.max(low, els.notice.getBoundingClientRect().bottom);
+  const band = Math.max(60, low - p.top + 8);
+  if (r.top < p.top + band || r.bottom > p.bottom - 60) {
     els.pane.scrollBy({ top: r.top - p.top - p.height / 2 });
   }
 }

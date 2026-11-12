@@ -25,8 +25,34 @@
           êtes arrêté</strong> et y revient à la prochaine ouverture.
         </p>
         <p>
-          Depuis un terminal, <code>leggimi fichier.md</code> ouvre un fichier et <code>--line 40</code>
-          l'ouvre à cette ligne (la commande <code>leggimi</code> est disponible une fois l'application installée).
+          <strong>Coller et lire :</strong> le Markdown copié depuis ChatGPT, Claude ou une page web se lit sans
+          l'enregistrer d'abord. Appuyez sur <kbd>Ctrl</kbd>+<kbd>V</kbd> n'importe où hors de l'éditeur et des
+          champs de saisie (la barre de recherche, les filtres), ou utilisez <strong>Coller depuis le
+          presse-papiers</strong> sur la page d'accueil ou <strong>Coller du Markdown comme nouveau
+          document</strong> dans la palette de commandes. Le texte s'ouvre dans son propre onglet, nommé d'après
+          son premier titre (à défaut, sa première ligne) : si l'onglet au premier plan est une page d'accueil,
+          il devient ce document ; sinon, un nouvel onglet s'ouvre au premier plan. Seul du texte est collé (si
+          le presse-papiers contient une image, un avis le signale), et dans l'éditeur
+          <kbd>Ctrl</kbd>+<kbd>V</kbd> colle comme d'habitude.
+        </p>
+        <p>
+          Le texte collé se lit comme n'importe quel document, avec le plan, la recherche, l'impression, le PDF,
+          Word et la copie. <kbd>Ctrl</kbd>+<kbd>E</kbd> le modifie et <kbd>Ctrl</kbd>+<kbd>S</kbd> l'enregistre
+          dans un fichier (<strong>Enregistrer sous…</strong>, avec un nom proposé d'après son titre) ; il devient
+          alors un document comme les autres. Fermer son onglet sans modification ne demande rien, et
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> le rouvre tant que la fenêtre reste ouverte ; avec des
+          modifications, Leggimi demande s'il faut l'enregistrer. Fermer la fenêtre pose la question dans tous
+          les cas, avec ou sans modifications : le texte n'est dans aucun fichier et disparaîtrait avec la
+          fenêtre. Les liens et les images qui pointent vers
+          d'autres fichiers fonctionnent une fois le texte enregistré dans un dossier (d'ici là, un lien vers un
+          autre fichier le signale). Si Leggimi se ferme de façon inattendue avec des modifications, le texte revient
+          au démarrage suivant, modifications comprises.
+        </p>
+        <p>
+          Depuis un terminal, <code>leggimi fichier.md</code> ouvre un fichier, <code>--line 40</code> l'ouvre
+          à cette ligne et <code>--new-window</code> dans sa propre fenêtre (<code>leggimi --new-window</code>
+          sans fichier ouvre une fenêtre vide) ; la commande <code>leggimi</code> est disponible une fois
+          l'application installée.
         </p>
 
         <h3>Onglets et fenêtres</h3>
@@ -39,7 +65,8 @@
           <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> rouvre le dernier onglet fermé. Un onglet qui contient des
           modifications non enregistrées pose la question avant de se fermer : <strong>Enregistrer</strong>,
           <strong>Ne pas enregistrer</strong> ou <strong>Annuler</strong> ; fermer la fenêtre ne la pose qu'une
-          fois, en listant les documents qui contiennent des modifications non enregistrées.
+          fois, en listant les documents qui contiennent des modifications non enregistrées et les textes collés
+          qui ne sont pas encore dans un fichier.
         </p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> et les autres touches des
@@ -99,7 +126,9 @@
         <h3>Raccourcis clavier</h3>
         <table class="help-keys">
           <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>P</kbd></td><td>Palette de commandes (dans l'éditeur, seulement <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>P</kbd>)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Ouvrir un fichier</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Coller du Markdown comme nouveau document (hors de l'éditeur)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Entrer ou sortir du mode édition</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Enregistrer le fichier (en édition)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Chercher dans le document</td></tr>
@@ -131,6 +160,21 @@
             <tr><td><kbd>Échap</kbd></td><td>Fermer la barre de recherche, l'aperçu ou cette aide</td></tr>
           </tbody>
         </table>
+        <p>
+          Dans la <strong>palette de commandes</strong>, quelques lettres suffisent pour trouver une commande
+          (avec son raccourci à côté), un titre du document, un onglet ouvert, un fichier du dossier ou un
+          fichier récent. Les accents et les majuscules ne comptent pas, et les noms anglais des commandes
+          fonctionnent dans toutes les langues. <kbd>Entrée</kbd> exécute ou ouvre ;
+          <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> ouvre un fichier dans un nouvel onglet,
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>Entrée</kbd> dans un nouvel onglet au premier plan et
+          <kbd>Maj</kbd>+<kbd>Entrée</kbd> dans une nouvelle fenêtre ; commencez par <kbd>&gt;</kbd> pour n'avoir
+          que les commandes, ou par <kbd>#</kbd> pour les titres du document, et <kbd>Échap</kbd> la ferme. Les
+          commandes sans touche propre y sont aussi (<strong>Enregistrer en PDF</strong>, <strong>Exporter en
+          HTML / DOCX</strong>, <strong>Garder au premier plan</strong>, les thèmes, <strong>Nouvelle page à
+          chaque titre 1</strong>, <strong>Réglages de lecture</strong>) et, pendant l'édition, celles de
+          l'éditeur. Dans l'éditeur, <kbd>Ctrl</kbd>+<kbd>K</kbd> insère un lien : la palette s'y ouvre donc avec
+          <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>P</kbd> ; <kbd>Ctrl</kbd>+<kbd>P</kbd> imprime toujours.
+        </p>
         <p>
           Au clavier, <kbd>Tab</kbd> atteint les onglets, les boutons de la barre d'outils et les réglages de
           lecture <strong>Aa</strong>, et le focus reste toujours visible ; sur les onglets, <kbd>←</kbd> /
@@ -262,6 +306,14 @@
           <code>--line</code> — le titre ou le bloc où vous arrivez s'illumine un instant, pour que l'œil le
           trouve. Précédent et Suivant ne l'illuminent pas.
         </p>
+        <p>
+          Quand le plan est fermé, ou que la fenêtre est trop étroite pour lui, une fine ligne en haut du texte
+          affiche <strong>la section que vous lisez</strong> : son titre et les titres qui la contiennent, par
+          exemple <em>2. Décisions › 2.1 Budget</em>, sans le titre du document. Elle apparaît dès que ce titre
+          est sorti de la vue par le haut, et s'efface tant qu'un titre ou la ligne d'en-tête d'un tableau occupe
+          le haut ; un clic sur l'une de ses parties ramène à ce titre. Elle n'apparaît qu'en lecture (pas dans
+          l'aperçu de l'éditeur) et n'est jamais imprimée.
+        </p>
 
         <h3>Rechargement automatique</h3>
         <p>Les fichiers ouverts sont surveillés sur le disque. Quand l'un d'eux change, la vue se rafraîchit d'elle-même en gardant votre position de lecture — utile pendant qu'un document est régénéré ; un onglet en arrière-plan se met à jour quand vous y revenez. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée.</p>
@@ -270,12 +322,13 @@
         <h3>Rendu</h3>
         <ul>
           <li>Markdown à la GitHub : tableaux, listes de tâches, barré, liens automatiques. Les adresses web deviennent des liens, y compris celles qui commencent par <code>www.</code>, comme sur GitHub ; les noms de fichiers comme <code>README.md</code> restent du texte.</li>
+          <li>Les retours à la ligne suivent CommonMark, comme GitHub quand il affiche un fichier : un simple retour à la ligne dans un paragraphe compte comme une espace ; pour forcer le retour à la ligne, terminez la ligne par deux espaces ou par une barre oblique inverse (<code>\</code>).</li>
           <li>Les blocs de code sont colorés et ont un bouton de copie au survol.</li>
           <li>Les blocs <code>mermaid</code> deviennent des diagrammes ; une syntaxe invalide retombe sur le bloc de code avec une note d'erreur.</li>
           <li>Un tableau ou un diagramme plus large que la colonne de lecture s'élargit jusqu'à toute la largeur disponible, centré : pas de défilement horizontal, et le texte du diagramme garde sa taille.</li>
           <li>Dans un long tableau, la ligne d'en-tête reste en haut de la fenêtre pendant la lecture, jusqu'à ce que la dernière ligne du tableau soit passée. Un tableau trop large même pour toute la fenêtre défile horizontalement : sa barre de défilement reste en bas de la fenêtre tant que le tableau est visible, inutile donc d'aller au bout du tableau pour le déplacer ; <kbd>Maj</kbd>+molette et le pavé tactile fonctionnent aussi n'importe où sur le tableau.</li>
           <li>Cliquez sur un diagramme ou une image pour l'ouvrir en plein écran : <kbd>+</kbd> / <kbd>−</kbd> ou la molette zooment, glisser déplace et <kbd>Échap</kbd> ferme. <strong>Ajuster</strong> (<kbd>0</kbd>) l'ajuste à la fenêtre, <strong>Largeur</strong> (<kbd>W</kbd>) à la largeur, en partant du haut, et <strong>100 %</strong> (<kbd>1</kbd>) l'affiche à sa taille réelle. Le bouton de copie propose l'image en PNG (normal ou grand), un diagramme aussi en SVG, et les deux peuvent être enregistrés dans un fichier.</li>
-          <li>Les formules utilisent KaTeX : <code>$…$</code> en ligne, <code>$$…$$</code> ou un bloc de code <code>math</code> pour les formules centrées.</li>
+          <li>Les formules utilisent KaTeX : <code>$…$</code> en ligne, <code>$$…$$</code> ou un bloc de code <code>math</code> (même avec un titre après <code>math</code>) pour les formules centrées. Les dollars se lisent comme sur GitHub : un bloc <code>$$</code> ne s'ouvre que s'il est fermé, si bien qu'un prix comme <code>$$ 100</code> ne transforme pas le reste du document en formule ; le texte qui suit un <code>$$</code> fermant est conservé ; <code>$$…$$</code> au milieu d'une phrase affiche la formule sans couper le paragraphe ; <code>$ x $</code> avec des espaces à l'intérieur et les montants comme <code>$5 et $10</code> restent du texte.</li>
           <li>Encadrés à la GitHub : une citation commençant par <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> ou <code>[!CAUTION]</code>.</li>
           <li>Notes de bas de page : <code>[^1]</code> dans le texte et <code>[^1]: …</code> n'importe où ; les notes sont rassemblées à la fin, avec des liens aller-retour.</li>
           <li>Les listes de tâches sont actives : cliquer sur une case met aussitôt à jour <code>[ ]</code> / <code>[x]</code> dans le fichier (avec <em>Annuler</em> dans l'avis), ou dans le tampon de l'éditeur pendant l'édition. Seule la case coche la tâche : cliquer ou double-cliquer sur son texte, pour sélectionner un mot, ne change rien.</li>

@@ -1,5 +1,7 @@
 import MarkdownIt from "markdown-it";
 import type { RenderRule } from "markdown-it/lib/renderer.mjs";
+import type StateBlock from "markdown-it/lib/rules_block/state_block.mjs";
+import type StateInline from "markdown-it/lib/rules_inline/state_inline.mjs";
 import anchor from "markdown-it-anchor";
 import taskLists from "markdown-it-task-lists";
 import githubAlerts from "markdown-it-github-alerts";
@@ -10,10 +12,12 @@ import DOMPurify from "dompurify";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { resolvePath } from "./ipc";
+import { dropAppProtocol, namesAppProtocol, reachable } from "./reach";
 import { unmark as unmarkZoomable } from "./lightbox";
 import * as fm from "./frontmatter";
 import { t } from "./i18n";
 import { tableToTsv } from "./tables";
+import { collectMedia, restoreMedia } from "./media";
 
 const COPY_ICON =
   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -208,6 +212,7 @@ function loadKatex(): Promise<void> {
       unstampSourceLines();
       try {
         md.use(katex, { enableFencedBlocks: true });
+        mathAsOnGitHub(md);
       } finally {
         stampSourceLines();
       }
@@ -220,6 +225,170 @@ function loadKatex(): Promise<void> {
   return katexLoad;
 }
 
+/* ---- $ and $$ as GitHub reads them ---- */
+
+// KaTeX's plugin (VS Code's) reads $ and $$ its own way: an unclosed "$$"
+// at the start of a line took the rest of the document, a "$$x$$" with
+// spaces after it took every line down to the next $$, text after a closing
+// $$ was lost, and "$$x$$" within a sentence split its paragraph (a <p>
+// inside a <p>). Its rules are replaced, under the same names; its
+// renderers stay.
+function mathAsOnGitHub(md: MarkdownIt): void {
+  md.block.ruler.at("math_block", mathBlock, { alt: ["paragraph", "reference", "blockquote", "list"] });
+  md.inline.ruler.at("math_inline_block", inlineDisplayMath);
+  md.inline.ruler.at("math_inline", inlineMath);
+  // display math within a line of text: a <span> (display: block in
+  // markdown.css), as a <p> can't hold a <p>
+  const display = md.renderer.rules.math_inline_block;
+  if (display) {
+    md.renderer.rules.math_inline_block = (tokens, idx, options, env, self) =>
+      display(tokens, idx, options, env, self).replace(/^<p\b/, "<span").replace(/<\/p>\s*$/, "</span>");
+  }
+  // ```math with words after it ("```math Energy") is math too, as on
+  // GitHub: the plugin takes only a bare "math"
+  md.core.ruler.push("math_fence_title", (state) => {
+    for (const token of state.tokens) {
+      if (token.type === "fence" && /^math\s/i.test(token.info.trim())) token.info = "math";
+    }
+  });
+}
+
+// The first "$$" in src[from, to) that is no escaped "\$" and a "$": its
+// index, or -1.
+function dollarsIn(src: string, from: number, to: number): number {
+  const text = src.slice(from, to);
+  for (let i = text.indexOf("$$"); i >= 0; i = text.indexOf("$$", i + 1)) {
+    let slashes = 0;
+    while (text[i - 1 - slashes] === "\\") slashes++;
+    if (slashes % 2 === 0) return from + i;
+  }
+  return -1;
+}
+
+// "$$" at the start of a line opens display math, a block of its own, when
+// the first "$$" after it ends a line: the same one ("$$x$$", spaces after
+// it allowed) or one below, before a blank line (a formula holds none, as
+// on GitHub) or the end of its list item or quote. Without one ("$$ 100
+// l'uno") the line is prose. With text after that "$$", the lines stay
+// their paragraph's: the formula shows within it (inlineDisplayMath), and
+// the text after it too.
+function mathBlock(state: StateBlock, start: number, end: number, silent: boolean): boolean {
+  // four columns in: indented code
+  if (state.sCount[start] - state.blkIndent >= 4) return false;
+  const src = state.src;
+  const open = state.bMarks[start] + state.tShift[start];
+  if (!src.startsWith("$$", open) || src[open + 2] === "$") return false;
+  let line = start;
+  let close = dollarsIn(src, open + 2, state.eMarks[start]);
+  while (close < 0) {
+    line++;
+    // a line less indented than the block leaves its list item, as for a fence
+    if (line >= end || state.isEmpty(line) || state.sCount[line] < state.blkIndent) return false;
+    close = dollarsIn(src, state.bMarks[line] + state.tShift[line], state.eMarks[line]);
+  }
+  if (!/^[ \t]*$/.test(src.slice(close + 2, state.eMarks[line]))) return false;
+  if (silent) return true;
+
+  state.line = line + 1;
+  const token = state.push("math_block", "math", 0);
+  token.block = true;
+  token.markup = "$$";
+  token.map = [start, state.line];
+  token.content =
+    line === start
+      ? src.slice(open + 2, close)
+      : [
+          src.slice(open + 2, state.eMarks[start]),
+          state.getLines(start + 1, line, state.sCount[start], false),
+          src.slice(state.bMarks[line] + state.tShift[line], close),
+        ]
+          .filter((part) => part.trim())
+          .join("\n");
+  return true;
+}
+
+// $$…$$ within a line of text: display math, inside the paragraph. As the
+// plugin's own rule, and as on GitHub no space or tab just inside a $$ on
+// its line ("$$ 100 l'uno, oppure $$ 50" is prose); a line break there is
+// fine ("text $$⏎x⏎$$ more text").
+function inlineDisplayMath(state: StateInline, silent: boolean): boolean {
+  const src = state.src;
+  const start = state.pos;
+  if (!src.startsWith("$$", start)) return false;
+  const prev = src[start - 1];
+  let close = prev === "$" || prev === "\\" || src[start + 2] === "$" ? -1 : dollarsIn(src, start + 2, state.posMax);
+  if (close >= 0) {
+    const math = src.slice(start + 2, close);
+    if (src[close + 2] === "$" || !math.trim() || /^[ \t]+\S/.test(math) || /\S[ \t]+$/.test(math)) close = -1;
+  }
+  if (close < 0) {
+    if (!silent) state.pending += "$$";
+    state.pos = start + 2;
+    return true;
+  }
+  if (!silent) {
+    const token = state.push("math_inline_block", "math", 0);
+    token.block = true;
+    token.markup = "$$";
+    token.content = src.slice(start + 2, close);
+  }
+  state.pos = close + 2;
+  return true;
+}
+
+// a letter, digit or "_": a "$" right after one is a dollar ("US$5"), and
+// so is one right before one when it would close ("$5 and $10")
+const isWordChar = (c: string | undefined): boolean => c !== undefined && /\w/.test(c);
+
+// $…$ inline math. As the plugin's own rule, and as on GitHub (and pandoc)
+// no space just inside: "between $ 5 and $ 10" is prose. $`…`$, GitHub's
+// form for math holding markdown's own characters, ends at the first "`$",
+// so that math may hold a "$".
+function inlineMath(state: StateInline, silent: boolean): boolean {
+  const src = state.src;
+  const start = state.pos;
+  if (src[start] !== "$") return false;
+  // right after an opening HTML tag: GitHub's <span>$</span>, a dollar
+  // beside math (the plugin's own check)
+  const last = state.tokens[state.tokens.length - 1];
+  if (last?.type === "html_inline" && /^<\w+.+[^/]>$/.test(last.content)) return false;
+  const close = closingDollar(state, start);
+  if (close < 0) {
+    if (!silent) state.pending += "$";
+    state.pos = start + 1;
+    return true;
+  }
+  if (!silent) {
+    const token = state.push("math_inline", "math", 0);
+    token.markup = "$";
+    // the backticks of $`…`$ stay: the plugin's renderer takes them off
+    token.content = src.slice(start + 1, close);
+  }
+  state.pos = close + 1;
+  return true;
+}
+
+// The "$" closing the math that the one at `start` opens, or -1: a dollar.
+function closingDollar(state: StateInline, start: number): number {
+  const src = state.src;
+  const prev = src[start - 1];
+  const next = src[start + 1];
+  if (prev === "$" || prev === "\\" || isWordChar(prev) || next === undefined || /\s/.test(next)) return -1;
+  if (next === "`") {
+    const end = src.indexOf("`$", start + 3);
+    if (end >= 0 && end + 1 < state.posMax) return end + 1;
+  }
+  for (let end = src.indexOf("$", start + 1); end >= 0 && end < state.posMax; end = src.indexOf("$", end + 1)) {
+    let slashes = 0;
+    while (src[end - 1 - slashes] === "\\") slashes++;
+    if (slashes % 2) continue;
+    const after = src[end + 1];
+    // nothing between the two ("$$"): written as it is, as by the plugin
+    return end > start + 1 && after !== "$" && !isWordChar(after) && !/\s/.test(src[end - 1]) ? end : -1;
+  }
+  return -1;
+}
+
 // what would let a document open things in the top layer, over the app
 const TOP_LAYER_ATTRS = ["popover", "popovertarget", "popovertargetaction", "command", "commandfor", "interestfor"];
 
@@ -229,21 +398,43 @@ export interface RenderSource {
   dir: string | null;
 }
 
+/**
+ * A document's markdown as HTML, not yet sanitized, and its front matter's
+ * YAML (null: none): the part of a render that needs no DOM, so that it can
+ * be tried in Node.
+ */
+export async function markdownToHtml(content: string): Promise<{ html: string; yaml: string | null }> {
+  // without KaTeX (it failed to load) the math shows as written
+  if (mayHoldMath(content)) await loadKatex().catch(() => {});
+  pendingFrontMatter = null;
+  const html = md.render(content);
+  const yaml: string | null = pendingFrontMatter;
+  pendingFrontMatter = null;
+  return { html, yaml };
+}
+
+// Whatever is sanitized, a diagram's SVG included (Mermaid sanitizes its own with this
+// DOMPurify): nothing that names the app's own protocol gets through, as an attribute or in a
+// diagram's <style> (reach.ts). Here and not on the fragment: an <img> starts loading as soon
+// as it is parsed into this document, and the sanitizer works in one that loads nothing.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.nodeType === Node.ELEMENT_NODE) dropAppProtocol(node as Element);
+});
+DOMPurify.addHook("uponSanitizeElement", (node) => {
+  if (node.nodeName.toLowerCase() === "style" && namesAppProtocol(node.textContent ?? "")) node.textContent = "";
+});
+
 // All fallible work (markdown-it, DOMPurify, image IPC) happens here, before
 // anything touches the live DOM — callers can keep the previous content on error.
 export async function renderFragment(doc: RenderSource): Promise<HTMLElement> {
-  // without KaTeX (it failed to load) the math shows as written
-  if (mayHoldMath(doc.content)) await loadKatex().catch(() => {});
-  pendingFrontMatter = null;
+  const { html, yaml } = await markdownToHtml(doc.content);
   // no <style> ever (the tag filter already shows it as text), no popovers
   // or command buttons: per call, since Mermaid sanitizes its SVGs, <style>
   // included, with this DOMPurify
-  const clean = DOMPurify.sanitize(md.render(doc.content), {
+  const clean = DOMPurify.sanitize(html, {
     FORBID_TAGS: ["style"],
     FORBID_ATTR: TOP_LAYER_ATTRS,
   });
-  const yaml = pendingFrontMatter;
-  pendingFrontMatter = null;
   const staging = document.createElement("div");
   staging.innerHTML = clean;
   // before [TOC] is built: it links to the ids
@@ -264,7 +455,10 @@ export async function renderFragment(doc: RenderSource): Promise<HTMLElement> {
 
 export async function render(doc: RenderSource, article: HTMLElement): Promise<void> {
   const staging = await renderFragment(doc);
+  // a video or a sound playing goes on playing (media.ts)
+  const keep = collectMedia(article);
   article.replaceChildren(...staging.childNodes);
+  restoreMedia(keep, article);
 }
 
 /* ---- the document's ids ---- */
@@ -317,11 +511,23 @@ function retargetLegacyLinks(root: HTMLElement): void {
 }
 
 // made after the first render: the editor's (editor.ts) and the print header's (main.ts)
-const RUNTIME_IDS = ["format-bar", "editor-host", "print-page-meta"];
+const RUNTIME_IDS = [
+  "format-bar",
+  "editor-host",
+  "print-page-meta",
+  // the command palette (palette.ts), built the first time it opens
+  "palette",
+  "palette-input",
+  "palette-list",
+  "palette-help",
+  "palette-status",
+];
 // Mermaid's working ids: it deletes whatever element carries one
 const MERMAID_ID_RE = /^[di]?mmd-\d+$/;
 // the file tree's folder groups (tree.ts), made after the ids were first read
 const TREE_GROUP_ID_RE = /^tree-group-\d+$/;
+// the palette's groups and options
+const PALETTE_ID_RE = /^palette-(?:opt|g)-\d+$/;
 let appIds: Set<string> | null = null;
 
 // the ids of the app's own UI, read off the page the first time: until then
@@ -331,7 +537,7 @@ function isReserved(id: string): boolean {
     ...[...document.querySelectorAll("[id]")].filter((el) => !el.closest("#article")).map((el) => el.id),
     ...RUNTIME_IDS,
   ]);
-  return appIds.has(id) || MERMAID_ID_RE.test(id) || TREE_GROUP_ID_RE.test(id);
+  return appIds.has(id) || MERMAID_ID_RE.test(id) || TREE_GROUP_ID_RE.test(id) || PALETTE_ID_RE.test(id);
 }
 
 // A heading "Toolbar" gets the id "toolbar", which the app's own styles and
@@ -364,8 +570,9 @@ const decodeSafe = (s: string): string => {
   }
 };
 
-// not a URL with a scheme (https:, data:, asset:…) nor a bare "#…"; a network
-// path ("//server/share/…") is a file too
+// not a URL with a scheme (https:, data:, asset:…) nor a bare "#…". A network path
+// ("//server/share/…") counts too, so that it is never left for the page to load: localUrl
+// answers for it only when the document itself is on that share
 const isLocalUrl = (url: string): boolean => url !== "" && !/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(url);
 
 // Files resolved per folder: the live preview renders again at every pause
@@ -380,11 +587,14 @@ async function localUrl(dir: string, url: string): Promise<string | null> {
   const fragment = hash >= 0 ? url.slice(hash) : "";
   const rel = url.slice(0, hash >= 0 ? hash : undefined).replace(/\?.*$/, "");
   if (!rel) return null;
+  const path = decodeSafe(rel);
+  // a file on another computer is not looked up: Windows would call that computer
+  if (!reachable(dir, path)) return null;
   const key = `${dir}\n${rel}`;
   let asset = resolvedUrls.get(key);
   if (asset === undefined) {
     try {
-      asset = convertFileSrc(await resolvePath(dir, decodeSafe(rel)));
+      asset = convertFileSrc(await resolvePath(dir, path));
     } catch {
       return null;
     }
@@ -393,6 +603,11 @@ async function localUrl(dir: string, url: string): Promise<string | null> {
   }
   return asset + fragment;
 }
+
+// An address on another computer (reach.ts). The page must not be left to load it either: read
+// as a web address, "//server/a.png" is that server over http.
+const offLimits = (dir: string, url: string): boolean =>
+  isLocalUrl(url) && !reachable(dir, decodeSafe(url.replace(/[?#].*$/, "")));
 
 // "a.png 1x, b.png 2x": the candidates of a srcset, each a URL and its
 // descriptors. As in the HTML spec, a URL may hold commas; one ends at
@@ -424,10 +639,12 @@ function parseSrcset(value: string): { url: string; descriptor: string }[] {
 async function rewriteSrcset(el: Element, dir: string): Promise<void> {
   const candidates = parseSrcset(el.getAttribute("srcset") ?? "");
   const urls = await Promise.all(candidates.map((c) => (isLocalUrl(c.url) ? localUrl(dir, c.url) : c.url)));
-  el.setAttribute(
-    "srcset",
-    candidates.map((c, i) => [urls[i] ?? c.url, c.descriptor].filter(Boolean).join(" ")).join(", "),
-  );
+  // one that did not resolve stays as written, but not one on another computer
+  const kept = candidates
+    .map((c, i) => ({ url: urls[i] ?? c.url, descriptor: c.descriptor, gone: !urls[i] && offLimits(dir, c.url) }))
+    .filter((c) => !c.gone);
+  if (kept.length) el.setAttribute("srcset", kept.map((c) => [c.url, c.descriptor].filter(Boolean).join(" ")).join(", "));
+  else el.removeAttribute("srcset");
 }
 
 async function rewriteAttr(el: Element, attr: string, dir: string): Promise<void> {
@@ -435,6 +652,7 @@ async function rewriteAttr(el: Element, attr: string, dir: string): Promise<void
   if (!isLocalUrl(value)) return;
   const url = await localUrl(dir, value);
   if (url) el.setAttribute(attr, url);
+  else if (offLimits(dir, value)) el.removeAttribute(attr);
 }
 
 const MEDIA_URLS: [selector: string, attr: string][] = [
@@ -468,9 +686,16 @@ async function rewriteLocalUrls(root: HTMLElement, dir: string | null): Promise<
     if (!isLocalUrl(src)) continue;
     jobs.push(
       localUrl(dir, src).then((url) => {
-        if (url) img.src = url;
+        if (url) {
+          img.src = url;
+          return;
+        }
+        if (offLimits(dir, src)) {
+          img.removeAttribute("src");
+          if (!img.alt) img.alt = src;
+        }
         // with a srcset or a <picture>, another candidate may still load
-        else if (!img.hasAttribute("srcset") && !img.closest("picture")) {
+        if (!img.hasAttribute("srcset") && !img.closest("picture")) {
           missing.add(img);
           if (!img.alt) img.alt = src;
         }
@@ -478,7 +703,9 @@ async function rewriteLocalUrls(root: HTMLElement, dir: string | null): Promise<
     );
   }
   await Promise.all(jobs);
-  // a <source> changed under a video or an audio is read again only on load()
+  // a <source> changed under a video or an audio is read again only on
+  // load(); here, so that the fragment plays wherever it goes. A copy that
+  // gives way to the same video already playing is let go (media.ts).
   for (const m of root.querySelectorAll<HTMLMediaElement>("video, audio")) {
     if (m.querySelector(":scope > source[src]")) m.load();
   }
@@ -504,10 +731,12 @@ function dropLocalUrls(root: HTMLElement): void {
   }
   for (const img of root.querySelectorAll("img")) {
     const src = img.getAttribute("src") ?? "";
-    if (!isLocalUrl(src)) continue;
-    img.removeAttribute("src");
-    if (!img.alt) img.alt = src;
-    if (!img.hasAttribute("srcset") && !img.closest("picture")) markMissing(img);
+    if (isLocalUrl(src)) {
+      img.removeAttribute("src");
+      if (!img.alt) img.alt = src;
+    }
+    // nothing left to load: its address was local, or one the sanitizer took away
+    if (!img.hasAttribute("src") && !img.hasAttribute("srcset") && !img.closest("picture")) markMissing(img);
   }
 }
 

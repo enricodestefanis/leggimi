@@ -5,10 +5,12 @@ import "./styles/code.css";
 import "./styles/ui.css";
 import "./styles/lightbox.css";
 import "./styles/tabs.css";
+import "./styles/section-line.css";
 import "./styles/print.css";
 
 import { getVersion } from "@tauri-apps/api/app";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { documentDir } from "@tauri-apps/api/path";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -35,19 +37,38 @@ import * as i18n from "./i18n";
 import * as contextMenu from "./contextMenu";
 import * as navHistory from "./navHistory";
 import * as notices from "./notices";
+import * as bars from "./bars";
 import * as motion from "./motion";
+import * as sectionLine from "./sectionLine";
+import { outline, pathOf } from "./sections";
+import { collectMedia, restoreMedia } from "./media";
 import { handleMenuKey } from "./menuKeys";
 import { keyLabel, t } from "./i18n";
 import { whereFrom, type Where } from "./where";
+import { reachable } from "./reach";
 import { captureScrollAnchor, findHeading, restoreScrollAnchor, type ScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
-import { docKey, fileSafeName, isPastedKey, pastedKey, type Doc, type Pasted } from "./docs";
+import {
+  docKey,
+  fileSafeName,
+  isPastedKey,
+  newPasteId,
+  pastedDoc,
+  pastedIdOf,
+  pastedKey,
+  pastedText,
+  pastedTitle,
+  type Doc,
+  type Pasted,
+} from "./docs";
 import { buildDocxBase64, buildStandaloneHtml, copyAsRichText, copySelectionAsRichText } from "./share";
 import * as session from "./tabs/session";
 import * as strip from "./tabs/strip";
 import * as chrome from "./tabs/chrome";
 import type { TabAccepted, TabInfo, TabOffer, TabTransfer, TestHooks } from "./tabs/contract";
 import type { Snapshot } from "./editor";
+import type { PaletteCommand, PaletteFile, PaletteHeading, PaletteHost, PaletteTab } from "./palette";
+import type { AppCommandHost } from "./appCommands";
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -139,6 +160,9 @@ const exportBase = (d: Doc): string =>
     : fileSafeName(pastedName(d.paste)) || fileSafeName(t("paste.untitled"));
 // the document is that file (pasted text is no file)
 const isDocAt = (d: Doc | null, path: string): boolean => d !== null && d.path !== null && samePath(d.path, path);
+// what the editor's text is held against for "unsaved": a file's text, or
+// pasted text's as it was pasted (typing back to it leaves nothing unsaved)
+const baselineOf = (d: Doc): string => (d.path !== null ? d.content : d.paste.original);
 
 interface OpenOptions {
   preserveScroll?: boolean;
@@ -216,6 +240,9 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     if (currentDoc?.path && here && !sameDoc && !editing) positions.remember(currentDoc.path, here);
     // the place Back returns to; reloads and Back itself leave none
     const from = here && prevPath !== null && !opts.preserveScroll && !opts.restore ? { path: prevPath, pos: here } : null;
+    // another document in front (one opened from outside while the palette was
+    // open): the palette's list was the old one's. A reload keeps it open.
+    if (!sameDoc) closePalette();
     currentDoc = doc;
     syncFrontTab();
 
@@ -238,6 +265,7 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
+    sectionLine.rebuild();
     setupTocFilter(headings, sameDoc);
     panes.refresh();
     // tables and diagrams too wide for the column take the pane's width; once
@@ -363,9 +391,17 @@ function showFileChangedNotice(): void {
 
 function updateTitles(): void {
   const dirty = frontChanged();
+  const pasted = currentDoc?.path === null;
   dirtyDot.hidden = !dirty;
   if (dirty) dirtyDot.classList.remove("saved");
-  btnSave.disabled = !dirty;
+  // pasted text can always be saved: into a file of its own ("Save as…")
+  btnSave.disabled = !dirty && !pasted;
+  app.classList.toggle("pasted", pasted);
+  const saveKey = pasted ? "toolbar.saveAs" : "toolbar.save";
+  if (btnSave.dataset.i18nTitle !== saveKey) {
+    btnSave.dataset.i18nTitle = saveKey;
+    i18n.applyDom(btnSave.parentElement ?? document);
+  }
   btnShare.disabled = currentDoc === null;
   // the tab in front wears the dot of unsaved edits
   if (session.hasActive() && session.active().dirty !== dirty) {
@@ -388,10 +424,11 @@ async function toggleEditMode(): Promise<void> {
     return;
   }
   // pasted text lives only here: back to reading, it keeps what was typed
-  // (closing its tab asks about it)
+  // (closing its tab asks about it), and so does its draft
   if (currentDoc?.path === null) {
     if (editorMod) currentDoc = { ...currentDoc, content: editorMod.currentText() };
     exitEditMode();
+    writeDraft();
     return;
   }
   if (editorMod?.isDirty()) {
@@ -410,7 +447,7 @@ async function enterEditMode(line?: number): Promise<void> {
   // another tab may come forward while the editor's code loads the first time
   if (!(await ensureEditor()) || !editorMod || currentDoc !== doc || editing) return;
   syncSuppressedUntil = performance.now() + 200;
-  editorMod.setContent(doc.content);
+  editorMod.setContent(doc.content, baselineOf(doc));
   // the section being read (first anchor visible in the preview), measured
   // before the split view: a narrow window edits without the preview
   let readLine = 0;
@@ -424,6 +461,7 @@ async function enterEditMode(line?: number): Promise<void> {
   // belong to the editor's panel, so close the bar instead of showing both
   search.close();
   app.classList.add("editing");
+  sectionLine.hideNow();
   panes.refresh();
   syncEditButton();
   updateTitles();
@@ -455,7 +493,7 @@ function exitEditMode(): void {
   panes.refresh();
   syncEditButton();
   // reset the buffer to the saved document: clears dirty state and undo history
-  if (currentDoc) editorMod?.setContent(currentDoc.content);
+  if (currentDoc) editorMod?.setContent(currentDoc.content, baselineOf(currentDoc));
   if (at !== undefined) scrollToSourceLine(at);
   updateTitles();
   updateProgress();
@@ -483,8 +521,9 @@ const IMAGE_EXT_BY_MIME: Record<string, string> = {
 
 async function insertPastedImage(file: File): Promise<void> {
   if (!editing || !currentDoc || !editorMod) return;
-  // a picture goes into the folder of its document: pasted text has none
-  if (currentDoc.dir === null) return;
+  // a picture goes into a folder next to its document: pasted text becomes a file first
+  if (currentDoc.dir === null && !(await saveForPicture())) return;
+  if (!editing || !currentDoc || currentDoc.dir === null || !editorMod) return;
   const tab = session.active();
   try {
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -507,7 +546,8 @@ async function insertPastedImage(file: File): Promise<void> {
 
 async function insertDroppedImage(path: string): Promise<void> {
   if (!editing || !currentDoc || !editorMod) return;
-  if (currentDoc.dir === null) return;
+  if (currentDoc.dir === null && !(await saveForPicture())) return;
+  if (!editing || !currentDoc || currentDoc.dir === null || !editorMod) return;
   const tab = session.active();
   try {
     const rel = await ipc.importImage(currentDoc.dir, path);
@@ -515,6 +555,18 @@ async function insertDroppedImage(path: string): Promise<void> {
   } catch (err) {
     showNotice(t("msg.imageDropFailed", { err: String(err) }), { kind: "error" });
   }
+}
+
+// A picture pasted or dropped into pasted text is kept in a folder next to
+// its document, so the text becomes a file first (asked). True once it is one.
+async function saveForPicture(): Promise<boolean> {
+  const ok = await ask(t("msg.imageNeedsFileQ"), {
+    title: t("msg.imageNeedsFileTitle"),
+    kind: "info",
+    okLabel: t("tab.saveAs"),
+    cancelLabel: t("msg.cancel"),
+  }).catch(() => false);
+  return ok && (await saveAsFront());
 }
 
 // an image link into the editor of the tab it was pasted or dropped in, in
@@ -558,6 +610,14 @@ function scheduleDraft(): void {
 
 function writeDraft(): void {
   draftTimer = undefined;
+  // pasted text is kept whenever it is no longer as pasted, read or edited:
+  // it is in no file, the draft is all there is after a crash
+  if (currentDoc && currentDoc.path === null) {
+    const key = pastedKey(currentDoc.paste);
+    if (frontChanged()) drafts.put(key, frontText(), currentDoc.paste.original);
+    else drafts.remove(key);
+    return;
+  }
   if (!currentDoc || !editorMod) return;
   if (editing && editorMod.isDirty()) {
     drafts.put(docKey(currentDoc), editorMod.currentText(), currentDoc.content.replace(/\r\n/g, "\n"));
@@ -668,7 +728,10 @@ async function updatePreview(content: string): Promise<void> {
     // in edit mode the editor viewport is the source of truth for the preview
     // position; the heading anchor only serves the non-editing path
     const anchor = editing ? null : captureScrollAnchor(contentPane, article);
+    // a video or a sound playing goes on playing: in the same task as the swap (media.ts)
+    const keep = collectMedia(article);
     article.replaceChildren(...staging.childNodes);
+    restoreMedia(keep, article);
     for (const code of article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")) {
       const source = code.textContent ?? "";
       const cached = mmdCache.get(source);
@@ -688,11 +751,13 @@ async function updatePreview(content: string): Promise<void> {
 
     const headings = toc.build(article, tocList, contentPane);
     app.classList.toggle("no-headings", headings === 0);
+    sectionLine.rebuild();
     setupTocFilter(headings, true);
     panes.refresh();
     updateDocMeta();
     search.onContentChanged();
     hideNotice();
+    followPastedTitle();
     renderMermaidIn(article, theme.isDark())
       .then(() => {
         // freshly rendered diagrams change heights: re-anchor and re-align
@@ -876,9 +941,12 @@ async function writeDocument(doc: ipc.MarkdownDoc, content: string, create = doc
 }
 
 async function saveFile(): Promise<void> {
+  // pasted text has no file to write to yet: Save asks where, read or edited, changed or not
+  if (currentDoc?.path === null) {
+    await saveAsFront();
+    return;
+  }
   if (!editing || !currentDoc || !editorMod?.isDirty()) return;
-  // pasted text has no file to write to
-  if (currentDoc.path === null) return;
   const content = editorMod.getContent();
   const doc = currentDoc;
   try {
@@ -896,6 +964,99 @@ async function saveFile(): Promise<void> {
     showSaved();
   } catch (err) {
     showNotice(t("msg.saveFailed", { err: String(err) }), { kind: "error" });
+  }
+}
+
+// a "Save as…" under way: a second Ctrl+S meanwhile does not ask twice
+let savingAs = false;
+
+// `name` in `folder`, as the save dialog takes a starting point
+const inFolder = (folder: string, name: string): string => `${folder.replace(/[\\/]+$/, "")}\\${name}`;
+
+/**
+ * The pasted text in front into a file of its own ("Save as…": Ctrl+S, the
+ * Save button, the tab's menu, a picture pasted in, a link followed): named
+ * after its title, in the folder it was pasted over, else in Documents. The
+ * tab is then that file, read back from disk as any file opened (the folder
+ * of its pictures, Windows' list of recent files), in the pane, watched,
+ * among the recent files, its Back places following it. True once it is.
+ */
+async function saveAsFront(o: { closing?: boolean } = {}): Promise<boolean> {
+  const doc = currentDoc;
+  if (!doc || doc.path !== null || savingAs || opening || switching || !session.hasActive()) return false;
+  const tab = session.active();
+  const paste = doc.paste;
+  savingAs = true;
+  // no tab comes forward under the dialog, nor while the file is written and read back
+  tabHolds++;
+  try {
+    const name = `${fileSafeName(pastedName(paste)) || fileSafeName(t("paste.untitled")) || "Leggimi"}.md`;
+    const folder = paste.home ?? (await documentDir().catch(() => null));
+    const picked = await saveDialog({
+      defaultPath: folder ? inFolder(folder, name) : name,
+      filters: [{ name: t("filter.markdown"), extensions: MD_EXTENSIONS }],
+    }).catch(() => null);
+    // still this pasted text in front (its doc object is renewed by a tick, by leaving the editor)
+    if (typeof picked !== "string" || !picked || currentDoc?.path !== null || currentDoc.paste !== paste) return false;
+    // the dialog leaves the extension to the name typed
+    const target = isMarkdownPath(picked) ? picked : `${picked}.md`;
+    // that file in another tab: its unsaved edits are not overwritten (and this
+    // text stays as it is). A tab holds its file's path as Windows resolves it
+    // (a mapped drive's share, a junction's target): a file already there is
+    // looked for in that form too.
+    const cut = Math.max(target.lastIndexOf("\\"), target.lastIndexOf("/"));
+    const canon = await ipc.resolvePath(target.slice(0, cut + 1), target.slice(cut + 1)).catch(() => target);
+    const other = session.findPath(canon) ?? session.findPath(target);
+    if (other && other !== tab && tabDirty(other)) {
+      showNotice(t("msg.saveAsOpenDirty", { name: fileName(target) }), { kind: "warning" });
+      return false;
+    }
+    noteOwnWrite(target);
+    await ipc.writeMarkdown(target, frontText(), null, true);
+    // the text is in the file: the tab is that file now, its edits saved
+    if (editing && editorMod) editorMod.markSaved();
+    clearTimeout(draftTimer);
+    draftTimer = undefined;
+    const key = pastedKey(paste);
+    tab.src = { kind: "file", path: target };
+    opening = true;
+    let result: OpenResult;
+    try {
+      result = await loadDoc(target, { preserveScroll: true });
+    } finally {
+      opening = false;
+    }
+    // what loadDoc put on screen (the compiler cannot see it replace currentDoc)
+    const read = currentDoc as Doc | null;
+    if (result !== "shown" || read === null || read.path === null) {
+      // written, but not readable back: the tab stays the pasted text (the file is there)
+      tab.src = { kind: "pasted", paste };
+      strip.render();
+      reportTabs();
+      writeDraft();
+      return false;
+    }
+    drafts.remove(key);
+    navHistory.renamePath(key, read.path);
+    if (editing) collectPreviewAnchors();
+    // the same file in a tab of its own, with nothing unsaved: one tab for it.
+    // Saved as its tab closes, this one goes: that one stays, and reads the
+    // file again when it comes forward (this window's own write marks nothing).
+    const dup = session.live().find((x) => x !== tab && x.src.kind === "file" && samePath(x.src.path, read.path)) ?? other;
+    if (dup && dup !== tab && !dup.closing) {
+      if (o.closing) dup.stale = true;
+      else void releaseTab(dup);
+    }
+    strip.render();
+    showSaved();
+    return true;
+  } catch (err) {
+    showNotice(t("msg.saveFailed", { err: String(err) }), { kind: "error" });
+    return false;
+  } finally {
+    tabHolds--;
+    savingAs = false;
+    drainQueuedOpen();
   }
 }
 
@@ -941,10 +1102,12 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
   }
   lines[line] = next;
   // pasted text: the tick changes the text here, there is no file to write
+  // (its draft keeps it)
   if (doc.path === null) {
     currentDoc = { ...doc, content: lines.join(eol) };
     box.toggleAttribute("checked", box.checked);
     updateTitles();
+    writeDraft();
     return;
   }
   // a file deleted meanwhile is not written back by a tick (its notice says so)
@@ -1424,11 +1587,12 @@ function elementById(id: string): HTMLElement | null {
 }
 
 // The scrollTop that puts `el` where a jump lands: 24 px below the top of
-// the pane, and below a table's header when the header will be holding the
-// top over el's row (tableScroll.ts)
+// the pane, below a table's header when the header will be holding the top
+// over el's row (tableScroll.ts), and below the section's path when that
+// line will be over it (sectionLine.ts; never for a heading)
 function jumpTop(el: Element): number {
   const y = contentPane.scrollTop + el.getBoundingClientRect().top - contentPane.getBoundingClientRect().top;
-  return y - 24 - tableScroll.headCover(contentPane, article, y);
+  return y - 24 - tableScroll.headCover(contentPane, article, y) - sectionLine.reserve(el);
 }
 
 // the element it scrolled to, or null when there is none
@@ -1708,6 +1872,163 @@ function newStartTab(where: "end" | "after"): void {
   void activateTab(tab);
 }
 
+/* ---- paste and read: text from the clipboard, a document of its own ---- */
+
+// A tab for pasted text reading `text`; `original` is the text as first
+// pasted (a recovered draft's is older, so it counts as changed), `home` the
+// folder "Save as…" starts in (the pane's, by default)
+function makePastedTab(text: string, o: { id?: string; original?: string; home?: string | null } = {}): session.Tab {
+  const paste: Pasted = {
+    id: o.id ?? newPasteId(),
+    original: o.original ?? text,
+    title: pastedTitle(text),
+    home: o.home !== undefined ? o.home : browseRoot,
+  };
+  const tab = session.make({ kind: "pasted", paste });
+  tab.doc = pastedDoc(paste, text);
+  return tab;
+}
+
+// Pasted text in a tab of its own, in front, placed as a file opened from
+// within the window is: a start page in front becomes it, else it comes
+// right after the tab in front
+function openPasted(text: string): session.Tab {
+  const tab = makePastedTab(text);
+  const front = latestFront();
+  session.insertAfter(tab, front);
+  if (session.isStartPage(front)) front.closing = true;
+  strip.render(tab);
+  reportTabs();
+  void activateTab(tab);
+  return tab;
+}
+
+// Every way of pasting ends here: Ctrl+V's text, or the clipboard as Rust
+// read it (the start page's button, the palette). Nothing to read, or a
+// picture alone, is said so; text next to a picture (Excel copies both) is read.
+function openPastedOrSay(raw: string | null, image: boolean): void {
+  const text = pastedText(raw ?? "");
+  if (!text.trim()) {
+    sayAboutPaste(t(image ? "msg.pasteImage" : "msg.pasteEmpty"), "info");
+    return;
+  }
+  notices.announce(t("msg.pastedOpened", { name: tabName(openPasted(text)) }));
+}
+
+// What a paste that opened nothing says: on the notice bar, unless the bar
+// holds a notice of the document's own (a draft to restore, a change on disk),
+// which stays; then only heard
+function sayAboutPaste(message: string, kind: "info" | "error"): void {
+  if (notices.snapshot()) notices.announce(message, kind === "error" ? "assertive" : "polite");
+  else showNotice(message, { kind });
+}
+
+// the start page's button and the palette's command: the clipboard as Rust reads it
+async function pasteFromClipboard(): Promise<void> {
+  try {
+    const clip = await ipc.readClipboardText();
+    openPastedOrSay(clip.text, clip.image);
+  } catch (err) {
+    // another program holding the clipboard is a moment's wait, not a failure
+    if (String(err) === ipc.CLIPBOARD_BUSY) sayAboutPaste(t("msg.pasteBusy"), "info");
+    else sayAboutPaste(t("msg.pasteFailed", { err: String(err) }), "error");
+  }
+}
+
+// Ctrl+V and Shift+Insert anywhere but where they paste into text: the page's own paste event
+function onPaste(e: ClipboardEvent): void {
+  if (e.defaultPrevented || !pasteWelcome() || !e.clipboardData) return;
+  e.preventDefault();
+  const data = e.clipboardData;
+  const image = [...data.items].some((i) => i.kind === "file" && i.type.startsWith("image/"));
+  openPastedOrSay(data.getData("text/plain"), image);
+}
+
+// not in the editor (its format bar included) or a text field, and nothing in
+// the way: a dialog or the palette open, a tab in hand, the window closing
+function pasteWelcome(): boolean {
+  const el = document.activeElement;
+  if (isTextEditable(el) || (el !== null && editorPane.contains(el))) return false;
+  if (document.querySelector("dialog[open]") || lightbox.isOpen()) return false;
+  return session.hasActive() && !strip.dragging() && !closingWindow;
+}
+
+// pasted text is called after its text until it is saved: a new first heading renames its tab
+function followPastedTitle(): void {
+  if (!currentDoc || currentDoc.path !== null) return;
+  const paste = currentDoc.paste;
+  const title = pastedTitle(frontText());
+  if (title === paste.title) return;
+  paste.title = title;
+  strip.render();
+  updateTitles();
+}
+
+// After a crash: pasted text changed and never saved comes back by itself,
+// once, as the first window starts (not again after a language reload),
+// unless another window has it open. Nothing is asked: a question would take
+// the notice bar from a file's own (its draft to restore, a change on disk),
+// and an offer left unanswered, or withdrawn by the next document, would
+// leave the only copy of the text behind.
+const RECOVERY_KEY = "pasted-drafts-offered";
+
+const lf = (s: string): string => s.replace(/\r\n/g, "\n");
+
+async function recoverPastedDrafts(): Promise<void> {
+  if (winLabel !== "main") return;
+  try {
+    if (sessionStorage.getItem(RECOVERY_KEY)) return;
+    sessionStorage.setItem(RECOVERY_KEY, "1");
+  } catch {
+    return;
+  }
+  const keys = drafts.keys().filter((k) => isPastedKey(k) && !session.tabs.some((x) => draftKeyOf(x)?.toLowerCase() === k));
+  if (keys.length === 0) return;
+  const elsewhere = await Promise.all(keys.map(editedElsewhere));
+  const found = keys
+    .filter((_k, i) => !elsewhere[i])
+    .map((key) => ({ key, draft: drafts.get(key) }))
+    .filter((f): f is { key: string; draft: drafts.Draft } => {
+      if (f.draft === null) return false;
+      // changed back to the text as pasted (undone just before its tab
+      // closed): nothing was lost, the draft goes
+      const kept = f.draft.text.trim() !== "" && lf(f.draft.text) !== lf(f.draft.base);
+      if (!kept) drafts.remove(f.key);
+      return kept;
+    })
+    // in the order they were last changed
+    .sort((a, b) => a.draft.at - b.draft.at);
+  if (found.length === 0) return;
+  restorePasted(found);
+  const said = found.length === 1 ? t("msg.pastedRecovered") : t("msg.pastedRecoveredN", { n: found.length });
+  // shown where nothing else is; heard in any case
+  if (!notices.visible()) showNotice(said, { kind: "info" });
+  else notices.announce(said);
+}
+
+// The recovered texts in tabs, after the one in front and in order, each
+// with its dot: a start page in front gives its place to the first, a
+// document in front (one opened from File Explorer) stays there. Each keeps
+// its id, so its draft goes on under the same key.
+function restorePasted(found: { key: string; draft: drafts.Draft }[]): void {
+  if (!session.hasActive()) return;
+  const front = latestFront();
+  let after = front;
+  const made = found.map(({ key, draft }) => {
+    const tab = makePastedTab(draft.text, { id: pastedIdOf(key), original: draft.base, home: null });
+    tab.dirty = tabDirty(tab);
+    session.insertAfter(tab, after);
+    after = tab;
+    return tab;
+  });
+  const takesFront = session.isStartPage(front);
+  if (takesFront) front.closing = true;
+  strip.render(takesFront ? made[0] : undefined);
+  reportTabs();
+  if (takesFront) void activateTab(made[0]);
+  for (const tab of takesFront ? made.slice(1) : made) strip.pulse(tab);
+}
+
 // Tab switches, one at a time and in order: each waits for the one before,
 // for a document still opening, and for a PDF or an export of the tab in front.
 let tabQueue: Promise<unknown> = Promise.resolve();
@@ -1748,6 +2069,9 @@ function activateTab(tab: session.Tab): Promise<boolean> {
 // The tab leaving the front takes along what the view shows of it; the view
 // is then empty for the next one.
 function suspendView(tab: session.Tab): void {
+  // what the palette lists (the headings above all) is the old tab's
+  closePalette();
+  sectionLine.hideNow();
   strip.hideCard();
   clearTimeout(previewTimer);
   previewGen++;
@@ -1761,6 +2085,14 @@ function suspendView(tab: session.Tab): void {
   const here = shows ? captureScrollAnchor(contentPane, article) : null;
   if (currentDoc?.path && here && !editing) positions.remember(currentDoc.path, here);
   const snap = editing && editorMod ? editorMod.snapshot() : null;
+  // pasted text changed while reading (a box ticked, edits kept) has no snapshot to say so
+  const changed = frontChanged();
+  // the preview of the last keystrokes never came (its timer is cleared above):
+  // left in the editor, it is drawn when the tab comes back; left after the
+  // editor closed (within 200 ms of typing), the article lags behind the
+  // text, so it is not kept: the tab is drawn again from its text
+  const lagging = previewDirty;
+  previewDirty = false;
   const view: session.TabView = {
     anchor: here,
     fragment: null,
@@ -1774,11 +2106,11 @@ function suspendView(tab: session.Tab): void {
     error: errorShown ? (article.textContent ?? "") : null,
     docGone,
     treeRoot: browseRoot,
-    previewStale: editing && previewDirty,
+    previewStale: editing && lagging,
   };
   // the find bar marks ranges of this article: cleared before it goes
   search.close();
-  if (shows && !tab.closing) {
+  if (shows && !tab.closing && (editing || !lagging)) {
     const frag = document.createDocumentFragment();
     frag.append(...article.childNodes);
     view.fragment = frag;
@@ -1794,7 +2126,7 @@ function suspendView(tab: session.Tab): void {
   if (editing) leaveEditLayout();
   // the editor between tabs: empty, with nothing to save (the tab keeps its snapshot)
   editorMod?.setContent("");
-  tab.dirty = snap?.dirty ?? false;
+  tab.dirty = tab.src.kind === "pasted" ? changed : (snap?.dirty ?? false);
   currentDoc = null;
   errorShown = false;
   docGone = false;
@@ -1852,6 +2184,7 @@ async function resumeView(tab: session.Tab): Promise<void> {
   if (v?.editing && v.editor) await resumeEditing(v.editor);
   const headings = toc.build(article, tocList, contentPane);
   app.classList.toggle("no-headings", headings === 0);
+  sectionLine.rebuild();
   tocFilter.value = v?.tocFilter ?? "";
   setupTocFilter(headings, true);
   panes.refresh();
@@ -1872,6 +2205,7 @@ async function resumeView(tab: session.Tab): Promise<void> {
   else if (!tree.setActive(treeRoot, doc.path)) void refreshTree();
   updateTitles();
   updateProgress();
+  if (!v && tab.src.kind === "pasted") await firstShowPasted(tab);
   // changed on disk while it was behind: read again, never over unsaved edits
   if (tab.stale && doc.path !== null) {
     tab.stale = false;
@@ -1917,6 +2251,25 @@ async function loadFirstTime(tab: session.Tab, path: string): Promise<void> {
   }
 }
 
+// Pasted text on screen for the first time (just pasted, reopened, carried
+// from another window or across a language reload): what came with it (the
+// place, the edits and their undo, Back and Forward, the find bar), or else
+// the entrance of a document just opened. A read like any document's.
+async function firstShowPasted(tab: session.Tab): Promise<void> {
+  const tr = tab.transfer;
+  tab.transfer = null;
+  if (tr) {
+    if (tr.anchor && !restoreRemembered(tr.anchor)) contentPane.scrollTop = 0;
+    await applyTransfer(tr);
+  } else if (windowShown) {
+    void article.offsetWidth; // restart the entrance animation
+    article.classList.add("doc-enter");
+  }
+  search.onContentChanged();
+  rating.noteOpen();
+  scheduleRatePrompt();
+}
+
 // The editor's code, loaded and put in its pane the first time it is needed.
 async function ensureEditor(): Promise<boolean> {
   try {
@@ -1958,6 +2311,7 @@ async function resumeEditing(snap: Snapshot): Promise<void> {
   editing = true;
   search.close();
   app.classList.add("editing");
+  sectionLine.hideNow();
   panes.refresh();
   syncEditButton();
   collectPreviewAnchors();
@@ -1985,6 +2339,7 @@ function showStartPage(): void {
   setupTocFilter(0, false);
   clearTreeActive();
   updateTitles();
+  sectionLine.refresh();
 }
 
 // no file of the pane is the one on screen (a start page, pasted text)
@@ -2003,14 +2358,17 @@ function syncFrontTab(): void {
   strip.render();
 }
 
-/** Rust learns which files the window shows, to route launches to them and watch them. */
+/**
+ * Rust learns which files the window shows, to route launches to them and
+ * watch them, and how many tabs hold pasted text (a window with one is no
+ * free start page for a file opened from outside).
+ */
 function reportTabs(): void {
   if (!session.hasActive()) return;
-  const paths = session
-    .live()
-    .map(session.filePath)
-    .filter((p): p is string => p !== null);
-  ipc.setTabs(paths, session.filePath(latestFront())).catch(() => {});
+  const live = session.live();
+  const paths = live.map(session.filePath).filter((p): p is string => p !== null);
+  const pasted = live.filter((x) => x.src.kind === "pasted").length;
+  ipc.setTabs(paths, session.filePath(latestFront()), pasted).catch(() => {});
   ipc.watchFiles(paths).catch(() => {});
 }
 
@@ -2028,15 +2386,18 @@ function frontChanged(): boolean {
   return editing && !!editorMod?.isDirty();
 }
 
-// a tab with edits not saved: the one in front by its editor, the others by their snapshot
+// a tab with edits not saved: the one in front by its editor, the others by
+// their snapshot, or (brought from another window, or across a language
+// reload, and not shown here yet) by what they came with
 function tabDirty(tab: session.Tab): boolean {
   if (session.hasActive() && tab === session.active()) return frontChanged();
+  const carried = !tab.view && tab.transfer?.editor?.dirty === true;
   if (tab.src.kind === "pasted") {
     const ed = tab.view?.editor;
     const text = ed ? ed.state.doc.toString() : (tab.doc?.content ?? tab.src.paste.original);
-    return text !== tab.src.paste.original;
+    return carried || text !== tab.src.paste.original;
   }
-  return tab.view?.editor?.dirty ?? false;
+  return tab.view?.editor?.dirty ?? carried;
 }
 
 // "a.md, b.md and c.md", in the words of the interface
@@ -2048,14 +2409,46 @@ const listFormat = (items: string[]): string => {
   return LF ? new LF(i18n.current(), { type: "conjunction" }).format(items) : items.join(", ");
 };
 
+// What a closing window would take with it: edits not saved, and pasted
+// text, changed or not (it is in no file, and Ctrl+Shift+T goes with the
+// window). Only the window asks by it: a tab's own close, its dot, the other
+// windows and the tests go by tabDirty.
+const goesWithWindow = (tab: session.Tab): boolean => tabDirty(tab) || tab.src.kind === "pasted";
+
+// The closing window's question. Documents with unsaved changes keep the
+// words they have always had; pasted text never changed has none unsaved, so
+// it is named for what it is, alone or after the changed ones.
+function closeWindowQuestion(tabs: session.Tab[]): { text: string; title: string } {
+  const changed = tabs.filter(tabDirty);
+  const pasted = tabs.filter((x) => !changed.includes(x));
+  if (pasted.length === 0) {
+    const one = changed.length === 1;
+    return {
+      text: one ? t("msg.closeWindowOneQ", { name: fileNames(changed) }) : t("msg.closeWindowQ", { names: fileNames(changed) }),
+      title: t("msg.discardTitle"),
+    };
+  }
+  const text =
+    changed.length > 0
+      ? t("msg.closeWindowMixedQ", { changed: fileNames(changed), pasted: fileNames(pasted) })
+      : pasted.length === 1
+        ? t("msg.closeWindowPastedOneQ", { name: fileNames(pasted) })
+        : t("msg.closeWindowPastedQ", { names: fileNames(pasted) });
+  return { text, title: t("msg.unsavedTextTitle") };
+}
+
 // Saves a tab's edits, in front or not. True when saved.
 async function saveTab(tab: session.Tab): Promise<boolean> {
-  if (session.hasActive() && tab === session.active()) {
+  const saveFront = async (): Promise<boolean> => {
+    // saved as it closes (its own tab, or the window)
+    if (currentDoc?.path === null) return saveAsFront({ closing: true });
     await saveFile();
     return !frontChanged();
-  }
-  // pasted text has no file to write to: not saved
-  if (tab.src.kind === "pasted") return false;
+  };
+  if (session.hasActive() && tab === session.active()) return saveFront();
+  // pasted text ("Save as…" asks where), or a tab not shown here yet (its
+  // edits came with it from another window): saved in front, what it is about on screen
+  if (tab.src.kind === "pasted" || !tab.view) return (await activateTab(tab)) && (await saveFront());
   const snap = tab.view?.editor;
   const doc = tab.doc;
   if (!doc || doc.path === null || !snap || !editorMod) return true;
@@ -2088,9 +2481,9 @@ function savedBehind(doc: ipc.MarkdownDoc, content: string, modified: number): v
 }
 
 // Save / Don't save / Cancel (labelled: without labels Windows writes Yes/No in its own language)
-async function askSave(text: string, saveLabel: string): Promise<"save" | "discard" | "cancel"> {
+async function askSave(text: string, saveLabel: string, title = t("msg.discardTitle")): Promise<"save" | "discard" | "cancel"> {
   const answer = await message(text, {
-    title: t("msg.discardTitle"),
+    title,
     kind: "warning",
     buttons: { yes: saveLabel, no: t("msg.dontSave"), cancel: t("msg.cancel") },
   }).catch(() => "Cancel");
@@ -2115,6 +2508,10 @@ async function closeTab(tab: session.Tab, opts: { pointer?: boolean } = {}): Pro
     if (choice === "save" && !(await saveTab(tab))) return "kept";
     const key = draftKeyOf(tab);
     if (choice === "discard" && key) drafts.remove(key);
+  } else if (tab.src.kind === "pasted") {
+    // as pasted (changed back, perhaps, within the second its draft waits):
+    // nothing is left for the next start to bring back
+    drafts.remove(pastedKey(tab.src.paste));
   }
   if (tab.closing) return "kept";
   const front = session.hasActive() && session.active() === tab;
@@ -2170,16 +2567,20 @@ function closeRight(of: session.Tab): void {
 /** Ctrl+Shift+T: the last closed tab, back where it was and at the place it was read. */
 function reopenTab(): void {
   const last = session.closed.pop();
-  // session.rememberClosed keeps files only
-  if (!last || last.src.kind !== "file") return;
-  const path = last.src.path;
-  const open = session.findPath(path);
+  if (!last) return;
+  const src = last.src;
+  // a file's tab, or pasted text as it was pasted (its id too) and where it was read
+  const open =
+    src.kind === "file"
+      ? session.findPath(src.path)
+      : session.live().find((x) => x.src.kind === "pasted" && x.src.paste.id === src.paste.id);
   if (open) {
     void activateTab(open);
     return;
   }
-  const tab = session.make(last.src);
-  if (last.anchor) tab.transfer = { ...emptyTransfer(path), anchor: last.anchor };
+  const tab =
+    src.kind === "file" ? session.make(src) : makePastedTab(src.paste.original, { id: src.paste.id, home: src.paste.home });
+  if (last.anchor) tab.transfer = { ...emptyTransfer(src.kind === "file" ? src.path : null), anchor: last.anchor };
   session.insert(tab, session.live()[last.index] ?? null);
   strip.render(tab);
   reportTabs();
@@ -2213,6 +2614,10 @@ function moveTab(dir: 1 | -1): void {
 
 // Ctrl+W, Ctrl+F4: a preview or a dialog first, then the tab
 function closeTabByKey(): void {
+  if (paletteOpen()) {
+    closePalette();
+    return;
+  }
   if (lightbox.isOpen()) {
     lightbox.close();
     return;
@@ -2267,8 +2672,13 @@ function handleTabKey(e: KeyboardEvent): boolean {
 function transferOf(tab: session.Tab): TabTransfer {
   const front = session.hasActive() && tab === session.active();
   const v = tab.view;
-  // never shown here: what it was brought with
-  if (!front && !v && tab.transfer) return tab.transfer;
+  // never shown here: what it was brought with, pasted text with its text
+  // (one reopened by Ctrl+Shift+T came with its place only)
+  if (!front && !v && tab.transfer) {
+    const s = tab.src;
+    if (s.kind !== "pasted" || tab.transfer.pasted) return tab.transfer;
+    return { ...tab.transfer, pasted: { ...s.paste, content: tab.doc?.content ?? s.paste.original } };
+  }
   const snap = front ? (editing && editorMod ? editorMod.snapshot() : null) : (v?.editor ?? null);
   const doc = front ? currentDoc : tab.doc;
   // pasted text travels whole: there is no file for the other window to read
@@ -2301,6 +2711,7 @@ async function applyTransfer(tr: TabTransfer): Promise<void> {
       editing = true;
       search.close();
       app.classList.add("editing");
+      sectionLine.hideNow();
       panes.refresh();
       syncEditButton();
       collectPreviewAnchors();
@@ -2322,7 +2733,8 @@ async function applyTransfer(tr: TabTransfer): Promise<void> {
   }
   if (tr.tocFilter) {
     tocFilter.value = tr.tocFilter;
-    setupTocFilter(tocList.querySelectorAll("a").length, true);
+    // the outline's entries are buttons: counted by its headings
+    setupTocFilter(toc.headings().length, true);
   }
   search.restore(tr.find);
 }
@@ -2350,7 +2762,9 @@ async function tearOff(tab: session.Tab, at: { x: number; y: number } | null, fo
     void activateTab(rest[Math.min(i, rest.length - 1)]);
   }
   try {
-    await ipc.openWindow(session.filePath(tab), { transfer, from: winLabel, token, at: at ?? undefined, follow });
+    // pasted text has no file to name the ghost over another window's strip: its title does
+    const title = tab.src.kind === "pasted" ? tabName(tab) : undefined;
+    await ipc.openWindow(session.filePath(tab), { transfer, from: winLabel, token, at: at ?? undefined, follow, title });
   } catch (err) {
     pendingMoves.delete(token);
     tab.leaving = false;
@@ -2392,8 +2806,7 @@ async function acceptOffer(o: TabOffer): Promise<void> {
     return;
   }
   const index = await strip.dropIndex(o.x);
-  const tab = session.make(fileOrStart(tr.path));
-  tab.transfer = tr;
+  const tab = tabFromTransfer(tr);
   session.insert(tab, session.live()[index] ?? null);
   strip.render(tab);
   reportTabs();
@@ -2406,8 +2819,8 @@ async function acceptOffer(o: TabOffer): Promise<void> {
 async function offerWindowTab(target: string, x: number, y: number): Promise<void> {
   if (!session.hasActive()) return;
   const tab = session.active();
-  // only a file's window joins another one (acceptOffer makes a file's tab, or a start page)
-  if (session.live().length !== 1 || session.filePath(tab) === null || closingWindow) return;
+  // a start page has nothing to bring: it stays a window of its own
+  if (session.live().length !== 1 || tab.src.kind === "start" || closingWindow) return;
   const token = newToken();
   pendingMoves.set(token, tab);
   await ipc.sendTabOffer(target, { token, from: winLabel, transfer: transferOf(tab), x, y }).catch(() => {
@@ -2448,6 +2861,7 @@ const stripHost: strip.StripHost = {
   reveal: (path) =>
     void revealItemInDir(path).catch((err) => showNotice(t("msg.revealFailed", { err: String(err) }), { kind: "error" })),
   copyPath: (path) => void navigator.clipboard.writeText(path).catch(() => {}),
+  saveAs: (tab) => void (async () => (await activateTab(tab)) && (await saveAsFront()))(),
   reordered: reportTabs,
   tearOff: (tab, at) => void tearOff(tab, at, true),
   dragWindow: (tab) =>
@@ -2475,10 +2889,33 @@ function routeOpen(l: ipc.Launch): void {
 // requests that arrive before the first tab is there wait for it
 let bootQueue: ipc.Launch[] | null = [];
 
+// A tab arriving with what it carries (from another window, across a language
+// reload): its file, its pasted text with the text it holds now, or a start page
+function tabFromTransfer(tr: TabTransfer): session.Tab {
+  const p = tr.pasted;
+  if (p && typeof p.id === "string" && typeof p.original === "string" && typeof p.content === "string") {
+    const paste: Pasted = {
+      id: p.id,
+      original: p.original,
+      title: typeof p.title === "string" ? p.title : pastedTitle(p.content),
+      home: typeof p.home === "string" ? p.home : null,
+    };
+    const tab = session.make({ kind: "pasted", paste });
+    tab.doc = pastedDoc(paste, p.content);
+    tab.transfer = tr;
+    // its dot, while it waits behind
+    tab.dirty = tabDirty(tab);
+    return tab;
+  }
+  const tab = session.make(fileOrStart(tr.path ?? null));
+  tab.transfer = tr;
+  tab.dirty = tabDirty(tab);
+  return tab;
+}
+
 function firstTab(l: ipc.Launch | null): session.Tab {
   if (l?.transfer) {
-    const tab = session.make(fileOrStart(l.transfer.path));
-    tab.transfer = l.transfer;
+    const tab = tabFromTransfer(l.transfer);
     session.insert(tab);
     // the window it comes from lets it go
     if (l.from && l.token) void ipc.sendTabAccepted(l.from, { token: l.token, ok: true }).catch(() => {});
@@ -2513,8 +2950,9 @@ function takeCarriedTabs(): session.Tab | null {
   sessionStorage.removeItem(CARRY_KEY);
   if (!carried || !Array.isArray(carried.tabs) || carried.tabs.length === 0) return null;
   for (const tr of carried.tabs) {
-    const tab = session.make(fileOrStart(tr.path ?? null));
-    if (tr.path) tab.transfer = tr;
+    const tab = tabFromTransfer(tr);
+    // a start page brings nothing back
+    if (tab.src.kind === "start") tab.transfer = null;
     session.insert(tab);
   }
   return session.tabs[carried.active ?? 0] ?? session.tabs[0];
@@ -2931,7 +3369,7 @@ function followLink(href: string, where: Where = "here"): void {
     void openLocalLink(currentDoc.dir, decodeSafe(target), anchor, where);
   } else if (currentDoc) {
     // pasted text is in no folder: a relative link leads nowhere until it is saved
-    showNotice(t("msg.pastedLink"), { kind: "info" });
+    showNotice(t("msg.pastedLink"), { kind: "info", action: { label: t("tab.saveAs"), fn: () => void saveAsFront() } });
   }
 }
 
@@ -2945,6 +3383,11 @@ const OPEN_EXTERNALLY =
 // read as text: a notice offers it to its default app, or shows it in File
 // Explorer when it is not a document (a program, a script).
 async function openLocalLink(dir: string, rel: string, anchor: string | undefined, where: Where): Promise<void> {
+  // a file on another computer: looking it up would have Windows call that computer (reach.ts)
+  if (!reachable(dir, rel)) {
+    showNotice(t("msg.otherComputer", { name: rel }), { kind: "info" });
+    return;
+  }
   const tab = session.active();
   const p = await ipc.resolveDoc(dir, rel).catch(() => null);
   // another tab came forward meanwhile: the link was about the one that left
@@ -3247,7 +3690,9 @@ async function openHit(path: string, q: string, e: MouseEvent, line?: number): P
     openInNewWindow(path, { line });
     return;
   }
-  if (where !== "here") {
+  // pasted text in front is never replaced: the file comes in a tab of its own, the query with it
+  if (where !== "here" || (session.hasActive() && session.active().src.kind === "pasted" && !session.findPath(path))) {
+    if (where === "here") panes.closePeek();
     openInTab(path, { line, find: q, background: where === "tab" });
     return;
   }
@@ -3540,6 +3985,7 @@ function showError(message: string): void {
   // an error card is not a read: its tab says no reading time
   docMeta.hidden = true;
   setTabReading(0);
+  sectionLine.refresh();
 }
 
 function showEmpty(): void {
@@ -3565,6 +4011,227 @@ async function chooseFile(): Promise<void> {
   for (const p of paths.slice(1)) openInTab(p, { background: true });
 }
 
+// Ctrl+F: while editing, find always means the editor's panel (case, word,
+// regexp, replace), wherever the focus is: never a second find bar; while
+// reading, the find bar, with the selection to look for
+function findInDocument(): void {
+  const query = selectionQuery();
+  if (editing && editorMod) editorMod.openFind(false);
+  else if (query) search.openWith(query);
+  else search.open();
+}
+
+// a document on screen: a file or pasted text, not the start page or an error card
+const docOnScreen = (): boolean => currentDoc !== null && !article.hidden && !errorShown;
+
+// something modal holds the window: the preview, the help, the keys, the palette
+const modalOpen = (): boolean => lightbox.isOpen() || helpDialog.open || keysDialog.open || paletteOpen();
+
+/* ---- the command palette (palette.ts, loaded the first time it opens) ---- */
+
+let paletteMod: typeof import("./palette") | null = null;
+let paletteLoad: Promise<typeof import("./palette") | null> | null = null;
+
+const paletteOpen = (): boolean => paletteMod?.isOpen() ?? false;
+
+function closePalette(): void {
+  if (paletteOpen()) paletteMod?.close();
+}
+
+// Ctrl+K, Ctrl+Shift+P: never AltGr (Ctrl+Alt), nor while an IME composes
+const isPaletteKey = (e: KeyboardEvent): boolean =>
+  e.ctrlKey && !e.altKey && !e.metaKey && !composing(e) && (e.shiftKey ? keyIs(e, "p") : keyIs(e, "k"));
+
+async function openPalette(): Promise<void> {
+  closeMenus();
+  panes.closePeek();
+  strip.cancelDrag();
+  const mod = await loadPalette();
+  // something modal came while it loaded the first time
+  if (mod && !modalOpen()) mod.open();
+}
+
+function loadPalette(): Promise<typeof import("./palette") | null> {
+  paletteLoad ??= Promise.all([import("./palette"), import("./appCommands")]).then(
+    ([pal, cmds]) => {
+      pal.init(paletteHost(pal.folderDetail, cmds.buildCommands));
+      paletteMod = pal;
+      return pal;
+    },
+    (err) => {
+      // tried again at the next Ctrl+K
+      paletteLoad = null;
+      showNotice(String(err), { kind: "error" });
+      return null;
+    },
+  );
+  return paletteLoad;
+}
+
+// What the palette lists: the commands, the document's headings, the other
+// tabs, the files of the pane's folder and the recent ones
+function paletteHost(
+  folderDetail: (path: string, root: string | null) => string,
+  buildCommands: (h: AppCommandHost) => PaletteCommand[],
+): PaletteHost {
+  const detail = (path: string): string => folderDetail(path, browseRoot);
+  return {
+    commands: () => buildCommands(appCommandHost),
+    headings: paletteHeadings,
+    tabs: (): PaletteTab[] => {
+      const front = session.hasActive() ? session.active() : null;
+      return session
+        .live()
+        .filter((x) => x !== front)
+        .sort((a, b) => b.shownAt - a.shownAt)
+        .map((x) => ({
+          key: String(x.id),
+          title: tabName(x),
+          detail: x.src.kind === "file" ? detail(x.src.path) : t(x.src.kind === "pasted" ? "tab.pasted" : "tab.startPage"),
+          kind: x.src.kind,
+          activate: () => void activateTab(x),
+        }));
+    },
+    files: () => paletteFiles(detail),
+    openFile: (path, where) => openAt(path, where),
+    jumpTo: (el) => void toc.jumpTo(el),
+    // the palette's "Find «q»": the editor's panel while editing, else the find bar
+    findInDoc: (q) => {
+      if (editing && editorMod) editorMod.openFind(false, q);
+      else search.openWith(q);
+    },
+    searchFolder: (q) => openFolderSearch(q),
+    hasFolder: () => browseRoot !== null,
+    hasDocument: docOnScreen,
+  };
+}
+
+// The outline's headings, each with the sections it is in ("Install › Windows")
+function paletteHeadings(): PaletteHeading[] {
+  if (!docOnScreen()) return [];
+  const heads = toc.headings();
+  const levels = heads.map((h) => Number(h.tagName.slice(1)));
+  const texts = heads.map((h) => (h.textContent ?? "").replace(/\s+/g, " ").trim());
+  const tree = outline(levels);
+  const now = toc.activeIndex();
+  return heads.map((el, i) => ({
+    el,
+    text: texts[i],
+    level: levels[i],
+    path: pathOf(tree, i)
+      .filter((k) => k !== i)
+      .map((k) => texts[k])
+      .join(" › "),
+    current: i === now,
+  }));
+}
+
+// The recent files still there, then the pane's folder as it lists it (up to
+// 2000 files), without those open in a tab here
+async function paletteFiles(detail: (path: string) => string): Promise<PaletteFile[]> {
+  const open = new Set(
+    session
+      .live()
+      .map(session.filePath)
+      .filter((p): p is string => p !== null)
+      .map((p) => p.toLowerCase()),
+  );
+  const out: PaletteFile[] = [];
+  const add = (path: string, openedAt?: number): void => {
+    if (!open.has(path.toLowerCase())) out.push({ path, name: fileName(path), detail: detail(path), openedAt });
+  };
+  const recent = recents.list();
+  if (recent.length > 0) {
+    const all = recent.map((r) => r.path);
+    const alive = new Set((await ipc.existingPaths(all).catch(() => all)).map((p) => p.toLowerCase()));
+    for (const r of recent) if (alive.has(r.path.toLowerCase())) add(r.path, r.openedAt);
+  }
+  let left = 2000;
+  const walk = (node: ipc.TreeNode): void => {
+    for (const c of node.children) {
+      if (left <= 0) return;
+      if (c.isDir) walk(c);
+      else {
+        left--;
+        add(c.path);
+      }
+    }
+  };
+  if (treeJson) {
+    try {
+      walk(JSON.parse(treeJson) as ipc.TreeNode);
+    } catch {
+      /* no listing to offer */
+    }
+  }
+  return out;
+}
+
+// the Aa popover, opened by its own button (so it keeps its place in the Tab order), its first choice focused
+function openReadingSettings(): void {
+  if (!readingMenuOpen()) btnReading.click();
+  readingMenu.querySelector<HTMLElement>("button:not(:disabled)")?.focus();
+}
+
+// What the commands need of the window: its state as the palette opens, and the actions
+const appCommandHost: AppCommandHost = {
+  hasDocument: docOnScreen,
+  isFile: () => docOnScreen() && currentDoc?.path != null,
+  isPasted: () => currentDoc?.path === null,
+  isEditing: () => editing,
+  isDirty: () => frontChanged(),
+  hasOutline: () => toc.headings().length > 0 && !app.classList.contains("no-headings"),
+  hasFolder: () => browseRoot !== null,
+  canGoUp: () => browseRoot !== null && !isDriveRoot(browseRoot),
+  tabCount: () => session.live().length,
+  canReopenTab: () => session.closed.length > 0,
+  canGoBack: () => navHistory.canBack(),
+  canGoForward: () => navHistory.canForward(),
+  isPinned: () => pinnedOnTop,
+  pasteAsDocument: () => void pasteFromClipboard(),
+  chooseFile: () => void chooseFile(),
+  toggleEditMode: () => void toggleEditMode(),
+  saveFile: () => void saveFile(),
+  reloadCurrentDoc: () => reloadCurrentDoc(),
+  copyPath: () => {
+    const p = currentDoc?.path;
+    if (p) void navigator.clipboard.writeText(p).catch(() => {});
+  },
+  revealInExplorer: () => {
+    const p = currentDoc?.path;
+    if (p) void revealItemInDir(p).catch((err) => showNotice(t("msg.revealFailed", { err: String(err) }), { kind: "error" }));
+  },
+  newTab: () => newStartTab("end"),
+  reopenTab: () => reopenTab(),
+  closeTab: () => closeTabByKey(),
+  stepTab: (dir) => stepTab(dir),
+  moveTabToNewWindow: () => {
+    if (session.hasActive()) void tearOff(latestFront(), null, false);
+  },
+  newWindow: () => openInNewWindow(null),
+  closeWindow: () => void getCurrentWindow().close().catch(() => {}),
+  findInDocument: () => findInDocument(),
+  searchFolder: () => openFolderSearch(selectionQuery()),
+  goUp: () => void goUp(),
+  goBack: () => void goBack(),
+  goForward: () => void goForward(),
+  togglePane: (pane) => panes.toggle(pane, { focus: true }),
+  toggleShareMenu: () => toggleShareMenu(),
+  copyDocAsRichText: () => void copyDocAsRichText(),
+  printDoc: () => void printDoc(),
+  exportDocAsPdf: () => void exportDocAsPdf(),
+  exportDocAsHtml: () => void exportDocAsHtml(),
+  exportDocAsDocx: () => void exportDocAsDocx(),
+  togglePin: () => togglePin(),
+  bumpReaderSize: (dir) => bumpReaderSize(dir),
+  resetReaderSize: () => withReadingAnchor(() => prefs.set({ size: prefs.DEFAULTS.size })),
+  openReadingSettings: () => openReadingSettings(),
+  toggleKeysDialog: () => toggleKeysDialog(),
+  openHelp: () => void openHelp(),
+  editorCommands: () => (editing && editorMod ? editorMod.COMMANDS : []),
+  runEditorCommand: (id) => editorMod?.runCommand(id),
+};
+
 function wireUi(): void {
   notices.init({
     bar: noticeBar,
@@ -3575,6 +4242,8 @@ function wireUi(): void {
     status: $("#sr-status"),
     alert: $("#sr-alert"),
   });
+  // a notice and the find bar open together: under it where they cannot stand side by side
+  bars.init(contentPane, $("#find-bar"), noticeBar);
   // the panes keep the shown/hidden choice themselves, and fold away (or open
   // over the text) when the window is too narrow for them
   panes.init({
@@ -3589,16 +4258,28 @@ function wireUi(): void {
     pane: contentPane,
     hint: zoomHint,
     dialog: zoomDialog,
-    bars: [$("#find-bar"), noticeBar],
+    bars: [$("#find-bar"), noticeBar, $("#section-line")],
   });
   wide.init({ article, pane: contentPane });
   tableScroll.init(article);
+  // the path of the section being read, at the top of the text while the outline is out of sight
+  sectionLine.init({
+    app,
+    pane: contentPane,
+    article,
+    line: $("#section-line"),
+    readable: () => !editing && currentDoc !== null && !article.hidden && !errorShown,
+    headCover: (y) => tableScroll.headCover(contentPane, article, y),
+  });
 
   // from the keyboard (no pointer: detail 0) the keys go into a pane that opens over the text
   $("#btn-tree").addEventListener("click", (e) => panes.toggle("tree", { focus: e.detail === 0 }));
   $("#btn-toc").addEventListener("click", (e) => panes.toggle("toc", { focus: e.detail === 0 }));
   $("#btn-open").addEventListener("click", chooseFile);
   $("#btn-open-empty").addEventListener("click", chooseFile);
+  $("#btn-paste-empty").addEventListener("click", () => void pasteFromClipboard());
+  // Ctrl+V and Shift+Insert outside the editor and the text fields: a document of its own
+  document.addEventListener("paste", onPaste);
   btnPin.addEventListener("click", togglePin);
   wireDragScroll();
 
@@ -3780,7 +4461,8 @@ function wireUi(): void {
     if (next === i18n.activePref()) return;
     // get_initial_file was consumed at boot: the tabs go across the reload,
     // unsaved edits and undo included; only when they cannot is it asked
-    if (!carryTabs() && session.live().some(tabDirty)) {
+    // (pasted text, changed or not, is in no file to come back from)
+    if (!carryTabs() && session.live().some((x) => tabDirty(x) || x.src.kind === "pasted")) {
       const ok = await ask(t("msg.langReloadQ"), {
         title: t("msg.discardTitle"),
         kind: "warning",
@@ -3830,6 +4512,7 @@ function wireUi(): void {
     root: article,
     pane: contentPane,
     bar: $("#find-bar"),
+    notice: noticeBar,
     input: $("#find-input"),
     counter: $("#find-count"),
     btnPrev: $("#find-prev"),
@@ -3865,14 +4548,14 @@ function wireUi(): void {
       }
       if (e.key === "BrowserBack" || e.key === "BrowserForward") {
         e.preventDefault();
-        if (!e.repeat && !lightbox.isOpen() && !helpDialog.open && !keysDialog.open) {
+        if (!e.repeat && !modalOpen()) {
           void (e.key === "BrowserBack" ? goBack() : goForward());
         }
         return;
       }
       if (!isReloadKey(e)) return;
       e.preventDefault();
-      if (e.repeat || lightbox.isOpen() || helpDialog.open || keysDialog.open) return;
+      if (e.repeat || modalOpen()) return;
       reloadCurrentDoc();
     },
     true,
@@ -3884,7 +4567,7 @@ function wireUi(): void {
     window.addEventListener(type, (e) => {
       if (e.button !== 3 && e.button !== 4) return;
       e.preventDefault();
-      if (type === "mousedown" || lightbox.isOpen() || helpDialog.open || keysDialog.open) return;
+      if (type === "mousedown" || modalOpen()) return;
       void (e.button === 3 ? goBack() : goForward());
     });
   }
@@ -3895,6 +4578,8 @@ function wireUi(): void {
     if (lightbox.isOpen()) return;
     if (e.key === "F1") {
       e.preventDefault();
+      // the palette lets F1 through: the help takes its place
+      closePalette();
       if (helpDialog.open) helpDialog.close();
       else void openHelp();
       return;
@@ -3907,8 +4592,15 @@ function wireUi(): void {
       }
       return;
     }
-    // the editor already handled it (Ctrl+B/I format there, Ctrl+S saved once)
+    // the editor already handled it (Ctrl+B/I format there, Ctrl+S saved once,
+    // Ctrl+K made a link)
     if (e.defaultPrevented) return;
+    // the command palette: Ctrl+K, or Ctrl+Shift+P as in VS Code (the one left in the editor)
+    if (isPaletteKey(e)) {
+      e.preventDefault();
+      if (!e.repeat) void openPalette();
+      return;
+    }
     if (e.key === "Escape" && (!shareMenu.hidden || readingMenuOpen() || contextMenu.isOpen())) {
       closeMenus();
       return;
@@ -3951,13 +4643,8 @@ function wireUi(): void {
       e.preventDefault();
       openFolderSearch(selectionQuery());
     } else if (e.ctrlKey && e.key.toLowerCase() === "f") {
-      // while editing, find always means the editor's panel (case, word,
-      // regexp, replace), wherever the focus is: never a second find bar
       e.preventDefault();
-      const query = selectionQuery();
-      if (editing && editorMod) editorMod.openFind(false);
-      else if (query) search.openWith(query);
-      else search.open();
+      findInDocument();
     } else if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "h") {
       if (editing && editorMod) {
         e.preventDefault();
@@ -3994,7 +4681,7 @@ function wireUi(): void {
     } else if (e.ctrlKey && e.key.toLowerCase() === "i") {
       e.preventDefault();
       panes.toggle("toc", { focus: true });
-    } else if (e.ctrlKey && e.key.toLowerCase() === "p") {
+    } else if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "p") {
       // swallow it even without a document: WebView2 would print the empty UI
       e.preventDefault();
       void printDoc();
@@ -4159,28 +4846,26 @@ async function boot(): Promise<void> {
       e.preventDefault();
       return;
     }
-    const dirty = session.live().filter(tabDirty);
+    // edits not saved, and pasted text in no file yet, changed or not
+    const unsaved = session.live().filter(goesWithWindow);
     closingWindow = true;
-    if (dirty.length === 0) return;
+    if (unsaved.length === 0) return;
     askingToClose = true;
     // meanwhile a file opened from outside goes to another window
     ipc.setClosing(true).catch(() => {});
     try {
-      const one = dirty.length === 1;
-      const choice = await askSave(
-        one ? t("msg.closeWindowOneQ", { name: fileNames(dirty) }) : t("msg.closeWindowQ", { names: fileNames(dirty) }),
-        t(one ? "msg.save" : "msg.saveAll"),
-      );
+      const q = closeWindowQuestion(unsaved);
+      const choice = await askSave(q.text, t(unsaved.length === 1 ? "msg.save" : "msg.saveAll"), q.title);
       let close = choice !== "cancel";
       if (choice === "save") {
-        for (const tab of dirty) {
+        for (const tab of unsaved) {
           if (!(await saveTab(tab))) {
             close = false;
             break;
           }
         }
       } else if (choice === "discard") {
-        for (const tab of dirty) {
+        for (const tab of unsaved) {
           const key = draftKeyOf(tab);
           if (key) drafts.remove(key);
         }
@@ -4296,6 +4981,8 @@ async function boot(): Promise<void> {
   bootQueue = null;
   for (const l of early) routeOpen(l);
   installTestHooks();
+  // pasted text a crash left unsaved: offered once the first tab is on screen
+  void recoverPastedDrafts();
 
   await ipc.showWindow().catch(() => {});
   windowShown = true;

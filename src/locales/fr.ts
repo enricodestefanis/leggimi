@@ -365,13 +365,19 @@ const fr: Dict = {
   "msg.pasteEmpty": "Le presse-papiers ne contient pas de texte : copiez d'abord du Markdown.",
   "msg.pasteImage": "Le presse-papiers contient une image, pas du texte.",
   "msg.pasteFailed": "Impossible de lire le presse-papiers : {err}",
+  "msg.pasteBusy": "Un autre programme utilise le presse-papiers : réessayez dans un instant.",
   "msg.pastedOpened": "« {name} » ouvert depuis le presse-papiers.",
   "msg.pastedLink": "Les liens vers d'autres fichiers fonctionnent une fois ce texte enregistré dans un fichier.",
+  "msg.otherComputer": "Un document ne peut pas ouvrir un fichier sur un autre ordinateur : {name}",
   "msg.imageNeedsFileTitle": "Enregistrez d'abord le document",
   "msg.imageNeedsFileQ": "Les images collées dans un document vont dans un dossier « assets » à côté de lui. Enregistrer d'abord ce texte dans un fichier ?",
   "msg.saveAsOpenDirty": "« {name} » est ouvert dans un autre onglet avec des modifications non enregistrées : enregistrez d'abord cet onglet ou choisissez un autre nom.",
   "msg.pastedRecovered": "Un texte collé avec des modifications non enregistrées a été récupéré de la dernière session.",
   "msg.pastedRecoveredN": "{n} textes collés avec des modifications non enregistrées ont été récupérés de la dernière session.",
+  "msg.closeWindowPastedOneQ": "« {name} » est un texte collé, pas encore dans un fichier. L'enregistrer avant de fermer la fenêtre ?",
+  "msg.closeWindowPastedQ": "Ces textes collés ne sont pas encore dans un fichier : {names}. Les enregistrer avant de fermer la fenêtre ?",
+  "msg.closeWindowMixedQ": "Modifications non enregistrées : {changed}. Texte collé pas encore dans un fichier : {pasted}. Tout enregistrer avant de fermer la fenêtre ?",
+  "msg.unsavedTextTitle": "Texte non enregistré",
   "keys.paste": "Coller du Markdown comme nouveau document",
   "keys.palette": "Palette de commandes",
   "pal.title": "Palette de commandes",
@@ -395,6 +401,9 @@ const fr: Dict = {
   "pal.resetSize": "Réinitialiser la taille du texte",
   "pal.editor": "Éditeur",
   "pal.current": "actuel",
+  // palette commands that have no string of their own elsewhere
+  "cmd.keys": "Raccourcis clavier",
+  "cmd.kwReading": "police taille texte interligne largeur thème langue",
 };
 
 export default fr;

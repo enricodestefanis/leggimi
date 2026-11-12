@@ -7,6 +7,95 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [2.2.0] - 2026-11-12
+
+Paste and read (*Incolla e leggi*): Markdown copied from a chat or a web page read without saving
+it first, the section you are reading kept in sight, a command palette, and math read as GitHub
+reads it.
+
+### Added
+- **Paste and read**: Markdown copied from ChatGPT, Claude or a web page can be read without
+  saving it first. **Ctrl+V** anywhere outside the editor and the text boxes (the find bar, the
+  filters), **Paste from clipboard** on the start page or **Paste Markdown as a new document**
+  in the command palette opens the text in a tab of its own: a start page in front becomes it,
+  otherwise a new tab opens in front. The tab is named after the text's first heading, or else
+  its first line. It reads like any document (outline, find, print, PDF, Word, copy); Ctrl+E
+  edits it and Ctrl+S saves it as a file (**Save as…**, with a name proposed from the title),
+  after which it is an ordinary document. Closing its tab without changes asks nothing, and
+  Ctrl+Shift+T brings it back while the window is open; with changes, Leggimi asks whether to
+  save it. Closing the window asks in any case, changed or not: the text is in no file and
+  would go with the window. Links and images that point to other files work once it is saved in
+  a folder (until then a link to another file says so). If Leggimi closes unexpectedly with
+  changes, the next start brings the text back, changes included. Only text is pasted: a picture
+  on the clipboard gets a notice. In the editor Ctrl+V pastes as always.
+- **The section you are reading stays in sight**: when the outline is closed, or the window is
+  too narrow for it, a thin line at the top of the text shows the section's heading and the
+  headings that contain it (*2. Decisioni › 2.1 Budget*), without the document's title, as soon
+  as that heading has scrolled out of sight. A click on a part of it goes back to that heading.
+  It steps aside while a heading or a table's header row is at the top, shows only while
+  reading (not in the editor's preview) and is never printed. While it shows, the find bar and
+  the notices sit just below it, so neither covers it.
+- **Command palette** (**Ctrl+K** or **Ctrl+Shift+P**; in the editor only Ctrl+Shift+P, since
+  Ctrl+K inserts a link there): a few letters find a command, with its shortcut next to it, a
+  heading of the document, an open tab, a file of the folder or a recent file. Accents and
+  capital letters don't matter, and the English names of the commands work in every language.
+  Enter runs or opens; Ctrl+Enter opens a file in a new tab, Ctrl+Shift+Enter in a new tab in
+  front, Shift+Enter in a new window; `>` at the start keeps only the commands, `#` only the
+  document's headings; Esc closes. The commands without a key of their own are there too (Save
+  as PDF, Export as HTML / DOCX, Keep on top, the themes, New page at every heading 1, Reading
+  settings) and, while editing, the editor's commands.
+- **A window of its own from the command line**: `leggimi --new-window file.md` opens the file
+  in a new window, even when a tab already shows it; `leggimi --new-window` alone opens an empty
+  window.
+
+### Changed
+- **Ctrl+Shift+P opens the command palette** and no longer prints; Ctrl+P still prints.
+- The "Enjoying Leggimi?" card of the Store version can appear after 5 documents and 2 days of
+  use (was 8 and 3).
+- The **help (F1)** covers 2.2 (pasting, the command palette, the section line, `--new-window`)
+  and the **keys overlay (?)** lists Ctrl+K / Ctrl+Shift+P and Ctrl+V. The help also explains
+  line breaks, which are unchanged: they follow CommonMark, as GitHub's view of a file does, so a
+  single line break inside a paragraph is a space, and two spaces or a backslash at the end of a
+  line break it.
+
+### Fixed
+- **OneDrive: no more false "File changed on disk"**: a new file in a folder synced by OneDrive
+  (the Desktop, Documents), made for instance with File Explorer's *New → Markdown document* and
+  typed in at once, got a false "File changed on disk" notice a few seconds later, and its
+  **Reload** brought back the empty file, wiping what had been typed. Now a change counts only
+  when the text on disk is different.
+- **Math as on GitHub**: a `$$` block opens only when it is closed, so a price such as `$$ 100`
+  no longer turns the rest of the document into a formula; text after a closing `$$` is no
+  longer lost; `$$…$$` inside a sentence shows the formula without splitting the paragraph;
+  `$ x $` with spaces inside, and amounts such as `$5 and $10`, stay text, as on GitHub; and a
+  ` ```math ` fence with a title after `math` is math too.
+- A video or a sound playing in the document no longer restarts at every keystroke while
+  editing, nor when the file changes on disk.
+- A jump (a link to a heading or a footnote, `--line`) to a place below a closed `<details>` that
+  holds a table no longer lands a header's height too low.
+- **Black theme**: in a diagram, a mind map's first branch, a pie's first slice and a box of a
+  timeline are visible again (they were drawn all but black on the black page; they are now grey,
+  on the Dark theme too), and the line being edited is easier to see.
+- **A notice and the find bar open together** no longer cover each other where the text is too
+  narrow for both (a small window, or the file pane open): the notice goes under the find bar,
+  and back beside it when there is room.
+- **Installer version**: uninstalling no longer leaves the Markdown file types (`.md`,
+  `.markdown`…) pointing to a program that is gone; a reinstall keeps which app had them before,
+  and an app that took them over after Leggimi was installed keeps them.
+
+### Security
+- **A document can no longer make Windows contact another computer.** An image, a video, a sound
+  or a link whose address was a network path (`//server/share/picture.png`,
+  `\\server\share\picture.png`) had Windows look that server up as soon as the document was
+  opened. Such an address is no longer followed: the picture shows as missing, and the link says
+  why. A document that is itself on a network share still shows its own files and those of that
+  share. Addresses of the app's own file protocol written in a document, in pasted text or in a
+  diagram are not loaded either. Every earlier version is affected: updating is recommended.
+- **The libraries that read the document are updated** (markdown-it 14.3.3, DOMPurify 3.4.17,
+  Mermaid 11.17.2), to versions that fix known advisories. With the earlier ones, a file written
+  for the purpose could freeze the window for several seconds, and a diagram could alter the
+  page for as long as its window stayed open.
+
 ## [2.1.0] - 2026-11-03
 
 ### Added

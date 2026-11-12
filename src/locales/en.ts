@@ -383,13 +383,20 @@ export default {
   "msg.pasteEmpty": "There is no text on the clipboard: copy some Markdown first.",
   "msg.pasteImage": "The clipboard holds a picture, not text.",
   "msg.pasteFailed": "The clipboard could not be read: {err}",
+  "msg.pasteBusy": "Another program is using the clipboard: try again in a moment.",
   "msg.pastedOpened": "“{name}” opened from the clipboard.",
   "msg.pastedLink": "Links to other files work once this text is saved as a file.",
+  "msg.otherComputer": "A document cannot open a file on another computer: {name}",
   "msg.imageNeedsFileTitle": "Save the document first",
   "msg.imageNeedsFileQ": "Pictures pasted into a document are kept in an “assets” folder next to it. Save this text as a file first?",
   "msg.saveAsOpenDirty": "“{name}” is open in another tab with unsaved changes: save that tab first, or choose another name.",
   "msg.pastedRecovered": "Pasted text with unsaved changes was recovered from the last session.",
   "msg.pastedRecoveredN": "{n} pasted texts with unsaved changes were recovered from the last session.",
+  // the closing window's question when pasted text, changed or not, would go with it
+  "msg.closeWindowPastedOneQ": "“{name}” is pasted text, in no file yet. Save it before closing the window?",
+  "msg.closeWindowPastedQ": "These pasted texts are in no file yet: {names}. Save them before closing the window?",
+  "msg.closeWindowMixedQ": "Unsaved changes: {changed}. Pasted text in no file yet: {pasted}. Save everything before closing the window?",
+  "msg.unsavedTextTitle": "Unsaved text",
   "keys.paste": "Paste Markdown as a new document",
   "keys.palette": "Command palette",
   "pal.title": "Command palette",
@@ -413,4 +420,7 @@ export default {
   "pal.resetSize": "Reset text size",
   "pal.editor": "Editor",
   "pal.current": "current",
+  // palette commands that have no string of their own elsewhere
+  "cmd.keys": "Keyboard shortcuts",
+  "cmd.kwReading": "font size spacing width theme language",
 } as const;

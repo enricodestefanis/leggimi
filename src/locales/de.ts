@@ -365,13 +365,19 @@ const de: Dict = {
   "msg.pasteEmpty": "In der Zwischenablage ist kein Text: zuerst Markdown kopieren.",
   "msg.pasteImage": "Die Zwischenablage enthält ein Bild, keinen Text.",
   "msg.pasteFailed": "Die Zwischenablage konnte nicht gelesen werden: {err}",
+  "msg.pasteBusy": "Ein anderes Programm verwendet gerade die Zwischenablage: gleich noch einmal versuchen.",
   "msg.pastedOpened": "„{name}“ aus der Zwischenablage geöffnet.",
   "msg.pastedLink": "Links zu anderen Dateien funktionieren, sobald dieser Text als Datei gespeichert ist.",
+  "msg.otherComputer": "Ein Dokument kann keine Datei auf einem anderen Computer öffnen: {name}",
   "msg.imageNeedsFileTitle": "Zuerst das Dokument speichern",
   "msg.imageNeedsFileQ": "Eingefügte Bilder kommen in einen Ordner „assets“ neben dem Dokument. Diesen Text zuerst als Datei speichern?",
   "msg.saveAsOpenDirty": "„{name}“ ist in einer anderen Registerkarte mit ungespeicherten Änderungen geöffnet: zuerst diese Registerkarte speichern oder einen anderen Namen wählen.",
   "msg.pastedRecovered": "Ein eingefügter Text mit ungespeicherten Änderungen wurde aus der letzten Sitzung wiederhergestellt.",
   "msg.pastedRecoveredN": "{n} eingefügte Texte mit ungespeicherten Änderungen wurden aus der letzten Sitzung wiederhergestellt.",
+  "msg.closeWindowPastedOneQ": "„{name}“ ist eingefügter Text, noch in keiner Datei. Vor dem Schließen des Fensters speichern?",
+  "msg.closeWindowPastedQ": "Diese eingefügten Texte sind noch in keiner Datei: {names}. Vor dem Schließen des Fensters speichern?",
+  "msg.closeWindowMixedQ": "Ungespeicherte Änderungen: {changed}. Eingefügter Text, noch in keiner Datei: {pasted}. Vor dem Schließen des Fensters alles speichern?",
+  "msg.unsavedTextTitle": "Nicht gespeicherter Text",
   "keys.paste": "Markdown als neues Dokument einfügen",
   "keys.palette": "Befehlspalette",
   "pal.title": "Befehlspalette",
@@ -395,6 +401,9 @@ const de: Dict = {
   "pal.resetSize": "Textgröße zurücksetzen",
   "pal.editor": "Editor",
   "pal.current": "aktuell",
+  // palette commands that have no string of their own elsewhere
+  "cmd.keys": "Tastenkombinationen",
+  "cmd.kwReading": "schrift schriftart textgröße zeilenabstand breite design sprache",
 };
 
 export default de;

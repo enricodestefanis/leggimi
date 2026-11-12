@@ -612,6 +612,15 @@
   padding: 4px 0;
 }
 
+/* $$…$$ written within a line of text: display math all the same, on a
+   line of its own inside the paragraph (a <span>, as a <p> can't hold a
+   <p>), with a $$ block's spacing: its paragraph's margin, and KaTeX's
+   1em above and below */
+.markdown-body span.katex-block {
+  display: block;
+  margin: 0 0 1em;
+}
+
 /* a formula KaTeX could not read: its message, in the theme's error ink
    (!important: KaTeX itself may write an inline colour, #cc0000) */
 .markdown-body .katex-error {

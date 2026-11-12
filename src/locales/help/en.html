@@ -23,8 +23,31 @@
           scrolls back there when you open it again.
         </p>
         <p>
-          From a terminal, <code>leggimi file.md</code> opens a file and <code>--line 40</code> opens
-          it at that line (the <code>leggimi</code> command is available once the app is installed).
+          <strong>Paste and read:</strong> Markdown copied from ChatGPT, Claude or a web page can be read
+          without saving it first. Press <kbd>Ctrl</kbd>+<kbd>V</kbd> anywhere outside the editor and the
+          text boxes (the find bar, the filters), or use <strong>Paste from clipboard</strong> on the start
+          page or <strong>Paste Markdown as a new document</strong> in the command palette. The text opens in
+          a tab of its own, named after its first heading (or else its first line): a start page in front
+          becomes it; otherwise it opens in a new tab in front. Only text is pasted (a picture on the
+          clipboard gets a notice), and inside the editor <kbd>Ctrl</kbd>+<kbd>V</kbd> pastes as always.
+        </p>
+        <p>
+          The pasted text reads like any document: the outline, find, printing, PDF, Word and copying all
+          work. <kbd>Ctrl</kbd>+<kbd>E</kbd> edits it and <kbd>Ctrl</kbd>+<kbd>S</kbd> saves it as a file
+          (<strong>Save as…</strong>, with a name taken from its title); from then on it is an ordinary
+          document. Closing its tab without changes asks nothing, and
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> brings it back while the window is open; with changes,
+          Leggimi asks whether to save it. Closing the window asks in any case, changed or not: the text is in
+          no file and would go with the window. Links and
+          images that point to other files work once it is saved in a folder (until then, a link to another
+          file says so). If Leggimi closes unexpectedly with changes, the next start brings the text back,
+          changes included.
+        </p>
+        <p>
+          From a terminal, <code>leggimi file.md</code> opens a file, <code>--line 40</code> opens it at
+          that line and <code>--new-window</code> opens it in a window of its own
+          (<code>leggimi --new-window</code> without a file opens an empty window); the <code>leggimi</code>
+          command is available once the app is installed.
         </p>
 
         <h3>Tabs and windows</h3>
@@ -36,7 +59,8 @@
           <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> closes the window with all its tabs, and
           <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> reopens the last tab you closed. A tab with unsaved
           changes asks before it closes: <strong>Save</strong>, <strong>Don't save</strong> or
-          <strong>Cancel</strong>; closing the window asks once, listing the documents with unsaved changes.
+          <strong>Cancel</strong>; closing the window asks once, listing the documents with unsaved changes
+          and the pasted texts that are in no file yet.
         </p>
         <p>
           <kbd>Ctrl</kbd>+<kbd>Tab</kbd>, <kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>9</kbd> and the other tab keys under
@@ -95,7 +119,9 @@
         <h3>Keyboard shortcuts</h3>
         <table class="help-keys">
           <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td><td>Command palette (in the editor, only <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open a file</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Paste Markdown as a new document (outside the editor)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Toggle edit mode</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save the file (edit mode)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find in document</td></tr>
@@ -127,6 +153,20 @@
             <tr><td><kbd>Esc</kbd></td><td>Close the find bar, the preview or this help</td></tr>
           </tbody>
         </table>
+        <p>
+          In the <strong>command palette</strong> a few letters find a command (its shortcut is shown next to
+          it), a heading of the document, an open tab, a file of the folder or a recent file. Accents and
+          capital letters don't matter, and in every language the commands also answer to their English
+          names. <kbd>Enter</kbd> runs or opens; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> opens a file in a new tab,
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> in a new tab in front and
+          <kbd>Shift</kbd>+<kbd>Enter</kbd> in a new window; start with <kbd>&gt;</kbd> for commands only or
+          <kbd>#</kbd> for the document's headings, and <kbd>Esc</kbd> closes it. The commands without a key
+          of their own are there too (<strong>Save as PDF</strong>, <strong>Export as HTML / DOCX</strong>,
+          <strong>Keep on top</strong>, the themes, <strong>New page at every heading 1</strong>,
+          <strong>Reading settings</strong>) and, while you edit, the editor's commands. In the editor
+          <kbd>Ctrl</kbd>+<kbd>K</kbd> inserts a link, so there the palette opens with
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>; <kbd>Ctrl</kbd>+<kbd>P</kbd> still prints.
+        </p>
         <p>
           From the keyboard, <kbd>Tab</kbd> reaches the tabs, the toolbar buttons and the <strong>Aa</strong>
           reading settings, and the focus is always visible; on the tabs <kbd>←</kbd> / <kbd>→</kbd> move from
@@ -253,6 +293,14 @@
           <code>--line</code> — the heading or block you land on lights up for a moment, so your eye finds
           it. Back and Forward do not light it up.
         </p>
+        <p>
+          When the outline is closed, or the window is too narrow for it, a thin line at the top of the text
+          keeps <strong>the section you are reading</strong> in sight: its heading and the headings that
+          contain it, such as <em>2. Decisions › 2.1 Budget</em>, without the document's title. It
+          appears once that heading has scrolled out of sight and steps aside while a heading or a table's
+          header row is at the top; click a part of it to go back to that heading. It shows only while
+          reading (not in the editor's preview) and is never printed.
+        </p>
 
         <h3>Live reload</h3>
         <p>Open files are watched on disk. When one changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated; a tab in the background catches up when you return to it. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
@@ -261,12 +309,13 @@
         <h3>Rendering</h3>
         <ul>
           <li>GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks. Web addresses become links, those starting with <code>www.</code> too, as on GitHub; file names such as <code>README.md</code> stay text.</li>
+          <li>Line breaks follow CommonMark, as GitHub does when it shows a file: a single line break inside a paragraph is a space; to break the line, end it with two spaces or a backslash (<code>\</code>).</li>
           <li>Code blocks are syntax-highlighted and have a copy button on hover.</li>
           <li><code>mermaid</code> code fences render as diagrams; invalid syntax falls back to the code block with an error note.</li>
           <li>A table or a diagram wider than the reading column widens up to the whole width available, centred: no sideways scrolling, and the diagram's text keeps its size.</li>
           <li>In a long table the header row stays at the top of the window while you read, until the table's last row goes by. A table too wide even for the whole window scrolls sideways: its scrollbar stays at the bottom of the window as long as the table is in sight, so there is no need to reach the end of the table to move it; <kbd>Shift</kbd>+wheel and the touchpad work anywhere on it too.</li>
           <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans and <kbd>Esc</kbd> closes. <strong>Fit</strong> (<kbd>0</kbd>) fits it to the window, <strong>Width</strong> (<kbd>W</kbd>) fits its width, starting from the top, and <strong>100%</strong> (<kbd>1</kbd>) shows it at its actual size. The copy button offers the image as PNG (normal or large), a diagram also as SVG, and both can be saved to a file.</li>
-          <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence for display blocks.</li>
+          <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence (a title after <code>math</code> is fine) for display blocks. Dollar signs are read as on GitHub: a <code>$$</code> block opens only when it is closed, so a price such as <code>$$ 100</code> does not turn the rest of the document into a formula; text after a closing <code>$$</code> stays; <code>$$…$$</code> inside a sentence shows the formula without splitting the paragraph; <code>$ x $</code> with spaces inside, and amounts such as <code>$5 and $10</code>, stay text.</li>
           <li>GitHub-style callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>.</li>
           <li>Footnotes: <code>[^1]</code> in the text and <code>[^1]: …</code> anywhere; the notes are collected at the end, with links there and back.</li>
           <li>Task lists are live: clicking a checkbox updates the <code>[ ]</code> / <code>[x]</code> in the file right away (with an <em>Undo</em> in the notice), or in the editor buffer while you are editing. Only the box ticks the task: clicking or double-clicking its text, to select a word, changes nothing.</li>
