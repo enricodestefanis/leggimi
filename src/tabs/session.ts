@@ -3,7 +3,7 @@
 // one (main.ts): a tab coming forward puts its state back into it, the one
 // leaving takes its state along (main.ts suspendView / resumeView).
 
-import type { MarkdownDoc } from "../ipc";
+import type { Doc, Pasted } from "../docs";
 import type { NoticeOptions } from "../notices";
 import type { Place } from "../navHistory";
 import type { ScrollAnchor } from "../state";
@@ -36,12 +36,15 @@ export interface TabView {
   previewStale: boolean;
 }
 
+/** What a tab shows: the start page, a file, or text pasted from the clipboard (in no file yet). */
+export type TabSource = { kind: "start" } | { kind: "file"; path: string } | { kind: "pasted"; paste: Pasted };
+
 export interface Tab {
   id: number;
-  /** null: a start page */
-  path: string | null;
+  /** replaced, never changed in place (a file renamed, a start page becoming a document) */
+  src: TabSource;
   /** the document as last read or saved; null until the tab has been in front once */
-  doc: MarkdownDoc | null;
+  doc: Doc | null;
   /** where to land the first time it comes forward (a link's #anchor, a --line) */
   at: { line?: number; anchor?: string } | null;
   /** its state while behind; null while in front, or before it was ever shown */
@@ -68,14 +71,27 @@ let nextId = 1;
 export const tabs: Tab[] = [];
 let front: Tab | null = null;
 
+/** A tab closed: what it showed (never a start page), where it was, the place being read. */
+export interface ClosedTab {
+  src: Exclude<TabSource, { kind: "start" }>;
+  index: number;
+  anchor: ScrollAnchor | null;
+}
+
 /** Closed tabs, most recent last: Ctrl+Shift+T opens them again where they were. */
-export const closed: { path: string; index: number; anchor: ScrollAnchor | null }[] = [];
+export const closed: ClosedTab[] = [];
 const MAX_CLOSED = 25;
 
-export function make(path: string | null, at: Tab["at"] = null): Tab {
+/** The file a tab shows; null for a start page or pasted text. */
+export const filePath = (tab: Tab): string | null => (tab.src.kind === "file" ? tab.src.path : null);
+
+/** A start page (one on its way out no longer counts: a document is taking its place). */
+export const isStartPage = (tab: Tab): boolean => tab.src.kind === "start" && !tab.closing;
+
+export function make(src: TabSource, at: Tab["at"] = null): Tab {
   return {
     id: nextId++,
-    path,
+    src,
     doc: null,
     at,
     view: null,
@@ -112,7 +128,7 @@ const samePath = (a: string, b: string): boolean => a.toLowerCase() === b.toLowe
 
 /** The tab showing (or about to show) this file. */
 export const findPath = (path: string): Tab | undefined =>
-  live().find((t) => t.path !== null && samePath(t.path, path));
+  live().find((t) => t.src.kind === "file" && samePath(t.src.path, path));
 
 /** Puts `tab` before `before` (at the end when null or absent). */
 export function insert(tab: Tab, before: Tab | null = null): void {
@@ -144,8 +160,8 @@ export function move(tab: Tab, to: number): void {
 }
 
 export function rememberClosed(tab: Tab, index: number, anchor: ScrollAnchor | null): void {
-  if (!tab.path) return;
-  closed.push({ path: tab.path, index, anchor });
+  if (tab.src.kind !== "file") return;
+  closed.push({ src: tab.src, index, anchor });
   if (closed.length > MAX_CLOSED) closed.splice(0, closed.length - MAX_CLOSED);
 }
 

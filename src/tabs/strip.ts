@@ -9,7 +9,7 @@
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as contextMenu from "../contextMenu";
-import { setTitle, t } from "../i18n";
+import { keyLabel, setTitle, t } from "../i18n";
 import * as session from "./session";
 import type { Tab } from "./session";
 import type { TabHover } from "./contract";
@@ -52,17 +52,21 @@ const ICON = {
   window: '<rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="8" x2="22" y2="8"/>',
   copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   folder: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+  clipboard:
+    '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
 };
 
 const fileName = (p: string): string => p.split(/[\\/]/).pop() ?? p;
-// a shortcut in the words of the interface ("Strg+Umschalt+T" in German)
-const keyLabel = (combo: string): string =>
-  combo
-    .split("+")
-    .map((k) => (k === "Ctrl" ? t("key.ctrl") : k === "Shift" ? t("key.shift") : k))
-    .join("+");
 const baseName = (p: string): string => fileName(p).replace(/\.(md|markdown|mdown|mkdn?|mdwn|markdn|mdtxt)$/i, "");
 const folderOf = (p: string): string => p.slice(0, Math.max(0, p.length - fileName(p).length - 1));
+
+// a tab's name in full (its file's, with the extension) and on the strip (without it)
+const nameOf = (tab: Tab): string =>
+  tab.src.kind === "file" ? fileName(tab.src.path) : tab.src.kind === "pasted" ? pastedName(tab) : t("tab.newTab");
+const labelOf = (tab: Tab): string => (tab.src.kind === "file" ? baseName(tab.src.path) : nameOf(tab));
+const pastedName = (tab: Tab): string => (tab.src.kind === "pasted" && tab.src.paste.title) || t("paste.untitled");
+const iconOf = (tab: Tab): "doc" | "home" | "clipboard" =>
+  tab.src.kind === "file" ? "doc" : tab.src.kind === "pasted" ? "clipboard" : "home";
 
 let host: StripHost;
 const bar = document.createElement("div");
@@ -178,14 +182,15 @@ function paint(tab: Tab, el: HTMLElement): void {
   if (tab.dirty) el.classList.remove("saved");
   // carried off to another window: its place closes up until that window has it
   el.classList.toggle("detached", tab.leaving);
-  el.classList.toggle("home", tab.path === null);
+  el.classList.toggle("home", tab.src.kind === "start");
+  el.classList.toggle("pasted", tab.src.kind === "pasted");
   el.setAttribute("aria-selected", String(isActive));
   el.tabIndex = isActive ? 0 : -1;
-  const title = tab.path ? baseName(tab.path) : t("tab.newTab");
+  const title = labelOf(tab);
   const titleEl = el.querySelector<HTMLElement>(".tab-title")!;
   if (titleEl.textContent !== title) titleEl.textContent = title;
-  el.setAttribute("aria-label", tab.path ? fileName(tab.path) : t("tab.newTab"));
-  const icon = tab.path ? "doc" : "home";
+  el.setAttribute("aria-label", nameOf(tab));
+  const icon = iconOf(tab);
   const iconEl = el.querySelector<HTMLElement>(".tab-icon")!;
   if (iconEl.dataset.icon !== icon) {
     iconEl.dataset.icon = icon;
@@ -757,7 +762,8 @@ export function hideGhost(): void {
 
 function tabMenu(tab: Tab): contextMenu.MenuSpec {
   const list = session.live();
-  const path = tab.path;
+  // a path to copy and a folder to show: only a file has them
+  const path = session.filePath(tab);
   return [
     { label: t("tab.newTab"), icon: ICON.plus, kbd: keyLabel("Ctrl+T"), run: () => host.newTab("after") },
     "sep",
@@ -786,9 +792,9 @@ function openTabList(): void {
   contextMenu.openAt(
     [
       ...session.live().map((tab) => ({
-        label: tab.path ? fileName(tab.path) : t("tab.newTab"),
-        hint: tab.path ? folderOf(tab.path) : undefined,
-        icon: tab.path ? ICON.doc : ICON.home,
+        label: nameOf(tab),
+        hint: tab.src.kind === "file" ? folderOf(tab.src.path) : undefined,
+        icon: ICON[iconOf(tab)],
         kbd: tab === front ? "●" : undefined,
         run: () => host.activate(tab),
       })),
@@ -818,13 +824,14 @@ function showCard(tab: Tab): void {
   card.replaceChildren();
   const name = document.createElement("div");
   name.className = "tab-card-name";
-  name.textContent = tab.path ? fileName(tab.path) : t("tab.newTab");
+  name.textContent = nameOf(tab);
   const where = document.createElement("div");
   where.className = "tab-card-path";
-  where.textContent = tab.path ? folderOf(tab.path) : t("tab.startPage");
+  where.textContent =
+    tab.src.kind === "file" ? folderOf(tab.src.path) : t(tab.src.kind === "pasted" ? "tab.pasted" : "tab.startPage");
   card.append(name, where);
   const metaText = tab.dirty ? t("tab.unsaved") : tab.meta;
-  if (tab.path && metaText) {
+  if (tab.src.kind !== "start" && metaText) {
     const meta = document.createElement("div");
     meta.className = tab.dirty ? "tab-card-meta unsaved" : "tab-card-meta";
     meta.textContent = metaText;

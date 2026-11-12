@@ -5,6 +5,7 @@
 import type { ScrollAnchor } from "./state";
 
 export interface Place {
+  /** the document: its file's path, or "pasted:<id>" for pasted text (docs.ts docKey) */
   path: string;
   pos: ScrollAnchor;
 }

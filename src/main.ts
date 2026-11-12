@@ -37,9 +37,11 @@ import * as navHistory from "./navHistory";
 import * as notices from "./notices";
 import * as motion from "./motion";
 import { handleMenuKey } from "./menuKeys";
-import { t } from "./i18n";
+import { keyLabel, t } from "./i18n";
+import { whereFrom, type Where } from "./where";
 import { captureScrollAnchor, findHeading, restoreScrollAnchor, type ScrollAnchor } from "./state";
 import { isInside, samePath } from "./paths";
+import { docKey, fileSafeName, isPastedKey, pastedKey, type Doc, type Pasted } from "./docs";
 import { buildDocxBase64, buildStandaloneHtml, copyAsRichText, copySelectionAsRichText } from "./share";
 import * as session from "./tabs/session";
 import * as strip from "./tabs/strip";
@@ -90,7 +92,8 @@ const rsSizeDec = $<HTMLButtonElement>("#rs-size-dec");
 const rsSizeInc = $<HTMLButtonElement>("#rs-size-inc");
 const noticeBar = $("#notice-bar");
 
-let currentDoc: ipc.MarkdownDoc | null = null;
+// a file, or pasted text (docs.ts: path and dir null, nothing on disk)
+let currentDoc: Doc | null = null;
 // Root of the file browser. It survives navigation *within* itself, so opening a
 // file from a subfolder does not make the rest of the tree disappear.
 let browseRoot: string | null = null;
@@ -125,6 +128,18 @@ const isMarkdownPath = (p: string) => MD_EXT_RE.test(p);
 const isImagePath = (p: string) => /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(p);
 const isDriveRoot = (p: string) => /^[a-z]:[\\/]?$/i.test(p);
 
+// pasted text is called by its title, or (it has none) in the words of the interface
+const pastedName = (p: Pasted): string => p.title || t("paste.untitled");
+// a document's name: its file's ("notes.md"), or the pasted text's
+const docName = (d: Doc): string => (d.path !== null ? fileName(d.path) : pastedName(d.paste));
+// the name an export starts with in the save dialog, without the extension
+const exportBase = (d: Doc): string =>
+  d.path !== null
+    ? fileName(d.path).replace(MD_EXT_RE, "")
+    : fileSafeName(pastedName(d.paste)) || fileSafeName(t("paste.untitled"));
+// the document is that file (pasted text is no file)
+const isDocAt = (d: Doc | null, path: string): boolean => d !== null && d.path !== null && samePath(d.path, path);
+
 interface OpenOptions {
   preserveScroll?: boolean;
   /** heading id to show at the top (a `file.md#section` link) */
@@ -148,6 +163,11 @@ async function openFile(path: string, opts: OpenOptions = {}): Promise<OpenResul
   // a tab coming to the front holds the view too: the request waits for it
   if (opening || switching) {
     queuedOpen = { path, opts, tab: session.hasActive() ? session.active() : null };
+    return "kept";
+  }
+  // pasted text is never replaced (it is in no file): the file gets a tab of its own
+  if (session.hasActive() && session.active().src.kind === "pasted") {
+    openInTab(path, opts);
     return "kept";
   }
   opening = true;
@@ -177,11 +197,11 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     // the document being edited, asked for again (double-clicked in File
     // Explorer, picked in the pane, dropped): see keepEditedDoc. A reload
     // that discards the edits (preserveScroll) goes on as usual.
-    if (editing && currentDoc && samePath(doc.path, currentDoc.path) && !opts.preserveScroll) {
+    if (editing && isDocAt(currentDoc, doc.path) && !opts.preserveScroll) {
       await keepEditedDoc(doc, opts);
       return "shown";
     }
-    if (editing && editorMod?.isDirty() && currentDoc && !samePath(doc.path, currentDoc.path)) {
+    if (editing && editorMod?.isDirty() && currentDoc && !isDocAt(currentDoc, doc.path)) {
       if (!(await confirmDiscard())) return "kept";
     }
     const prevPath = currentDoc?.path ?? null;
@@ -193,7 +213,7 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     // double-clicked again) keeps the place being read
     const anchor = opts.preserveScroll || sameDoc ? here : null;
     // leaving a document: keep its reading position before it goes
-    if (currentDoc && here && !sameDoc && !editing) positions.remember(currentDoc.path, here);
+    if (currentDoc?.path && here && !sameDoc && !editing) positions.remember(currentDoc.path, here);
     // the place Back returns to; reloads and Back itself leave none
     const from = here && prevPath !== null && !opts.preserveScroll && !opts.restore ? { path: prevPath, pos: here } : null;
     currentDoc = doc;
@@ -278,7 +298,7 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     const onScreen = currentDoc !== null && !article.hidden && !errorShown;
     if (String(err) === ipc.NOT_FOUND) {
       // the document on screen, deleted meanwhile (F5): its way back stays at hand
-      if (docGone && currentDoc && samePath(path, currentDoc.path)) showGoneNotice();
+      if (docGone && isDocAt(currentDoc, path)) showGoneNotice();
       else {
         if (!onScreen) showEmpty(); // at start, or over an error card: the home
         reportMissing(path);
@@ -298,7 +318,7 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
 // elsewhere without asking. The buffer and the baseline stay; a change on disk
 // is reported as the watcher does, and a line or an anchor is still honoured.
 async function keepEditedDoc(disk: ipc.MarkdownDoc, opts: OpenOptions): Promise<void> {
-  if (!currentDoc) return;
+  if (!currentDoc || currentDoc.path === null) return;
   // the same text with another time (see sameOnDisk) is not a change
   if (disk.modified !== currentDoc.modified && disk.content === currentDoc.content) currentDoc.modified = disk.modified;
   if (disk.modified !== currentDoc.modified) {
@@ -342,7 +362,7 @@ function showFileChangedNotice(): void {
 }
 
 function updateTitles(): void {
-  const dirty = editing && (editorMod?.isDirty() ?? false);
+  const dirty = frontChanged();
   dirtyDot.hidden = !dirty;
   if (dirty) dirtyDot.classList.remove("saved");
   btnSave.disabled = !dirty;
@@ -353,10 +373,10 @@ function updateTitles(): void {
     strip.render();
   }
   // the title stays in the page, out of sight, for screen readers and the tests
-  docTitle.textContent = currentDoc ? fileName(currentDoc.path) : "";
+  docTitle.textContent = currentDoc ? docName(currentDoc) : "";
   docTitle.title = currentDoc?.path ?? "";
   getCurrentWindow()
-    .setTitle(currentDoc ? `${dirty ? "• " : ""}${t("toolbar.windowTitle", { name: fileName(currentDoc.path) })}` : "Leggimi")
+    .setTitle(currentDoc ? `${dirty ? "• " : ""}${t("toolbar.windowTitle", { name: docName(currentDoc) })}` : "Leggimi")
     .catch(() => {});
 }
 
@@ -365,6 +385,13 @@ function updateTitles(): void {
 async function toggleEditMode(): Promise<void> {
   if (!editing) {
     await enterEditMode();
+    return;
+  }
+  // pasted text lives only here: back to reading, it keeps what was typed
+  // (closing its tab asks about it)
+  if (currentDoc?.path === null) {
+    if (editorMod) currentDoc = { ...currentDoc, content: editorMod.currentText() };
+    exitEditMode();
     return;
   }
   if (editorMod?.isDirty()) {
@@ -456,6 +483,8 @@ const IMAGE_EXT_BY_MIME: Record<string, string> = {
 
 async function insertPastedImage(file: File): Promise<void> {
   if (!editing || !currentDoc || !editorMod) return;
+  // a picture goes into the folder of its document: pasted text has none
+  if (currentDoc.dir === null) return;
   const tab = session.active();
   try {
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -478,6 +507,7 @@ async function insertPastedImage(file: File): Promise<void> {
 
 async function insertDroppedImage(path: string): Promise<void> {
   if (!editing || !currentDoc || !editorMod) return;
+  if (currentDoc.dir === null) return;
   const tab = session.active();
   try {
     const rel = await ipc.importImage(currentDoc.dir, path);
@@ -511,7 +541,7 @@ const confirmDiscard = async (): Promise<boolean> => {
     cancelLabel: t("msg.cancel"),
   }).catch(() => false);
   // a deliberate discard also drops the recovery draft of that buffer
-  if (ok && currentDoc) drafts.remove(currentDoc.path);
+  if (ok && currentDoc) drafts.remove(docKey(currentDoc));
   return ok;
 };
 
@@ -530,9 +560,9 @@ function writeDraft(): void {
   draftTimer = undefined;
   if (!currentDoc || !editorMod) return;
   if (editing && editorMod.isDirty()) {
-    drafts.put(currentDoc.path, editorMod.currentText(), currentDoc.content.replace(/\r\n/g, "\n"));
+    drafts.put(docKey(currentDoc), editorMod.currentText(), currentDoc.content.replace(/\r\n/g, "\n"));
   } else {
-    drafts.remove(currentDoc.path);
+    drafts.remove(docKey(currentDoc));
   }
 }
 
@@ -550,8 +580,11 @@ peers.addEventListener("message", (e: MessageEvent) => {
   const m = e.data as { type?: string; path?: string; id?: number };
   const path = m.path;
   if (m.type !== "editing?" || !path) return;
-  // any tab of this window, in front or behind
-  const mine = session.tabs.some((x) => !x.closing && x.path !== null && samePath(x.path, path) && tabDirty(x));
+  // any tab of this window, in front or behind (a draft's key: a file's path, or pasted text's)
+  const mine = session.tabs.some((x) => {
+    const key = draftKeyOf(x);
+    return !x.closing && key !== null && samePath(key, path) && tabDirty(x);
+  });
   if (mine) peers.postMessage({ type: "editing!", id: m.id });
 });
 
@@ -580,7 +613,7 @@ async function offerDraft(doc: ipc.MarkdownDoc): Promise<void> {
   // the buffer holds it already (a tab carried here with its edits), or
   // another tab of this window is editing the file
   if (editing && editorMod?.currentText() === draft.text) return;
-  if (session.tabs.some((x) => x !== session.active() && x.path !== null && samePath(x.path, doc.path) && tabDirty(x))) return;
+  if (session.tabs.some((x) => x !== session.active() && isTabOf(x, doc.path) && tabDirty(x))) return;
   if (draft.text === doc.content.replace(/\r\n/g, "\n")) {
     drafts.remove(doc.path);
     return;
@@ -844,6 +877,8 @@ async function writeDocument(doc: ipc.MarkdownDoc, content: string, create = doc
 
 async function saveFile(): Promise<void> {
   if (!editing || !currentDoc || !editorMod?.isDirty()) return;
+  // pasted text has no file to write to
+  if (currentDoc.path === null) return;
   const content = editorMod.getContent();
   const doc = currentDoc;
   try {
@@ -904,12 +939,19 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
     editorMod.replaceLine(line, next);
     return;
   }
+  lines[line] = next;
+  // pasted text: the tick changes the text here, there is no file to write
+  if (doc.path === null) {
+    currentDoc = { ...doc, content: lines.join(eol) };
+    box.toggleAttribute("checked", box.checked);
+    updateTitles();
+    return;
+  }
   // a file deleted meanwhile is not written back by a tick (its notice says so)
   if (docGone) {
     box.checked = !box.checked;
     return;
   }
-  lines[line] = next;
   const content = lines.join(eol);
   try {
     const modified = await writeDocument(doc, content);
@@ -933,8 +975,8 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
       action: {
         label: t("msg.undo"),
         fn: () => {
-          if (!currentDoc || !samePath(currentDoc.path, doc.path)) return;
           const cur = currentDoc;
+          if (!cur || cur.path === null || !samePath(cur.path, doc.path)) return;
           writeDocument(cur, before)
             .then((m) => {
               if (m === null || currentDoc !== cur) return;
@@ -954,7 +996,8 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
 }
 
 async function reloadFromDisk(): Promise<void> {
-  if (!currentDoc) return;
+  // pasted text has no file to read again
+  if (!currentDoc || currentDoc.path === null) return;
   const path = currentDoc.path;
   const tab = session.active();
   try {
@@ -965,7 +1008,7 @@ async function reloadFromDisk(): Promise<void> {
       return;
     }
     // another document took the tab while the file was being read
-    if (!currentDoc || !samePath(currentDoc.path, path)) return;
+    if (!isDocAt(currentDoc, path)) return;
     currentDoc = doc;
     editorMod?.setContent(doc.content);
     await updatePreview(doc.content);
@@ -980,7 +1023,7 @@ async function reloadFromDisk(): Promise<void> {
 // Renamed in File Explorer while on screen: the window follows the file,
 // with the unsaved edits, the place being read and everything kept by path.
 function onDocRenamed(to: string): void {
-  if (!currentDoc) return;
+  if (!currentDoc || currentDoc.path === null) return;
   const from = currentDoc.path;
   // in place: a save or a ticked checkbox in flight still holds this very
   // object, and must not take it for another document
@@ -1004,14 +1047,14 @@ function onDocRenamed(to: string): void {
 // Deleted, or moved out of its folder: the text stays on screen, and the
 // notice offers to write it back (so does saving, in edit mode)
 function onDocRemoved(): void {
-  if (!currentDoc || docGone) return;
+  if (!currentDoc || currentDoc.path === null || docGone) return;
   docGone = true;
   showGoneNotice();
   refreshTree();
 }
 
 function showGoneNotice(): void {
-  if (!currentDoc) return;
+  if (!currentDoc || currentDoc.path === null) return;
   showNotice(t("msg.goneFromDisk", { name: fileName(currentDoc.path) }), {
     sticky: true,
     action: { label: t("msg.saveAgain"), fn: () => void restoreGoneDoc() },
@@ -1028,7 +1071,7 @@ function onDocBack(): void {
 
 // "Save again": the text on screen (the editor's, while editing) back to its file
 async function restoreGoneDoc(): Promise<void> {
-  if (!currentDoc || !docGone) return;
+  if (!currentDoc || currentDoc.path === null || !docGone) return;
   const doc = currentDoc;
   const content = editing && editorMod ? editorMod.getContent() : doc.content;
   try {
@@ -1048,7 +1091,8 @@ async function restoreGoneDoc(): Promise<void> {
 // Missing, it is looked for once more after the watch's own delay: a rename
 // it is about to report must not pass for a deletion.
 async function checkDocOnDisk(): Promise<void> {
-  if (!currentDoc || docGone || errorShown) return;
+  // pasted text is on no disk
+  if (!currentDoc || currentDoc.path === null || docGone || errorShown) return;
   const doc = currentDoc;
   const path = doc.path;
   const missing = async () => (await ipc.existingPaths([path]).catch(() => [path])).length === 0;
@@ -1071,13 +1115,13 @@ function reportMissing(path: string): void {
 // follows it; deleted, it says so when it comes back; changed, it reads the
 // file again then (never over unsaved edits).
 function onBehindFileChanged(tab: session.Tab, change: ipc.FileChange): void {
-  const from = tab.path;
+  const from = session.filePath(tab);
   if (from === null) return;
   if (change.kind === "renamed" && change.to) {
     const to = change.to;
-    tab.path = to;
+    tab.src = { kind: "file", path: to };
     // in place, as for the document in front: a save in flight holds this object
-    if (tab.doc) tab.doc.path = to;
+    if (tab.doc && tab.doc.path !== null) tab.doc.path = to;
     recents.rename(from, to);
     positions.rename(from, to);
     drafts.rename(from, to);
@@ -1136,7 +1180,7 @@ const cssString = (s: string): string =>
 function setPrintMeta(): () => void {
   if (!currentDoc) return () => {};
   const h1 = article.querySelector("h1")?.textContent?.trim();
-  const title = h1 || fileName(currentDoc.path).replace(MD_EXT_RE, "");
+  const title = h1 || (currentDoc.path !== null ? fileName(currentDoc.path).replace(MD_EXT_RE, "") : pastedName(currentDoc.paste));
   const date = i18n.fmtDate(new Date(), { dateStyle: "medium" });
   const style = document.createElement("style");
   style.id = "print-page-meta";
@@ -1212,7 +1256,7 @@ let pdfInProgress = false;
 
 async function exportDocAsPdf(): Promise<void> {
   if (!currentDoc || pdfInProgress) return;
-  const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
+  const base = exportBase(currentDoc);
   const target = await saveDialog({
     defaultPath: `${base}.pdf`,
     filters: [{ name: t("filter.pdf"), extensions: ["pdf"] }],
@@ -1318,7 +1362,7 @@ function bumpReaderSize(dir: 1 | -1): void {
 
 async function exportDocAsHtml(): Promise<void> {
   if (!currentDoc) return;
-  const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
+  const base = exportBase(currentDoc);
   const target = await saveDialog({
     defaultPath: `${base}.html`,
     filters: [{ name: t("filter.html"), extensions: ["html"] }],
@@ -1326,7 +1370,7 @@ async function exportDocAsHtml(): Promise<void> {
   if (typeof target !== "string" || !target) return;
   tabHolds++;
   try {
-    const html = await buildStandaloneHtml(article, fileName(currentDoc.path), currentDoc.dir);
+    const html = await buildStandaloneHtml(article, docName(currentDoc), currentDoc.dir);
     await ipc.exportFile(target, html);
     flashDone(btnShare);
   } catch (err) {
@@ -1338,7 +1382,7 @@ async function exportDocAsHtml(): Promise<void> {
 
 async function exportDocAsDocx(): Promise<void> {
   if (!currentDoc) return;
-  const base = fileName(currentDoc.path).replace(MD_EXT_RE, "");
+  const base = exportBase(currentDoc);
   const target = await saveDialog({
     defaultPath: `${base}.docx`,
     filters: [{ name: t("filter.word"), extensions: ["docx"] }],
@@ -1346,7 +1390,7 @@ async function exportDocAsDocx(): Promise<void> {
   if (typeof target !== "string" || !target) return;
   tabHolds++;
   try {
-    const data = await buildDocxBase64(article, fileName(currentDoc.path), currentDoc.dir);
+    const data = await buildDocxBase64(article, docName(currentDoc), currentDoc.dir);
     await ipc.exportBinary(target, data);
     flashDone(btnShare);
   } catch (err) {
@@ -1416,7 +1460,7 @@ function scrollToSourceLine(line: number): HTMLElement | null {
 // the place on screen, for Back: none over the home or an error card
 function currentPlace(): navHistory.Place | null {
   if (!currentDoc || article.hidden || errorShown) return null;
-  return { path: currentDoc.path, pos: captureScrollAnchor(contentPane, article) };
+  return { path: docKey(currentDoc), pos: captureScrollAnchor(contentPane, article) };
 }
 
 // Before a jump inside the document (a #link, the outline): the place being
@@ -1461,6 +1505,11 @@ async function travel(dir: -1 | 1): Promise<void> {
     }
     toc.unpin();
     updateProgress();
+    return;
+  }
+  // pasted text that is no longer here: nothing on disk to look for
+  if (isPastedKey(place.path)) {
+    navHistory.drop(dir);
     return;
   }
   const alive = await ipc.existingPaths([place.path]).catch(() => [place.path]);
@@ -1508,16 +1557,6 @@ function openInNewWindow(path: string | null, opts: OpenOptions = {}): void {
 
 /* ---- tabs: one view, many documents ---- */
 
-// What a click asks for, as in a browser: Ctrl or the middle button a tab
-// behind the one in front (Ctrl+Shift: in front), Shift a new window.
-type Where = "here" | "tab" | "tab-front" | "window";
-
-function whereFrom(e: MouseEvent): Where {
-  if (e.button === 1 || e.ctrlKey) return e.shiftKey ? "tab-front" : "tab";
-  if (e.shiftKey) return "window";
-  return "here";
-}
-
 // a file picked inside a window: there, in a tab, or in a window of its own
 function openFrom(path: string, e: MouseEvent, opts: OpenOptions = {}): void {
   openAt(path, whereFrom(e), opts);
@@ -1544,7 +1583,28 @@ function latestFront(): session.Tab {
   return p && !p.closing && !p.leaving && session.tabs.includes(p) ? p : session.active();
 }
 
-const isStartPage = (tab: session.Tab): boolean => tab.path === null && !tab.closing;
+// what a tab is called in questions and lists: its file's name, the pasted text's title, "New tab"
+function tabName(tab: session.Tab): string {
+  const src = tab.src;
+  if (src.kind === "file") return fileName(src.path);
+  return src.kind === "pasted" ? pastedName(src.paste) : t("tab.newTab");
+}
+
+// the key of a tab's recovery draft (docs.ts docKey); a start page has none
+function draftKeyOf(tab: session.Tab): string | null {
+  const src = tab.src;
+  if (src.kind === "file") return src.path;
+  return src.kind === "pasted" ? pastedKey(src.paste) : null;
+}
+
+// the tab shows (or is about to show) this file
+const isTabOf = (tab: session.Tab, path: string): boolean => {
+  const p = session.filePath(tab);
+  return p !== null && samePath(p, path);
+};
+
+// a tab made from a path that may be none: that file, or a start page
+const fileOrStart = (path: string | null): session.TabSource => (path !== null ? { kind: "file", path } : { kind: "start" });
 
 const emptyTransfer = (path: string | null): TabTransfer => ({
   v: 1,
@@ -1605,9 +1665,12 @@ function openInTab(path: string, opts: TabOpenOptions = {}): void {
     return;
   }
   const front = latestFront();
-  const tab = session.make(path, opts.line !== undefined || opts.anchor !== undefined ? { line: opts.line, anchor: opts.anchor } : null);
+  const tab = session.make(
+    { kind: "file", path },
+    opts.line !== undefined || opts.anchor !== undefined ? { line: opts.line, anchor: opts.anchor } : null,
+  );
   if (opts.find) tab.transfer = { ...emptyTransfer(path), find: { open: true, query: opts.find } };
-  if (!opts.background && isStartPage(front)) {
+  if (!opts.background && session.isStartPage(front)) {
     // a start page in front becomes that document: the new tab takes its place
     session.insertAfter(tab, front);
     front.closing = true;
@@ -1627,7 +1690,7 @@ function openInTab(path: string, opts: TabOpenOptions = {}): void {
   void ipc
     .existingPaths([path])
     .then((alive) => {
-      if (alive.length > 0 || tab.doc || tab.closing || tab.path !== path) return;
+      if (alive.length > 0 || tab.doc || tab.closing || session.filePath(tab) !== path) return;
       reportMissing(path);
       void releaseTab(tab);
     })
@@ -1638,7 +1701,7 @@ function openInTab(path: string, opts: TabOpenOptions = {}): void {
 
 /** A new tab on the start page (Ctrl+T, the +). */
 function newStartTab(where: "end" | "after"): void {
-  const tab = session.make(null);
+  const tab = session.make({ kind: "start" });
   if (where === "end") session.insert(tab);
   else session.insertAfter(tab, latestFront());
   strip.render(tab);
@@ -1696,7 +1759,7 @@ function suspendView(tab: session.Tab): void {
   } else flushDraft();
   const shows = currentDoc !== null && !article.hidden && !errorShown;
   const here = shows ? captureScrollAnchor(contentPane, article) : null;
-  if (currentDoc && here && !editing) positions.remember(currentDoc.path, here);
+  if (currentDoc?.path && here && !editing) positions.remember(currentDoc.path, here);
   const snap = editing && editorMod ? editorMod.snapshot() : null;
   const view: session.TabView = {
     anchor: here,
@@ -1743,13 +1806,16 @@ async function resumeView(tab: session.Tab): Promise<void> {
   const v = tab.view;
   tab.view = null;
   navHistory.importState(v?.nav ?? null);
-  if (tab.path === null) {
+  if (tab.src.kind === "start") {
     showStartPage();
     return;
   }
   const doc = tab.doc;
   if (!doc) {
-    await loadFirstTime(tab, tab.path);
+    // a file is read the first time its tab comes forward; pasted text
+    // comes with its tab, so one without it has nothing to show
+    if (tab.src.kind === "file") await loadFirstTime(tab, tab.src.path);
+    else showStartPage();
     return;
   }
   currentDoc = doc;
@@ -1796,16 +1862,18 @@ async function resumeView(tab: session.Tab): Promise<void> {
   search.restore(v?.find ?? null);
   if (v?.notice) showNotice(v.notice.message, v.notice.opts);
   else if (docGone) showGoneNotice();
-  // the file pane shows the tab's folder
-  const root = v?.treeRoot ?? doc.dir;
-  if (!browseRoot || !samePath(root, browseRoot)) {
+  // the file pane shows the tab's folder (pasted text's: the one it was pasted
+  // over, if any; with none, the pane stays as it was)
+  const root = v?.treeRoot ?? (doc.path !== null ? doc.dir : doc.paste.home);
+  if (root !== null && (!browseRoot || !samePath(root, browseRoot))) {
     browseRoot = root;
     void refreshTree();
-  } else if (!tree.setActive(treeRoot, doc.path)) void refreshTree();
+  } else if (doc.path === null) clearTreeActive();
+  else if (!tree.setActive(treeRoot, doc.path)) void refreshTree();
   updateTitles();
   updateProgress();
   // changed on disk while it was behind: read again, never over unsaved edits
-  if (tab.stale) {
+  if (tab.stale && doc.path !== null) {
     tab.stale = false;
     void sameOnDisk(doc).then((same) => {
       if (same || session.active() !== tab || currentDoc !== doc) return;
@@ -1841,7 +1909,7 @@ async function loadFirstTime(tab: session.Tab, path: string): Promise<void> {
   if (result === "failed" && !currentDoc && !errorShown) {
     if (session.live().length > 1) void releaseTab(tab);
     else {
-      tab.path = null;
+      tab.src = { kind: "start" };
       strip.render();
       reportTabs();
       showStartPage();
@@ -1915,16 +1983,23 @@ function showStartPage(): void {
   app.classList.add("no-headings");
   tocList.replaceChildren();
   setupTocFilter(0, false);
-  treeRoot.querySelector(".tree-row.active")?.classList.remove("active");
+  clearTreeActive();
   updateTitles();
+}
+
+// no file of the pane is the one on screen (a start page, pasted text)
+function clearTreeActive(): void {
+  treeRoot.querySelector(".tree-row.active")?.classList.remove("active");
 }
 
 // the tab in front follows its document (a link followed, a file renamed)
 function syncFrontTab(): void {
   if (!session.hasActive() || !currentDoc) return;
+  // pasted text is what its tab was made with: there is no file to follow
+  if (currentDoc.path === null) return;
   const tab = session.active();
-  if (tab.path === currentDoc.path) return;
-  tab.path = currentDoc.path;
+  if (session.filePath(tab) === currentDoc.path) return;
+  tab.src = { kind: "file", path: currentDoc.path };
   strip.render();
 }
 
@@ -1933,21 +2008,39 @@ function reportTabs(): void {
   if (!session.hasActive()) return;
   const paths = session
     .live()
-    .map((x) => x.path)
+    .map(session.filePath)
     .filter((p): p is string => p !== null);
-  ipc.setTabs(paths, latestFront().path).catch(() => {});
+  ipc.setTabs(paths, session.filePath(latestFront())).catch(() => {});
   ipc.watchFiles(paths).catch(() => {});
+}
+
+// The text of the document in front as it is now, "\n" line ends: the
+// editor's while editing.
+function frontText(): string {
+  if (editing && editorMod) return editorMod.currentText();
+  return (currentDoc?.content ?? "").replace(/\r\n/g, "\n");
+}
+
+// The document in front holds what is not kept anywhere else: a file's edits
+// not saved; pasted text that is no longer as it was pasted.
+function frontChanged(): boolean {
+  if (currentDoc && currentDoc.path === null) return frontText() !== currentDoc.paste.original;
+  return editing && !!editorMod?.isDirty();
 }
 
 // a tab with edits not saved: the one in front by its editor, the others by their snapshot
 function tabDirty(tab: session.Tab): boolean {
-  if (session.hasActive() && tab === session.active()) return editing && !!editorMod?.isDirty();
+  if (session.hasActive() && tab === session.active()) return frontChanged();
+  if (tab.src.kind === "pasted") {
+    const ed = tab.view?.editor;
+    const text = ed ? ed.state.doc.toString() : (tab.doc?.content ?? tab.src.paste.original);
+    return text !== tab.src.paste.original;
+  }
   return tab.view?.editor?.dirty ?? false;
 }
 
 // "a.md, b.md and c.md", in the words of the interface
-const fileNames = (tabs: session.Tab[]): string =>
-  listFormat(tabs.map((x) => (x.path ? fileName(x.path) : t("tab.newTab"))));
+const fileNames = (tabs: session.Tab[]): string => listFormat(tabs.map(tabName));
 
 // Intl.ListFormat is newer than the library the code is typed against (WebView2 has it)
 const listFormat = (items: string[]): string => {
@@ -1959,11 +2052,13 @@ const listFormat = (items: string[]): string => {
 async function saveTab(tab: session.Tab): Promise<boolean> {
   if (session.hasActive() && tab === session.active()) {
     await saveFile();
-    return !(editing && editorMod?.isDirty());
+    return !frontChanged();
   }
+  // pasted text has no file to write to: not saved
+  if (tab.src.kind === "pasted") return false;
   const snap = tab.view?.editor;
   const doc = tab.doc;
-  if (!doc || !snap || !editorMod) return true;
+  if (!doc || doc.path === null || !snap || !editorMod) return true;
   const content = editorMod.snapshotText(snap);
   try {
     const modified = await writeDocument(doc, content, tab.view?.docGone ?? false);
@@ -2007,17 +2102,19 @@ async function askSave(text: string, saveLabel: string): Promise<"save" | "disca
 /** Closes a tab, asking first about unsaved edits; the start page left alone closes the window. */
 async function closeTab(tab: session.Tab, opts: { pointer?: boolean } = {}): Promise<"closed" | "kept"> {
   if (tab.closing || tab.leaving || !session.tabs.includes(tab)) return "kept";
-  if (session.live().length === 1 && tab.path === null) {
+  // the lone start page closes the window (lone pasted text leaves a start page, below)
+  if (session.live().length === 1 && tab.src.kind === "start") {
     void getCurrentWindow().close().catch(() => {});
     return "kept";
   }
   if (tabDirty(tab)) {
     // what it is about must be on screen while it is asked
     if (tab !== session.active()) await activateTab(tab);
-    const choice = await askSave(t("msg.closeTabQ", { name: tab.path ? fileName(tab.path) : "" }), t("msg.save"));
+    const choice = await askSave(t("msg.closeTabQ", { name: tab.src.kind === "start" ? "" : tabName(tab) }), t("msg.save"));
     if (choice === "cancel") return "kept";
     if (choice === "save" && !(await saveTab(tab))) return "kept";
-    if (choice === "discard" && tab.path) drafts.remove(tab.path);
+    const key = draftKeyOf(tab);
+    if (choice === "discard" && key) drafts.remove(key);
   }
   if (tab.closing) return "kept";
   const front = session.hasActive() && session.active() === tab;
@@ -2046,7 +2143,7 @@ async function releaseTab(tab: session.Tab, opts: { discard?: boolean } = {}): P
     const next = list[index + 1] ?? list[index - 1];
     if (next && next !== tab) activation = activateTab(next);
     else {
-      const home = session.make(null);
+      const home = session.make({ kind: "start" });
       session.insertAfter(home, tab);
       activation = activateTab(home);
     }
@@ -2073,14 +2170,16 @@ function closeRight(of: session.Tab): void {
 /** Ctrl+Shift+T: the last closed tab, back where it was and at the place it was read. */
 function reopenTab(): void {
   const last = session.closed.pop();
-  if (!last) return;
-  const open = session.findPath(last.path);
+  // session.rememberClosed keeps files only
+  if (!last || last.src.kind !== "file") return;
+  const path = last.src.path;
+  const open = session.findPath(path);
   if (open) {
     void activateTab(open);
     return;
   }
-  const tab = session.make(last.path);
-  if (last.anchor) tab.transfer = { ...emptyTransfer(last.path), anchor: last.anchor };
+  const tab = session.make(last.src);
+  if (last.anchor) tab.transfer = { ...emptyTransfer(path), anchor: last.anchor };
   session.insert(tab, session.live()[last.index] ?? null);
   strip.render(tab);
   reportTabs();
@@ -2172,9 +2271,14 @@ function transferOf(tab: session.Tab): TabTransfer {
   if (!front && !v && tab.transfer) return tab.transfer;
   const snap = front ? (editing && editorMod ? editorMod.snapshot() : null) : (v?.editor ?? null);
   const doc = front ? currentDoc : tab.doc;
+  // pasted text travels whole: there is no file for the other window to read
+  const src = tab.src;
+  const pasted =
+    src.kind === "pasted" ? { ...src.paste, content: doc?.content ?? src.paste.original } : undefined;
   return {
     v: 1,
-    path: tab.path,
+    path: session.filePath(tab),
+    ...(pasted ? { pasted } : {}),
     anchor: front ? (currentPlace()?.pos ?? null) : (v?.anchor ?? null),
     editing: front ? editing : (v?.editing ?? false),
     editor:
@@ -2201,7 +2305,7 @@ async function applyTransfer(tr: TabTransfer): Promise<void> {
       syncEditButton();
       collectPreviewAnchors();
       const disk = currentDoc.content.replace(/\r\n/g, "\n");
-      if (tr.editor.lastSaved !== disk) {
+      if (tr.editor.lastSaved !== disk && currentDoc.path !== null) {
         // the file changed on disk since the other window read it: the save
         // guard keeps that window's baseline, and the change is reported
         const base = tr.editor.eol === "\r\n" ? tr.editor.lastSaved.replace(/\n/g, "\r\n") : tr.editor.lastSaved;
@@ -2246,7 +2350,7 @@ async function tearOff(tab: session.Tab, at: { x: number; y: number } | null, fo
     void activateTab(rest[Math.min(i, rest.length - 1)]);
   }
   try {
-    await ipc.openWindow(tab.path, { transfer, from: winLabel, token, at: at ?? undefined, follow });
+    await ipc.openWindow(session.filePath(tab), { transfer, from: winLabel, token, at: at ?? undefined, follow });
   } catch (err) {
     pendingMoves.delete(token);
     tab.leaving = false;
@@ -2288,7 +2392,7 @@ async function acceptOffer(o: TabOffer): Promise<void> {
     return;
   }
   const index = await strip.dropIndex(o.x);
-  const tab = session.make(tr.path);
+  const tab = session.make(fileOrStart(tr.path));
   tab.transfer = tr;
   session.insert(tab, session.live()[index] ?? null);
   strip.render(tab);
@@ -2302,7 +2406,8 @@ async function acceptOffer(o: TabOffer): Promise<void> {
 async function offerWindowTab(target: string, x: number, y: number): Promise<void> {
   if (!session.hasActive()) return;
   const tab = session.active();
-  if (session.live().length !== 1 || tab.path === null || closingWindow) return;
+  // only a file's window joins another one (acceptOffer makes a file's tab, or a start page)
+  if (session.live().length !== 1 || session.filePath(tab) === null || closingWindow) return;
   const token = newToken();
   pendingMoves.set(token, tab);
   await ipc.sendTabOffer(target, { token, from: winLabel, transfer: transferOf(tab), x, y }).catch(() => {
@@ -2347,7 +2452,7 @@ const stripHost: strip.StripHost = {
   tearOff: (tab, at) => void tearOff(tab, at, true),
   dragWindow: (tab) =>
     void ipc
-      .beginWindowDrag(tab.path, tab.path ? fileName(tab.path) : t("tab.newTab"))
+      .beginWindowDrag(session.filePath(tab), tabName(tab))
       // without the native watch the window still moves, as by its title bar
       .catch(() => getCurrentWindow().startDragging().catch(() => {})),
   busy: () => pdfInProgress || tabHolds > 0,
@@ -2372,7 +2477,7 @@ let bootQueue: ipc.Launch[] | null = [];
 
 function firstTab(l: ipc.Launch | null): session.Tab {
   if (l?.transfer) {
-    const tab = session.make(l.transfer.path);
+    const tab = session.make(fileOrStart(l.transfer.path));
     tab.transfer = l.transfer;
     session.insert(tab);
     // the window it comes from lets it go
@@ -2380,7 +2485,7 @@ function firstTab(l: ipc.Launch | null): session.Tab {
     return tab;
   }
   const path = l?.path ?? null;
-  const tab = session.make(path, path ? { line: l?.line ?? undefined, anchor: l?.anchor ?? undefined } : null);
+  const tab = session.make(fileOrStart(path), path ? { line: l?.line ?? undefined, anchor: l?.anchor ?? undefined } : null);
   session.insert(tab);
   return tab;
 }
@@ -2408,7 +2513,7 @@ function takeCarriedTabs(): session.Tab | null {
   sessionStorage.removeItem(CARRY_KEY);
   if (!carried || !Array.isArray(carried.tabs) || carried.tabs.length === 0) return null;
   for (const tr of carried.tabs) {
-    const tab = session.make(tr.path ?? null);
+    const tab = session.make(fileOrStart(tr.path ?? null));
     if (tr.path) tab.transfer = tr;
     session.insert(tab);
   }
@@ -2424,7 +2529,9 @@ function installTestHooks(): void {
         const front = x === session.active();
         return {
           id: x.id,
-          path: x.path,
+          path: session.filePath(x),
+          kind: x.src.kind,
+          title: tabName(x),
           active: front,
           dirty: tabDirty(x),
           editing: front ? editing : (x.view?.editing ?? false),
@@ -2501,13 +2608,6 @@ const MENU_ICON = {
   folder: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
 };
 
-// a shortcut in the words of the interface ("Strg+Umschalt+C" in German)
-const keyLabel = (combo: string): string =>
-  combo
-    .split("+")
-    .map((k) => (k === "Ctrl" ? t("key.ctrl") : k === "Shift" ? t("key.shift") : k))
-    .join("+");
-
 function closeMenus(): void {
   hideShareMenu();
   hideReadingMenu();
@@ -2549,7 +2649,8 @@ function openFileMenu(path: string, x: number, y: number, opts: { isDir?: boolea
         hint: t("file.copyLinkHint"),
         icon: MENU_ICON.link,
         run: () => {
-          const rel = currentDoc ? relativePath(currentDoc.dir, path) : path;
+          // relative to the document's folder; pasted text has none, the path stays whole
+          const rel = currentDoc && currentDoc.dir !== null ? relativePath(currentDoc.dir, path) : path;
           const name = fileName(path).replace(MD_EXT_RE, "");
           navigator.clipboard.writeText(`[${name}](${encodeURI(rel)})`).catch(() => {});
         },
@@ -2618,8 +2719,10 @@ function sourceLineAt(target: Element, y: number): number | null {
 // `[Heading](file.md#id)`: the same link as "Copy as Markdown link", to the section
 function sectionLink(h: HTMLElement): string {
   const text = (h.textContent ?? "").trim().replace(/([[\]\\])/g, "\\$1");
-  // the anchor as written, which also works on GitHub and in other viewers
-  return `[${text}](${encodeURI(fileName(currentDoc?.path ?? ""))}#${h.dataset.anchor ?? h.id})`;
+  // the anchor as written, which also works on GitHub and in other viewers;
+  // pasted text has no file name to put before it
+  const file = currentDoc?.path ? encodeURI(fileName(currentDoc.path)) : "";
+  return `[${text}](${file}#${h.dataset.anchor ?? h.id})`;
 }
 
 const isLocalDocLink = (href: string): boolean => !href.startsWith("#") && !/^[a-z][a-z0-9+.-]*:/i.test(href);
@@ -2824,8 +2927,11 @@ function followLink(href: string, where: Where = "here"): void {
   } else if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
     // web pages to the browser, mail and phone links to their apps
     if (/^(https?|mailto|tel):/i.test(href)) openUrl(href).catch(() => {});
-  } else if (currentDoc) {
+  } else if (currentDoc && currentDoc.dir !== null) {
     void openLocalLink(currentDoc.dir, decodeSafe(target), anchor, where);
+  } else if (currentDoc) {
+    // pasted text is in no folder: a relative link leads nowhere until it is saved
+    showNotice(t("msg.pastedLink"), { kind: "info" });
   }
 }
 
@@ -2847,7 +2953,7 @@ async function openLocalLink(dir: string, rel: string, anchor: string | undefine
     if (where !== "here") openAt(p, where, { anchor });
     // a link to the document on screen moves within it: reading the file
     // again would put the disk's text over the live preview while editing
-    else if (currentDoc && samePath(p, currentDoc.path) && !article.hidden && !errorShown) {
+    else if (isDocAt(currentDoc, p) && !article.hidden && !errorShown) {
       if (anchor) jumpToAnchor(anchor);
     } else void navigate(p, { anchor });
     return;
@@ -2892,7 +2998,8 @@ const linkHref = (a: Element): string => a.getAttribute("href") ?? a.getAttribut
 // Ctrl+R read the file from disk instead, keeping the place; never over
 // unsaved edits.
 function reloadCurrentDoc(): void {
-  if (!currentDoc) return;
+  // pasted text has no file to read again
+  if (!currentDoc || currentDoc.path === null) return;
   if (editing) {
     if (!editorMod?.isDirty()) void reloadFromDisk();
   } else {
@@ -3018,7 +3125,7 @@ function refreshTree(): Promise<boolean> {
       if (gen !== treeGen) return false; // a newer listing is on its way
       const json = JSON.stringify(node);
       if (json === treeJson) {
-        if (currentDoc) tree.setActive(treeRoot, currentDoc.path);
+        if (currentDoc?.path) tree.setActive(treeRoot, currentDoc.path);
         return false;
       }
       treeJson = json;
@@ -3147,7 +3254,7 @@ async function openHit(path: string, q: string, e: MouseEvent, line?: number): P
   panes.closePeek();
   await navigate(path);
   // carry the query into the document so the match is highlighted in place
-  if (currentDoc && samePath(currentDoc.path, path)) search.openWith(q);
+  if (isDocAt(currentDoc, path)) search.openWith(q);
 }
 
 function closeFolderSearch(clearInput = true): void {
@@ -3202,7 +3309,8 @@ function updateProgress(): void {
 let rememberTimer: number | undefined;
 function onContentScroll(): void {
   updateProgress();
-  if (editing || !currentDoc || article.hidden) return;
+  // reading positions are kept by file
+  if (editing || !currentDoc || currentDoc.path === null || article.hidden) return;
   clearTimeout(rememberTimer);
   const doc = currentDoc;
   rememberTimer = window.setTimeout(() => {
@@ -3506,7 +3614,7 @@ function wireUi(): void {
     openFileMenu(path, p.x, p.y, { isDir, keyboard: fromKeyboard(e) });
   });
   docTitle.addEventListener("contextmenu", (e) => {
-    if (!currentDoc) return;
+    if (!currentDoc || currentDoc.path === null) return;
     e.preventDefault();
     const p = menuPoint(e, docTitle);
     openFileMenu(currentDoc.path, p.x, p.y, { keyboard: fromKeyboard(e) });
@@ -4072,7 +4180,10 @@ async function boot(): Promise<void> {
           }
         }
       } else if (choice === "discard") {
-        for (const tab of dirty) if (tab.path) drafts.remove(tab.path);
+        for (const tab of dirty) {
+          const key = draftKeyOf(tab);
+          if (key) drafts.remove(key);
+        }
       }
       if (!close) {
         e.preventDefault();
@@ -4094,11 +4205,11 @@ async function boot(): Promise<void> {
     if (!session.hasActive()) return;
     // the tabs behind the one in front that show this file
     for (const tab of session.tabs) {
-      if (tab === session.active() || tab.closing || tab.path === null || !samePath(tab.path, change.path)) continue;
+      if (tab === session.active() || tab.closing || !isTabOf(tab, change.path)) continue;
       onBehindFileChanged(tab, change);
     }
     // a replaced watch can still deliver a last batch, about the file before
-    if (!currentDoc || !samePath(change.path, currentDoc.path)) return;
+    if (!currentDoc || currentDoc.path === null || !samePath(change.path, currentDoc.path)) return;
     if (change.kind === "renamed" && change.to) {
       onDocRenamed(change.to);
       return;

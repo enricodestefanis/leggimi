@@ -200,6 +200,17 @@ const KEY_CAPS = new Map<string, keyof Dict>([
   ["PgDn", "key.pgDn"],
 ]);
 
+/** A shortcut written the US way ("Ctrl+Shift+T") in the words of the interface ("Strg+Umschalt+T"). */
+export function keyLabel(combo: string): string {
+  return combo
+    .split("+")
+    .map((k) => {
+      const key = KEY_CAPS.get(k);
+      return key ? t(key) : k;
+    })
+    .join("+");
+}
+
 // Static markup carries its English text as the fallback and a data-i18n*
 // attribute naming the key: data-i18n (text), data-i18n-html (markup with
 // <kbd>), data-i18n-title, data-i18n-placeholder, data-i18n-aria-label. A

@@ -55,7 +55,7 @@ article { max-width: 760px; margin: 0 auto; padding: 48px 32px 96px; }
 `;
 
 // App-only affordances (copy buttons, sync anchors) don't belong in output.
-function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
+function cleanedClone(article: HTMLElement, docDir: string | null): HTMLElement {
   const clone = article.cloneNode(true) as HTMLElement;
   for (const el of clone.querySelectorAll(".code-copy")) el.remove();
   for (const el of clone.querySelectorAll("[data-source-line]")) el.removeAttribute("data-source-line");
@@ -129,7 +129,8 @@ function cleanedClone(article: HTMLElement, docDir: string): HTMLElement {
       if (v && isAssetUrl(v)) el.setAttribute(attr, assetToFileUrl(v));
     }
   }
-  absolutizeLinks(clone, docDir);
+  // pasted text is in no folder: its relative links point nowhere, and stay as written
+  if (docDir !== null) absolutizeLinks(clone, docDir);
   return clone;
 }
 
@@ -213,7 +214,7 @@ const escapeHtml = (s: string) =>
 // is what gets copied (the article itself, or a holder with a selection).
 async function preparePortableClone(
   source: HTMLElement,
-  docDir: string,
+  docDir: string | null,
   live: HTMLElement = source,
 ): Promise<HTMLElement> {
   const clone = cleanedClone(source, docDir);
@@ -530,7 +531,7 @@ function stripClasses(root: HTMLElement): void {
 
 export async function copyAsRichText(
   article: HTMLElement,
-  docDir: string,
+  docDir: string | null,
   plainText: string,
 ): Promise<void> {
   await writeRichText(article, docDir, plainText, article);
@@ -539,7 +540,7 @@ export async function copyAsRichText(
 // Ctrl+C on a selection: the same Word-friendly HTML, for the selected part
 export async function copySelectionAsRichText(
   article: HTMLElement,
-  docDir: string,
+  docDir: string | null,
   range: Range,
 ): Promise<void> {
   const holder = document.createElement("div");
@@ -551,7 +552,7 @@ export async function copySelectionAsRichText(
 
 async function writeRichText(
   source: HTMLElement,
-  docDir: string,
+  docDir: string | null,
   plainText: string,
   live: HTMLElement,
 ): Promise<void> {
@@ -597,7 +598,7 @@ a { color: #a84b2b; }
 export async function buildDocxBase64(
   article: HTMLElement,
   title: string,
-  docDir: string,
+  docDir: string | null,
 ): Promise<string> {
   const clone = await preparePortableClone(article, docDir);
   wordifyAlerts(clone);
@@ -656,7 +657,7 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
 export async function buildStandaloneHtml(
   article: HTMLElement,
   title: string,
-  docDir: string,
+  docDir: string | null,
 ): Promise<string> {
   const clone = cleanedClone(article, docDir);
   const [, markdownCss, codeCss, katexCss] = await Promise.all([

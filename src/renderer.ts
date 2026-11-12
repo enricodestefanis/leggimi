@@ -9,7 +9,7 @@ import hljs from "highlight.js/lib/common";
 import DOMPurify from "dompurify";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import { resolvePath, type MarkdownDoc } from "./ipc";
+import { resolvePath } from "./ipc";
 import { unmark as unmarkZoomable } from "./lightbox";
 import * as fm from "./frontmatter";
 import { t } from "./i18n";
@@ -223,9 +223,15 @@ function loadKatex(): Promise<void> {
 // what would let a document open things in the top layer, over the app
 const TOP_LAYER_ATTRS = ["popover", "popovertarget", "popovertargetaction", "command", "commandfor", "interestfor"];
 
+/** What a render needs of a document: its text, and the folder its relative URLs point into (null: none, pasted text). */
+export interface RenderSource {
+  content: string;
+  dir: string | null;
+}
+
 // All fallible work (markdown-it, DOMPurify, image IPC) happens here, before
 // anything touches the live DOM — callers can keep the previous content on error.
-export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {
+export async function renderFragment(doc: RenderSource): Promise<HTMLElement> {
   // without KaTeX (it failed to load) the math shows as written
   if (mayHoldMath(doc.content)) await loadKatex().catch(() => {});
   pendingFrontMatter = null;
@@ -256,7 +262,7 @@ export async function renderFragment(doc: MarkdownDoc): Promise<HTMLElement> {
   return staging;
 }
 
-export async function render(doc: MarkdownDoc, article: HTMLElement): Promise<void> {
+export async function render(doc: RenderSource, article: HTMLElement): Promise<void> {
   const staging = await renderFragment(doc);
   article.replaceChildren(...staging.childNodes);
 }
@@ -440,7 +446,8 @@ const MEDIA_URLS: [selector: string, attr: string][] = [
 
 // Relative URLs (images, a picture's sources, video, audio, subtitles) point
 // into the document's folder: only the asset protocol can serve it.
-async function rewriteLocalUrls(root: HTMLElement, dir: string): Promise<void> {
+async function rewriteLocalUrls(root: HTMLElement, dir: string | null): Promise<void> {
+  if (dir === null) return dropLocalUrls(root);
   // Subtitles come from the asset protocol, another origin than the page's:
   // a <track> is only fetched across origins when its video asks with CORS
   // (which the asset protocol allows)
@@ -478,6 +485,29 @@ async function rewriteLocalUrls(root: HTMLElement, dir: string): Promise<void> {
   for (const img of root.querySelectorAll("img")) {
     if (missing.has(img)) markMissing(img);
     else watchForLoadFailure(img);
+  }
+}
+
+// A document in no folder (text pasted from the clipboard): its relative URLs
+// lead nowhere. Nothing is asked of the asset protocol for them, nor of the
+// app's own folder; its pictures show as missing, named by their address.
+function dropLocalUrls(root: HTMLElement): void {
+  for (const el of root.querySelectorAll("img[srcset], picture > source[srcset]")) {
+    const kept = parseSrcset(el.getAttribute("srcset") ?? "").filter((c) => !isLocalUrl(c.url));
+    if (kept.length) el.setAttribute("srcset", kept.map((c) => [c.url, c.descriptor].filter(Boolean).join(" ")).join(", "));
+    else el.removeAttribute("srcset");
+  }
+  for (const [selector, attr] of MEDIA_URLS) {
+    for (const el of root.querySelectorAll(selector)) {
+      if (isLocalUrl(el.getAttribute(attr) ?? "")) el.removeAttribute(attr);
+    }
+  }
+  for (const img of root.querySelectorAll("img")) {
+    const src = img.getAttribute("src") ?? "";
+    if (!isLocalUrl(src)) continue;
+    img.removeAttribute("src");
+    if (!img.alt) img.alt = src;
+    if (!img.hasAttribute("srcset") && !img.closest("picture")) markMissing(img);
   }
 }
 

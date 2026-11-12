@@ -18,11 +18,25 @@ export interface EditorTransfer {
   dirty?: boolean;
 }
 
+/** Pasted text travelling with its tab: what it was, what it is called, the text now. */
+export interface PastedTransfer {
+  id: string;
+  title: string;
+  /** the text as it was pasted ("\n" line ends) */
+  original: string;
+  /** the folder "Save as…" starts in, or null */
+  home: string | null;
+  /** the text being read when it left (edits not yet out of the editor are in `editor`) */
+  content: string;
+}
+
 /** A tab on its way to another window: an event's payload, or a new window's launch. */
 export interface TabTransfer {
   v: 1;
-  /** null: a start page */
+  /** null: a start page, or pasted text (then `pasted` holds it) */
   path: string | null;
+  /** pasted text, in no file: path is null */
+  pasted?: PastedTransfer | null;
   /** where the reader was */
   anchor: ScrollAnchor | null;
   editing: boolean;
@@ -108,7 +122,11 @@ export const EV = {
 /** One tab as the tests see it (window.__leggimi.tabs()). */
 export interface TabInfo {
   id: number;
+  /** its file; null for a start page or pasted text */
   path: string | null;
+  kind: "start" | "file" | "pasted";
+  /** its name on the strip's list: the file's name, the pasted text's title, "New tab" */
+  title: string;
   active: boolean;
   dirty: boolean;
   editing: boolean;
