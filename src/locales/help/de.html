@@ -25,8 +25,15 @@
           haben</strong>, und springt beim nächsten Öffnen dorthin zurück.
         </p>
         <p>
-          <strong>Einfügen und lesen:</strong> Markdown, das Sie aus ChatGPT, Claude oder einer Webseite kopiert
-          haben, lässt sich lesen, ohne es erst zu speichern. Drücken Sie <kbd>Strg</kbd>+<kbd>V</kbd> irgendwo
+          Auch Dateien, die nicht in UTF-8 vorliegen, lassen sich öffnen: UTF-16, wie es Windows PowerShell 5.1
+          mit <code>&gt;</code> oder <code>Out-File</code> schreibt, und die ANSI-Codepage von Windows, wie sie
+          <code>Set-Content</code> und ältere Programme schreiben (etwa Umlaute in Windows-1252); auch die
+          Ordnersuche liest sie. Leggimi speichert immer in UTF-8 und weist beim ersten Speichern einer solchen
+          Datei darauf hin.
+        </p>
+        <p>
+          <strong>Einfügen und lesen:</strong> Text, den Sie aus einem Chat (ChatGPT, Claude), einer Webseite,
+          Word oder Teams kopiert haben, lässt sich als Markdown lesen, ohne ihn erst zu speichern. Drücken Sie <kbd>Strg</kbd>+<kbd>V</kbd> irgendwo
           außerhalb des Editors und der Eingabefelder (Suchleiste, Filter), oder verwenden Sie <strong>Aus der
           Zwischenablage einfügen</strong> auf der Startseite bzw. <strong>Markdown als neues Dokument
           einfügen</strong> in der Befehlspalette. Der Text öffnet sich in einer eigenen Registerkarte, benannt
@@ -34,6 +41,18 @@
           Startseite, wird sie zu diesem Dokument; sonst öffnet sich eine neue Registerkarte im Vordergrund.
           Eingefügt wird nur Text (liegt ein Bild in der Zwischenablage, erscheint ein Hinweis), und im Editor
           fügt <kbd>Strg</kbd>+<kbd>V</kbd> wie gewohnt ein.
+        </p>
+        <p>
+          Markdown, das Sie mit der <em>Kopieren</em>-Schaltfläche eines Chats kopiert haben, wird gelesen, wie
+          es ist. Ein mit der Maus markierter Teil einer Antwort oder ein Abschnitt aus einer Webseite, aus Word
+          oder Teams behält seine Überschriften, Listen, Tabellen, Codeblöcke, Links und Formeln: Leggimi liest
+          die formatierte Kopie, die neben dem Text in der Zwischenablage liegt, und macht daraus Markdown. Eine
+          aus einem Terminal kopierte Tabelle (Claude Code, psql, MySQL), mit Rahmenzeichen gezeichnet, wird zu
+          einer Markdown-Tabelle, ebenso Zeilen mit durch Tabulatoren getrennten Zellen (eine nur als Text kopierte Tabelle oder eine aus Excel); eine Antwort, die ganz in einem <code>```markdown</code>-Block steht, wird als
+          das Dokument gelesen, das sie enthält; Formeln in der Schreibweise <code>\( … \)</code> oder
+          <code>\[ … \]</code>, wie ChatGPT sie schreibt, werden als Formeln gelesen. Wurde der Text in Markdown
+          umgewandelt, sagt ein Hinweis das, und <strong>Wie kopiert zeigen</strong> zeigt ihn genau so, wie er
+          kopiert wurde.
         </p>
         <p>
           Den eingefügten Text lesen Sie wie jedes Dokument, mit Gliederung, Suche, Drucken, PDF, Word und
@@ -200,10 +219,16 @@
         <p>
           Ein orangefarbener Punkt auf der Registerkarte des Dokuments, anstelle ihres ×, zeigt ungespeicherte Änderungen an – speichern Sie mit
           <kbd>Strg</kbd>+<kbd>S</kbd>, dann wird der Punkt kurz zu einem Häkchen (Bildschirmleser melden
-          „Gespeichert“). Beim Verlassen des Bearbeitungsmodus oder beim Öffnen eines anderen Dokuments mit
-          ungespeicherten Änderungen wird zuerst nachgefragt. Ändert sich die Datei auf der Festplatte, während
-          Sie ungespeicherte Änderungen haben, erscheint eine Warnung statt Ihre Arbeit zu überschreiben; und
-          das Speichern über eine seit dem Öffnen geänderte Datei fragt vorher nach.
+          „Gespeichert“). Beim Verlassen des Bearbeitungsmodus oder beim Öffnen eines anderen Dokuments in
+          derselben Registerkarte mit ungespeicherten Änderungen fragt Leggimi zuerst, wie beim Schließen der
+          Registerkarte: <strong>Speichern</strong>, <strong>Nicht speichern</strong> oder
+          <strong>Abbrechen</strong>; Speichern steht an erster Stelle, sodass Ihre Arbeit mit
+          <kbd>Eingabe</kbd> erhalten bleibt. Ändert sich die Datei auf der Festplatte, während Sie ungespeicherte
+          Änderungen haben, erscheint ein Hinweis statt Ihre Arbeit zu überschreiben; und das Speichern über eine
+          seit dem Öffnen geänderte Datei fragt vorher nach. <strong>Von der Festplatte neu laden</strong> im
+          Hinweis holt den Text der Festplatte in den Editor und lässt sich zurücknehmen:
+          <strong>Rückgängig</strong> im folgenden Hinweis oder <kbd>Strg</kbd>+<kbd>Z</kbd> im Editor bringt
+          Ihre Änderungen zurück, ungespeichert.
         </p>
         <p>
           Beim Bearbeiten setzt ein <strong>Doppelklick in die Vorschau</strong> den Cursor des Editors auf
@@ -258,7 +283,10 @@
           <strong>Wiederherstellung:</strong> solange Sie ungespeicherte Änderungen haben, wird eine Kopie des
           Textes beiseitegelegt. Wird die App ohne Speichern beendet (Absturz, erzwungenes Herunterfahren),
           bietet beim nächsten Öffnen der Datei ein Hinweis die Wiederherstellung an. Die Datei selbst wird
-          nicht angerührt, bis Sie speichern.
+          nicht angerührt, bis Sie speichern, und beim Speichern wird die ganze Datei geschrieben oder gar
+          nichts: Der Text kommt in eine temporäre Datei neben dem Dokument, die dann dessen Platz einnimmt,
+          sodass ein Stromausfall oder ein getrenntes Laufwerk mitten im Speichern nie eine leere oder
+          abgeschnittene Datei hinterlässt.
         </p>
         <p>
           <strong>Bilder:</strong> fügen Sie einen Screenshot ein (<kbd>Strg</kbd>+<kbd>V</kbd>) oder ziehen Sie
@@ -303,7 +331,8 @@
         <p>
           Der rechte Bereich listet die Überschriften des Dokuments und hebt die gerade gelesene hervor. Ein
           Klick auf einen Eintrag springt dorthin. Bei langen Dokumenten erscheint ein Filterfeld über der
-          Liste: tippen Sie, um die Überschriften einzugrenzen, dann <kbd>↑</kbd> / <kbd>↓</kbd> und
+          Liste: tippen Sie, um die Überschriften einzugrenzen (<em>Keine Treffer</em>, wenn keine übrig
+          bleibt), dann <kbd>↑</kbd> / <kbd>↓</kbd> und
           <kbd>Eingabe</kbd> springen zu einer; <kbd>Esc</kbd> leert es.
         </p>
         <p>
@@ -322,7 +351,7 @@
         </p>
 
         <h3>Automatisches Neuladen</h3>
-        <p>Geöffnete Dateien werden auf der Festplatte beobachtet. Ändert sich eine, aktualisiert sich die Ansicht von selbst und behält die Leseposition – praktisch, während ein Dokument neu erzeugt wird; eine Registerkarte im Hintergrund holt das nach, sobald Sie zu ihr zurückkehren. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat.</p>
+        <p>Geöffnete Dateien werden auf der Festplatte beobachtet. Ändert sich eine, aktualisiert sich die Ansicht von selbst und behält die Leseposition, auch wenn sich die Überschrift des Abschnitts ändert, den Sie gerade lesen (ein Agent, der einen Schritt als erledigt markiert) – praktisch, während ein Dokument neu erzeugt wird. Bereits gezeichnete Mermaid-Diagramme erscheinen sofort wieder, in ihrer eigenen Höhe, sodass der Text nicht verrutscht. Eine Registerkarte im Hintergrund holt das nach, sobald Sie zu ihr zurückkehren. Im Bearbeitungsmodus geschieht das nur, solange der Puffer keine ungespeicherten Änderungen hat; sonst bietet ein Hinweis <strong>Von der Festplatte neu laden</strong> an (siehe <em>Bearbeiten</em>).</p>
         <p><kbd>F5</kbd> oder <kbd>Strg</kbd>+<kbd>R</kbd> liest die Datei auf Wunsch neu ein und behält die Leseposition; bei ungespeicherten Änderungen geschieht nichts.</p>
 
         <h3>Darstellung</h3>
@@ -335,11 +364,13 @@
           <li>In einer langen Tabelle bleibt die Kopfzeile beim Lesen oben im Fenster, bis die letzte Zeile der Tabelle vorbeigezogen ist. Eine Tabelle, die selbst für das ganze Fenster zu breit ist, scrollt seitlich: Ihre Bildlaufleiste bleibt unten im Fenster, solange die Tabelle zu sehen ist, Sie müssen also nicht erst ans Ende der Tabelle, um sie zu verschieben; <kbd>Umschalt</kbd>+Mausrad und das Touchpad funktionieren auch überall auf der Tabelle.</li>
           <li>Ein Klick auf ein Diagramm oder Bild öffnet es bildschirmfüllend: <kbd>+</kbd> / <kbd>−</kbd> oder das Mausrad zoomen, Ziehen verschiebt, <kbd>Esc</kbd> schließt. <strong>Anpassen</strong> (<kbd>0</kbd>) passt es ins Fenster ein, <strong>Breite</strong> (<kbd>W</kbd>) an die Breite, von oben beginnend, und <strong>100 %</strong> (<kbd>1</kbd>) zeigt es in Originalgröße. Die Kopieren-Schaltfläche bietet das Bild als PNG (normal oder groß), ein Diagramm auch als SVG, und beides lässt sich als Datei speichern.</li>
           <li>Formeln werden mit KaTeX gesetzt: <code>$…$</code> im Text, <code>$$…$$</code> oder ein <code>math</code>-Codeblock (auch mit einem Titel nach <code>math</code>) für abgesetzte Formeln. Dollarzeichen werden wie auf GitHub gelesen: Ein <code>$$</code>-Block beginnt nur, wenn er auch geschlossen wird, sodass ein Preis wie <code>$$ 100</code> nicht den Rest des Dokuments zur Formel macht; Text nach einem schließenden <code>$$</code> bleibt erhalten; <code>$$…$$</code> mitten im Satz zeigt die Formel, ohne den Absatz zu teilen; <code>$ x $</code> mit Leerzeichen innen und Beträge wie <code>$5 und $10</code> bleiben Text.</li>
-          <li>Hinweisboxen im GitHub-Stil: ein Zitat, das mit <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> oder <code>[!CAUTION]</code> beginnt.</li>
+          <li>Hinweisboxen: ein Zitat, das mit <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> oder <code>[!CAUTION]</code> beginnt, wie auf GitHub, oder mit einem der anderen Typen aus Notizen, die mit Obsidian und anderen Notiz-Apps geschrieben wurden (<code>[!info]</code>, <code>[!todo]</code>, <code>[!example]</code>, <code>[!danger]</code>…), in der Farbe der nächstliegenden der fünf Boxen von GitHub. Ein Titel nach dem Typ (<code>&gt; [!tip] Bevor Sie beginnen</code>) ersetzt den Namen des Typs, und eine eingeklappt geschriebene Box (<code>[!note]-</code>) erscheint geöffnet.</li>
+          <li><code>==markierter Text==</code> wird hervorgehoben, in jedem Design, im Druck und in Word.</li>
           <li>Fußnoten: <code>[^1]</code> im Text und <code>[^1]: …</code> an beliebiger Stelle; die Noten werden am Ende gesammelt, mit Links hin und zurück.</li>
           <li>Aufgabenlisten sind aktiv: ein Klick auf ein Kästchen aktualisiert sofort <code>[ ]</code> / <code>[x]</code> in der Datei (mit <em>Rückgängig</em> im Hinweis) oder im Editorpuffer, während Sie bearbeiten. Nur das Kästchen hakt die Aufgabe ab: ein Klick oder Doppelklick auf ihren Text, etwa um ein Wort zu markieren, ändert nichts.</li>
           <li>Tabellen haben oben rechts zwei Schaltflächen, sichtbar beim Überfahren oder wenn Sie sie mit der Tastatur erreichen: <strong>Tabelle kopieren (für Excel)</strong> legt die Tabelle als tabulatorgetrennten Text in die Zwischenablage, fertig für Excel oder Google Tabellen, und <strong>Vorschau öffnen</strong> öffnet sie bildschirmfüllend zum bequemen Lesen (auch im Kontextmenü): Sie scrollt wie die Seite, die Kopfzeile bleibt oben, und wenn die Tabelle seitlich scrollt, bleibt auch die erste Spalte links; <kbd>+</kbd> / <kbd>−</kbd> oder <kbd>Strg</kbd>+Mausrad ändern die Textgröße, und <strong>Breite</strong> (<kbd>W</kbd>) passt die Tabelle an das Fenster an. <strong>Zeilen filtern</strong> (<kbd>Strg</kbd>+<kbd>F</kbd>) lässt nur die Zeilen stehen, die die eingegebenen Wörter enthalten, und ein Klick auf eine Spaltenüberschrift sortiert die Zeilen danach: aufsteigend, absteigend, zurück zur ursprünglichen Reihenfolge (Zahlen, Beträge, Prozente und Datumsangaben werden als solche erkannt). Das Dokument ändert sich nicht, und <strong>Tabelle kopieren (für Excel)</strong> kopiert in der Vorschau die Zeilen so, wie Sie sie sehen.</li>
           <li>Links auf andere Dokumente funktionieren wie in einem Wiki: <code>[Text](andere)</code> findet <code>andere.md</code>, <code>[Text](ordner/)</code> öffnet dessen <code>index.md</code> oder <code>README.md</code>, und <code>andere.md#abschnitt</code> springt zu dieser Überschrift. Überschriften bekommen dieselben Anker wie auf GitHub (<code>## 1. Einleitung</code> → <code>#1-einleitung</code>), sodass Inhaltsverzeichnisse, die für GitHub oder von einem KI-Assistenten geschrieben wurden, auch hier funktionieren; Links, die für frühere Versionen geschrieben wurden, führen weiterhin ans Ziel.</li>
+          <li>Auch die Links von Notizen, die mit Obsidian und anderen Notiz-Apps geschrieben wurden, funktionieren: <code>[[Notiz]]</code>, <code>[[Notiz|anderer Name]]</code> und <code>[[Notiz#Überschrift]]</code> öffnen <code>Notiz.md</code>, gesucht zuerst neben dem Dokument, dann nach dem Namen im Ordner der Dateiliste. <code>![[bild.png]]</code> zeigt das Bild, <code>![[bild.png|300]]</code> 300 Pixel breit; es wird im Ordner des Dokuments und in den Ordnern darunter gesucht, ein Bild in einem Nachbarordner wird also nicht gefunden.</li>
           <li>YAML-Front-Matter zwischen <code>---</code>-Zeilen wird zu einem <em>Front Matter</em>-Block am Anfang gefaltet: ein Klick zeigt die Felder als Tabelle.</li>
           <li>Ein Absatz, der nur <code>[TOC]</code> enthält, wird zu einem Inhaltsverzeichnis der folgenden Überschriften, das auch in Druck, HTML und DOCX landet.</li>
           <li>Bilder mit relativem Pfad werden relativ zum Ordner des Dokuments aufgelöst. Logos für das helle und das dunkle Design von GitHub (markiert mit <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code> oder ein <code>&lt;picture&gt;</code> mit heller und dunkler Quelle) zeigen das zum Design von Leggimi passende; Druck und Exporte verwenden das helle.</li>

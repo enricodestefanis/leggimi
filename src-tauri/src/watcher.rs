@@ -145,14 +145,7 @@ pub fn watch_tree(
         None,
         move |result: DebounceEventResult| {
             let Ok(events) = result else { return };
-            // writes inside files never change the listing: saves are not news
-            let relevant = events.iter().any(|e| {
-                matches!(
-                    e.kind,
-                    EventKind::Create(_) | EventKind::Remove(_) | EventKind::Modify(ModifyKind::Name(_))
-                ) && e.paths.iter().any(|p| crate::commands::listed_path(&base, p))
-            });
-            if relevant {
+            if tree_relevant(&base, &events) {
                 let _ = app.emit_to(label.as_str(), "tree-changed", ());
             }
         },
@@ -166,6 +159,30 @@ pub fn watch_tree(
         .map_err(|e| e.to_string())?;
 
     Ok(debouncer)
+}
+
+/// Whether a batch of events under the file pane's folder `base` may change
+/// what the pane lists: a file it lists or a folder created, removed or
+/// renamed. Saves are not news: neither writes inside a file, nor a save that
+/// replaces it whole (commands::replace_whole), which renames the old file
+/// away and its temporary file over it. A file a temporary file of the batch
+/// stood in for, and still there, is one of those.
+fn tree_relevant(base: &Path, events: &[DebouncedEvent]) -> bool {
+    let replaced: Vec<PathBuf> = events
+        .iter()
+        .flat_map(|e| e.paths.iter())
+        .filter_map(|p| crate::commands::replaced_by(p))
+        .filter(|p| p.is_file())
+        .collect();
+    events.iter().any(|e| {
+        matches!(
+            e.kind,
+            EventKind::Create(_) | EventKind::Remove(_) | EventKind::Modify(ModifyKind::Name(_))
+        ) && e
+            .paths
+            .iter()
+            .any(|p| crate::commands::listed_path(base, p) && !replaced.iter().any(|r| same_file(r, p)))
+    })
 }
 
 #[cfg(test)]
@@ -253,5 +270,115 @@ mod tests {
         assert_eq!(w.dirs().len(), 1);
         drop(w);
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// The batches a debouncer like the real ones (`cache`, `mode`) reports
+    /// for what `act` does in `dir`, until none comes for `quiet`.
+    fn batches_of<C: notify_debouncer_full::FileIdCache + Send + 'static>(
+        dir: &Path,
+        cache: C,
+        mode: RecursiveMode,
+        act: impl FnOnce(),
+    ) -> Vec<Vec<DebouncedEvent>> {
+        let (tx, rx) = std::sync::mpsc::channel::<Vec<DebouncedEvent>>();
+        let mut debouncer = new_debouncer_opt::<_, RecommendedWatcher, C>(
+            Duration::from_millis(150),
+            None,
+            move |r: DebounceEventResult| {
+                if let Ok(events) = r {
+                    let _ = tx.send(events);
+                }
+            },
+            cache,
+            notify::Config::default(),
+        )
+        .unwrap();
+        debouncer.watch(dir, mode).unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        act();
+        let mut batches = Vec::new();
+        while let Ok(batch) = rx.recv_timeout(Duration::from_millis(900)) {
+            batches.push(batch);
+        }
+        batches
+    }
+
+    fn shown(batches: &[Vec<DebouncedEvent>]) -> Vec<Vec<(EventKind, Vec<PathBuf>)>> {
+        batches.iter().map(|b| b.iter().map(|e| (e.kind, e.paths.clone())).collect()).collect()
+    }
+
+    fn save(doc: &Path, text: &str) {
+        crate::commands::write_markdown(doc.to_string_lossy().into_owned(), text.to_owned(), None, None, None).unwrap();
+    }
+
+    /// A save replaces the file (ReplaceFileW renames it away, the temporary
+    /// file over it, and deletes the old one): the file pane lists the same.
+    #[cfg(windows)]
+    #[test]
+    fn a_save_is_no_news_for_the_file_pane() {
+        let dir = std::env::temp_dir().join(format!("leggimi-tree-save-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
+        // as watch_tree watches it: canonical
+        let base = dunce::canonicalize(&dir).unwrap();
+        let (doc, deep) = (base.join("doc.md"), base.join("sub").join("deep.md"));
+        std::fs::write(&doc, "old").unwrap();
+        std::fs::write(&deep, "old").unwrap();
+
+        let saves = batches_of(&base, NoCache, RecursiveMode::Recursive, || {
+            for i in 0..4 {
+                save(&doc, &format!("text {i}"));
+                save(&deep, &format!("text {i}"));
+                std::thread::sleep(Duration::from_millis(40));
+            }
+        });
+        assert!(
+            saves.iter().flatten().any(|e| matches!(e.kind, EventKind::Modify(ModifyKind::Name(_)))),
+            "replaced, not written in place: {:?}",
+            shown(&saves)
+        );
+        for batch in &saves {
+            assert!(!tree_relevant(&base, batch), "{:?}", shown(&saves));
+        }
+        assert_eq!(std::fs::read_to_string(&doc).unwrap(), "text 3");
+
+        // what the pane lists does change: a new document, a rename, a removal
+        let created = batches_of(&base, NoCache, RecursiveMode::Recursive, || {
+            std::fs::write(base.join("new.md"), "x").unwrap();
+        });
+        assert!(created.iter().any(|b| tree_relevant(&base, b)), "{:?}", shown(&created));
+        let renamed = batches_of(&base, NoCache, RecursiveMode::Recursive, || {
+            std::fs::rename(&doc, base.join("moved.md")).unwrap();
+        });
+        assert!(renamed.iter().any(|b| tree_relevant(&base, b)), "{:?}", shown(&renamed));
+        let removed = batches_of(&base, NoCache, RecursiveMode::Recursive, || {
+            std::fs::remove_file(&deep).unwrap();
+        });
+        assert!(removed.iter().any(|b| tree_relevant(&base, b)), "{:?}", shown(&removed));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The document watch (DocWatch's own cache and mode) sees a save that
+    /// replaces the file as the file changed, never renamed or removed; the
+    /// page then tells its own write by the text on disk (isOwnWrite, sameOnDisk).
+    #[cfg(windows)]
+    #[test]
+    fn a_save_is_a_change_of_the_document() {
+        let dir = std::env::temp_dir().join(format!("leggimi-doc-save-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let doc = dunce::canonicalize(&dir).unwrap().join("doc.md");
+        std::fs::write(&doc, "old").unwrap();
+        let batches = batches_of(doc.parent().unwrap(), RecommendedCache::new(), RecursiveMode::NonRecursive, || {
+            save(&doc, "new");
+            std::thread::sleep(Duration::from_millis(40));
+            save(&doc, "newer");
+        });
+        let touching: Vec<&Vec<DebouncedEvent>> = batches.iter().filter(|b| touched(&doc, b)).collect();
+        assert!(!touching.is_empty(), "{:?}", shown(&batches));
+        for batch in touching {
+            assert_eq!(classify(&doc, batch).kind, "changed", "{:?}", shown(&batches));
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

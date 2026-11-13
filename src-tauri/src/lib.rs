@@ -527,6 +527,7 @@ pub fn run() {
             commands::write_markdown,
             commands::existing_paths,
             commands::resolve_doc,
+            commands::find_in_folder,
             commands::print_to_pdf,
             commands::open_window,
             commands::open_externally,

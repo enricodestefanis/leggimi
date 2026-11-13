@@ -43,6 +43,10 @@
   --float-border: var(--border);
   --code-chip-bg: #eae8df;
   --code-chip-border: #d5d1c5;
+  /* ==highlighted== text (markdown.css): a marker's yellow, opaque so that its
+     ink clears AA whatever it sits on (14.4:1, a link 4.6:1) */
+  --mark-bg: #fde98a;
+  --mark-text: #1a1915;
   --shadow: 0 4px 24px rgba(26, 25, 21, 0.1);
   /* the soft shade along an edge that holds still while the text goes
      under it: a table's stuck header, its bar at the bottom (markdown.css) */
@@ -84,6 +88,9 @@
   --success: #7ccf98;
   --code-chip-bg: #3a3835;
   --code-chip-border: #4c4a44;
+  /* a deep gold under the light ink (6.1:1), 2.1:1 against the page */
+  --mark-bg: #6a5517;
+  --mark-text: #ececea;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   --edge-shade: rgba(0, 0, 0, 0.32);
 }
@@ -107,6 +114,9 @@
   --success: #2a6e40;
   --code-chip-bg: #e6d9bf;
   --code-chip-border: #cfbf9f;
+  /* a warmer yellow, to show on the paper (the ink 9.2:1) */
+  --mark-bg: #f5d76e;
+  --mark-text: #3b2f22;
   --shadow: 0 4px 24px rgba(59, 47, 34, 0.14);
   --edge-shade: rgba(59, 47, 34, 0.11);
 }
@@ -136,6 +146,9 @@
   --float-border: #5c5c5c;
   --code-chip-bg: #1f1f1f;
   --code-chip-border: #333333;
+  /* the ink 6.9:1, 2.4:1 against the black page */
+  --mark-bg: #5a4a10;
+  --mark-text: #e6e6e3;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
   /* a shade vanishes on #000: the stuck header's own fill marks it */
   --edge-shade: rgba(0, 0, 0, 0.6);

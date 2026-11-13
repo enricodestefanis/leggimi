@@ -1,4 +1,4 @@
-import { EditorSelection, EditorState, type Extension, type Line } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, type Extension, type Line } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -8,7 +8,16 @@ import {
   highlightActiveLineGutter,
   scrollPastEnd,
 } from "@codemirror/view";
-import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, toggleTabFocusMode } from "@codemirror/commands";
+import {
+  defaultKeymap,
+  history,
+  historyField,
+  historyKeymap,
+  indentWithTab,
+  isolateHistory,
+  toggleTabFocusMode,
+  undo as undoCmd,
+} from "@codemirror/commands";
 import {
   search,
   searchKeymap,
@@ -70,6 +79,11 @@ let eol: "\n" | "\r\n" = "\n";
 let dirty = false;
 // the format bar listens for the formats under the caret
 let formatsListener: ((active: Set<string>) => void) | null = null;
+// the text box's name for screen readers ("Editor: notes.md"), set by the page
+// (WCAG 4.1.2: a field has a name); a compartment, so it follows the document
+let label = "";
+const labelCompartment = new Compartment();
+const labelAttrs = (): Extension => EditorView.contentAttributes.of(label ? { "aria-label": label } : {});
 
 // Colors come from the app's CSS variables, so the editor follows the
 // light/dark toggle without being reconfigured.
@@ -323,13 +337,14 @@ const mdHighlight = HighlightStyle.define([
   { tag: tags.strong, fontWeight: "600" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strikethrough, textDecoration: "line-through" },
-  { tag: tags.link, color: "var(--accent)" },
-  { tag: tags.url, color: "var(--accent)" },
+  // the accent as text ink: --accent itself reaches only 4.0:1 on the page (WCAG 1.4.3)
+  { tag: tags.link, color: "var(--accent-text)" },
+  { tag: tags.url, color: "var(--accent-text)" },
   { tag: tags.monospace, color: "var(--text-muted)" },
   { tag: tags.quote, color: "var(--text-muted)", fontStyle: "italic" },
   { tag: tags.meta, color: "var(--text-muted)" },
   { tag: tags.processingInstruction, color: "var(--text-muted)" },
-  { tag: tags.labelName, color: "var(--accent)" },
+  { tag: tags.labelName, color: "var(--accent-text)" },
 ]);
 
 function computeDirty(): void {
@@ -402,6 +417,7 @@ function extensions(): Extension[] {
     slashMenu,
     search({ top: true }),
     spellCompartment.of(spellAttrs(spellcheckEnabled())),
+    labelCompartment.of(labelAttrs()),
     syntaxHighlighting(mdHighlight),
     appTheme,
     keymap.of([
@@ -475,8 +491,10 @@ export function restore(s: Snapshot): void {
   dirty = s.dirty;
   setSearchFace(s.replaceRow);
   view.setState(s.state);
-  // the spelling setting may have changed while the tab was away
-  view.dispatch({ effects: spellCompartment.reconfigure(spellAttrs(spellcheckEnabled())) });
+  // the spelling setting may have changed while the tab was away, and the name is this tab's
+  view.dispatch({
+    effects: [spellCompartment.reconfigure(spellAttrs(spellcheckEnabled())), labelCompartment.reconfigure(labelAttrs())],
+  });
   syncSearchPanel(view);
   // the place once the restored text is laid out
   const top = s.scrollTop;
@@ -534,6 +552,43 @@ export function setContent(content: string, saved: string = content): void {
   view.setState(makeState(normalized));
   callbacks?.onDirtyChanged(dirty);
   formatsListener?.(activeFormats(view.state));
+}
+
+/**
+ * The text on disk replaces unsaved edits as ONE undoable step: unlike setContent the
+ * history stays, so Ctrl+Z (or undoReplace) brings the edits back, and the buffer is
+ * then dirty again against the new `saved` (the disk's text).
+ */
+export function replaceAll(content: string, saved: string = content): void {
+  if (!view) return;
+  eol = content.includes("\r\n") ? "\r\n" : "\n";
+  const normalized = content.replace(/\r\n/g, "\n");
+  lastSaved = saved.replace(/\r\n/g, "\n");
+  const doc = view.state.doc;
+  // the caret stays on the same line, or the last one
+  const lines = normalized.split("\n");
+  const line = Math.min(doc.lineAt(view.state.selection.main.head).number, lines.length);
+  let at = 0;
+  for (let i = 0; i < line - 1; i++) at += lines[i].length + 1;
+  view.dispatch({
+    changes: { from: 0, to: doc.length, insert: normalized },
+    selection: EditorSelection.cursor(at),
+    annotations: [isolateHistory.of("full")],
+    userEvent: "reload",
+  });
+  computeDirty();
+}
+
+/** Undo the last step (the reload's Undo button): true when there was one. */
+export function undoLast(): boolean {
+  return view ? undoCmd(view) : false;
+}
+
+/** The editor's name for screen readers, e.g. "Editor: notes.md". */
+export function setLabel(text: string): void {
+  if (text === label) return;
+  label = text;
+  view?.dispatch({ effects: labelCompartment.reconfigure(labelAttrs()) });
 }
 
 /** Put a recovered draft in the buffer; `lastSaved` (the file) stays, so it is dirty. */
@@ -701,6 +756,12 @@ const HIDDEN = new RegExp(
     String.raw`!\[[^\]\n]*\]` + TARGET, // an image
     String.raw`\]` + TARGET, // a link's target
     String.raw`<\/?[A-Za-z][\w-]*(?:\s[^<>]*)?\/?>`, // an HTML tag
+    // 2.3, as note-taking apps write them: an embed ![[picture.png]] shows no text; of
+    // [[Note|alias]] only the alias shows, of [[Note]] the name; ==highlight== loses its marks
+    String.raw`!\[\[[^\[\]\n]*?\.(?:png|jpe?g|gif|webp|svg|bmp|avif|ico)(?:\|[^\[\]\n]*)?\]\]`,
+    String.raw`!?\[\[[^\[\]\n|]*\|`,
+    String.raw`!?\[\[|\]\]`,
+    String.raw`(?<![=\\])==(?=[^\s=])|(?<=[^\s=])==(?!=)`,
   ].join("|"),
   "g",
 );

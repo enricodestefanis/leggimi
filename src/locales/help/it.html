@@ -24,8 +24,15 @@
           torna lì quando lo riapri.
         </p>
         <p>
-          <strong>Incolla e leggi:</strong> il Markdown copiato da ChatGPT, da Claude o da una pagina web si
-          legge senza doverlo prima salvare. Premi <kbd>Ctrl</kbd>+<kbd>V</kbd> in qualsiasi punto fuori
+          Si aprono anche i file che non sono in UTF-8: in UTF-16, come li scrive Windows PowerShell 5.1 con
+          <code>&gt;</code> o <code>Out-File</code>, e nella code page ANSI di Windows, come li scrivono
+          <code>Set-Content</code> e i programmi meno recenti (per esempio le lettere accentate in
+          Windows-1252); anche la ricerca nella cartella li legge. Leggimi salva sempre in UTF-8, e lo dice la
+          prima volta che salva un file di questo tipo.
+        </p>
+        <p>
+          <strong>Incolla e leggi:</strong> il testo copiato da una chat (ChatGPT, Claude), da una pagina web,
+          da Word o da Teams si legge come Markdown senza doverlo prima salvare. Premi <kbd>Ctrl</kbd>+<kbd>V</kbd> in qualsiasi punto fuori
           dall'editor e dalle caselle di testo (la barra di ricerca, i filtri), oppure usa <strong>Incolla dagli
           appunti</strong> nella pagina iniziale o <strong>Incolla il Markdown come nuovo documento</strong>
           nella palette dei comandi. Il testo si apre in una scheda tutta sua, che prende il nome dal primo
@@ -33,6 +40,17 @@
           suo posto; altrimenti si apre in una nuova scheda in primo piano. Si incolla solo testo (se negli
           appunti c'è un'immagine, compare un avviso), e nell'editor <kbd>Ctrl</kbd>+<kbd>V</kbd> incolla come
           sempre.
+        </p>
+        <p>
+          Il Markdown copiato con il pulsante <em>Copia</em> di una chat si legge così com'è. Una parte di
+          risposta selezionata con il mouse, o un brano di una pagina web, di Word o di Teams, mantiene titoli,
+          elenchi, tabelle, blocchi di codice, link e formule: Leggimi usa la copia formattata che arriva
+          negli appunti insieme al testo e la trasforma in Markdown. Una tabella copiata da un terminale (Claude
+          Code, psql, MySQL), con i bordi disegnati a caratteri, diventa una tabella Markdown, e lo stesso fanno le righe di celle separate da tabulazioni (una tabella copiata come solo testo, o da Excel); una risposta
+          racchiusa per intero in un blocco <code>```markdown</code> si legge come il documento che contiene;
+          le formule scritte <code>\( … \)</code> o <code>\[ … \]</code>, come le scrive ChatGPT, si leggono
+          come formule. Quando il testo è stato trasformato in Markdown un avviso lo dice, e <strong>Mostra
+          com'era</strong> lo mostra esattamente come è arrivato.
         </p>
         <p>
           Il testo incollato si legge come qualsiasi documento, con indice, ricerca, stampa, PDF, esportazione
@@ -190,10 +208,15 @@
         <p>
           Un punto arancione sulla scheda del documento, al posto della ×, indica modifiche non salvate: salva con
           <kbd>Ctrl</kbd>+<kbd>S</kbd> e per un attimo il punto diventa un segno di spunta (gli screen reader
-          annunciano "Salvato"). Uscire dalla modifica o aprire un altro documento con modifiche non salvate
-          chiede prima conferma. Se il file cambia sul disco mentre hai modifiche non salvate, compare un avviso
-          invece di sovrascrivere il tuo lavoro, e salvare sopra un file cambiato dopo l'apertura chiede conferma
-          prima di sovrascriverlo.
+          annunciano "Salvato"). Se ci sono modifiche non salvate, uscire dalla modifica o aprire un altro
+          documento nella stessa scheda chiede prima cosa fare, come quando chiudi la scheda:
+          <strong>Salva</strong>, <strong>Non salvare</strong> o <strong>Annulla</strong>; Salva è il primo
+          pulsante, quindi con <kbd>Invio</kbd> il lavoro non va perso. Se il file cambia sul disco mentre hai
+          modifiche non salvate, compare un avviso invece di sovrascrivere il tuo lavoro, e salvare sopra un file
+          cambiato dopo l'apertura chiede conferma prima di sovrascriverlo. <strong>Ricarica dal disco</strong>,
+          nell'avviso, mette nell'editor il testo del disco, e si può tornare indietro: con
+          <strong>Annulla</strong> nell'avviso che segue, o con <kbd>Ctrl</kbd>+<kbd>Z</kbd> nell'editor, le tue
+          modifiche tornano, ancora da salvare.
         </p>
         <p>
           Mentre modifichi, un <strong>doppio clic sull'anteprima</strong> porta il cursore dell'editor su quella
@@ -245,7 +268,10 @@
         <p>
           <strong>Recupero:</strong> finché hai modifiche non salvate, una copia del testo viene tenuta da
           parte. Se l'app si chiude senza salvare (un crash, uno spegnimento forzato), alla prossima apertura
-          di quel file un avviso propone di ripristinarla. Il file non viene mai toccato finché non salvi.
+          di quel file un avviso propone di ripristinarla. Il file non viene mai toccato finché non salvi, e il
+          salvataggio scrive tutto il file o niente: il testo va in un file temporaneo accanto al documento, che
+          poi prende il suo posto, così un'interruzione di corrente o un disco scollegato a metà salvataggio non
+          lasciano mai un file vuoto o troncato.
         </p>
         <p>
           <strong>Immagini:</strong> incolla uno screenshot (<kbd>Ctrl</kbd>+<kbd>V</kbd>) o trascina un file
@@ -291,7 +317,8 @@
         <p>
           Il pannello a destra elenca i titoli del documento ed evidenzia quello che stai leggendo. Fai clic
           su una voce per saltarci. Nei documenti lunghi sopra l'elenco compare una casella di filtro: digita
-          per restringere i titoli, poi <kbd>↑</kbd> / <kbd>↓</kbd> e <kbd>Invio</kbd> saltano a uno;
+          per restringere i titoli (se nessuno corrisponde compare <em>Nessun risultato</em>), poi
+          <kbd>↑</kbd> / <kbd>↓</kbd> e <kbd>Invio</kbd> saltano a uno;
           <kbd>Esc</kbd> la svuota.
         </p>
         <p>
@@ -309,7 +336,7 @@
         </p>
 
         <h3>Ricarica automatica</h3>
-        <p>I file aperti vengono osservati sul disco. Quando uno cambia, la vista si aggiorna da sola e mantiene la posizione di lettura: utile mentre un documento viene rigenerato; una scheda in secondo piano si mette in pari quando ci torni. In modifica l'aggiornamento avviene solo finché il tuo buffer non ha modifiche non salvate.</p>
+        <p>I file aperti vengono osservati sul disco. Quando uno cambia, la vista si aggiorna da sola e mantiene la posizione di lettura, anche se cambia il titolo della sezione che stai leggendo (un agente che segna come completato un passaggio): utile mentre un documento viene rigenerato. I diagrammi Mermaid già disegnati ricompaiono subito, alla loro altezza, così il testo non si sposta. Una scheda in secondo piano si mette in pari quando ci torni. In modifica l'aggiornamento avviene solo finché il tuo buffer non ha modifiche non salvate; altrimenti un avviso propone <strong>Ricarica dal disco</strong> (vedi <em>Modifica</em>).</p>
         <p><kbd>F5</kbd> o <kbd>Ctrl</kbd>+<kbd>R</kbd> rilegge il file a richiesta e resta al punto di lettura; con modifiche non salvate non fa nulla.</p>
 
         <h3>Rendering</h3>
@@ -322,11 +349,13 @@
           <li>In una tabella lunga la riga di intestazione resta in cima alla finestra mentre leggi, finché non passa l'ultima riga della tabella. Una tabella troppo larga anche per tutta la finestra scorre di lato: la sua barra di scorrimento resta in fondo alla finestra finché la tabella è in vista, così non serve arrivare alla fine della tabella per spostarla; anche <kbd>Shift</kbd>+rotellina e il touchpad funzionano in qualunque punto della tabella.</li>
           <li>Fai clic su un diagramma o un'immagine per aprirlo a tutta finestra: <kbd>+</kbd> / <kbd>−</kbd> o la rotellina ingrandiscono, trascinare sposta ed <kbd>Esc</kbd> chiude. <strong>Adatta</strong> (<kbd>0</kbd>) lo adatta alla finestra, <strong>Larghezza</strong> (<kbd>W</kbd>) alla larghezza, partendo dall'alto, e <strong>100%</strong> (<kbd>1</kbd>) lo mostra alle dimensioni reali. Il pulsante di copia offre l'immagine come PNG (normale o grande), un diagramma anche come SVG, ed entrambi si possono salvare su file.</li>
           <li>Le formule usano KaTeX: <code>$…$</code> in linea, <code>$$…$$</code> o un blocco di codice <code>math</code> (anche con un titolo dopo <code>math</code>) per le formule centrate. Il simbolo <code>$</code> si legge come su GitHub: un blocco <code>$$</code> si apre solo se viene chiuso, così un prezzo come <code>$$ 100</code> non trasforma in formula il resto del documento; il testo dopo un <code>$$</code> di chiusura resta; <code>$$…$$</code> in mezzo a una frase mostra la formula senza spezzare il paragrafo; <code>$ x $</code> con spazi all'interno e importi come <code>$5 e $10</code> restano testo.</li>
-          <li>Riquadri in stile GitHub: una citazione che inizia con <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>.</li>
+          <li>Riquadri: una citazione che inizia con <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>, come su GitHub, o con gli altri tipi che si trovano nelle note scritte con Obsidian e altre app per prendere appunti (<code>[!info]</code>, <code>[!todo]</code>, <code>[!example]</code>, <code>[!danger]</code>…), disegnati con il colore del più vicino dei cinque di GitHub. Un titolo dopo il tipo (<code>&gt; [!tip] Prima di iniziare</code>) prende il posto del nome del tipo, e un riquadro scritto come chiuso (<code>[!note]-</code>) compare comunque aperto.</li>
+          <li><code>==testo evidenziato==</code> viene evidenziato, in tutti i temi, in stampa e in Word.</li>
           <li>Note a piè di pagina: <code>[^1]</code> nel testo e <code>[^1]: …</code> ovunque; le note vengono raccolte in fondo, con i collegamenti di andata e ritorno.</li>
           <li>Gli elenchi di attività sono attivi: un clic su una casella aggiorna subito <code>[ ]</code> / <code>[x]</code> nel file (con <em>Annulla</em> nell'avviso), o nel buffer dell'editor mentre stai modificando. Spunta solo la casella: un clic o un doppio clic sul testo dell'attività, per selezionare una parola, non cambia nulla.</li>
           <li>Le tabelle hanno due pulsanti in alto a destra, visibili al passaggio del mouse o quando le raggiungi con la tastiera: <strong>Copia la tabella (per Excel)</strong> la mette negli appunti come testo separato da tabulazioni, pronta per Excel o Fogli Google, e <strong>Apri l'anteprima</strong> la apre a tutta finestra, per leggerla con comodo (anche dal menu del clic destro): scorre come la pagina, la riga di intestazione resta in cima e, se la tabella scorre di lato, anche la prima colonna resta a sinistra; <kbd>+</kbd> / <kbd>−</kbd> o <kbd>Ctrl</kbd>+rotellina cambiano la dimensione del testo, e <strong>Larghezza</strong> (<kbd>W</kbd>) adatta la tabella alla finestra. <strong>Filtra righe</strong> (<kbd>Ctrl</kbd>+<kbd>F</kbd>) lascia solo le righe che contengono le parole che scrivi, e un clic sull'intestazione di una colonna ordina le righe per quella: crescente, decrescente, di nuovo nell'ordine originale (numeri, importi, percentuali e date vengono riconosciuti). Il documento non cambia, e <strong>Copia la tabella (per Excel)</strong> nell'anteprima copia le righe come le vedi.</li>
           <li>I link ad altri documenti funzionano come in un wiki: <code>[testo](altro)</code> trova <code>altro.md</code>, <code>[testo](cartella/)</code> apre <code>index.md</code> o <code>README.md</code> della cartella, e <code>altro.md#sezione</code> salta a quel titolo. I titoli hanno le stesse ancore di GitHub (<code>## 1. Introduzione</code> → <code>#1-introduzione</code>), quindi gli indici scritti per GitHub o da un assistente AI funzionano anche qui; i link scritti per le versioni precedenti arrivano ancora a destinazione.</li>
+          <li>Funzionano anche i link delle note scritte con Obsidian e altre app per prendere appunti: <code>[[Nota]]</code>, <code>[[Nota|un altro nome]]</code> e <code>[[Nota#Titolo]]</code> aprono <code>Nota.md</code>, cercata prima accanto al documento, poi per nome nella cartella del pannello dei file. <code>![[immagine.png]]</code> mostra l'immagine, <code>![[immagine.png|300]]</code> larga 300 pixel; viene cercata nella cartella del documento e nelle sue sottocartelle, quindi un'immagine in una cartella vicina, fuori da quella del documento, non viene trovata.</li>
           <li>Il front matter YAML tra righe <code>---</code> viene ripiegato in un blocco <em>Front matter</em> in cima: fai clic per vedere i campi in tabella.</li>
           <li>Un paragrafo che contiene solo <code>[TOC]</code> diventa un indice dei titoli che seguono, presente anche in stampa, HTML e DOCX.</li>
           <li>Le immagini con percorso relativo vengono cercate rispetto alla cartella del documento. I loghi fatti per i temi chiaro e scuro di GitHub (marcati <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>, o un <code>&lt;picture&gt;</code> con la versione chiara e quella scura) mostrano quello adatto al tema di Leggimi; stampa ed esportazioni usano quello chiaro.</li>

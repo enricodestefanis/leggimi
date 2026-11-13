@@ -518,7 +518,84 @@
   padding: 1px 6px;
 }
 
-/* GitHub-style alert callouts: > [!NOTE] etc. (markdown-it-github-alerts) */
+/* ==highlighted== text (markdown-it-mark): a marker's stroke, rounded at its
+   ends, on each line it wraps to. Its own ink, not the context's (a muted
+   quote's), clears AA on it in every theme (base.css). Printed: paper keeps
+   the colour. The folder search's matches are <mark> too, outside the
+   document: not these. */
+.markdown-body mark {
+  padding: 0.05em 0.14em;
+  border-radius: 0.2em;
+  background-color: var(--mark-bg, #fde98a);
+  color: var(--mark-text, #1a1915);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* a link in it keeps the marker's ink (the dark themes' link colour is under
+   AA on the gold), its underline says what it is */
+.markdown-body mark a {
+  color: inherit;
+  text-decoration-color: currentColor;
+}
+
+/* Windows' high contrast: the system's own highlight pair */
+@media (forced-colors: active) {
+  .markdown-body mark {
+    forced-color-adjust: none;
+    background-color: Mark;
+    color: MarkText;
+  }
+}
+
+/* [[Note]] and ![[Note]] from note-taking apps (renderer.ts): a wikilink is
+   an ordinary link; there is no index of notes, so none shows as broken. An
+   embedded note or file is shown as a link to it, with a document glyph so
+   that it does not pass for a sentence's word. */
+.markdown-body a.wikilink.embed {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  max-width: 100%;
+  padding: 0.05em 0.55em;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.94em;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: border-color 0.12s var(--ease, ease);
+}
+
+.markdown-body a.wikilink.embed::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 0.95em;
+  height: 0.95em;
+  background-color: currentColor;
+  --doc-glyph: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>');
+  -webkit-mask: var(--doc-glyph) center / contain no-repeat;
+  mask: var(--doc-glyph) center / contain no-repeat;
+}
+
+.markdown-body a.wikilink.embed:hover {
+  border-color: color-mix(in srgb, var(--link) 55%, var(--border));
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--link) 45%, transparent);
+}
+
+@media (forced-colors: active) {
+  .markdown-body a.wikilink.embed::before {
+    forced-color-adjust: none;
+    background-color: LinkText;
+  }
+}
+
+/* GitHub's alerts and every other callout, > [!NOTE] or > [!tip]- Title
+   (callouts.ts): one of GitHub's five boxes, by the family of the type */
 .markdown-alert {
   --alert-color: #0969da;
   margin: 0 0 1em;
@@ -528,12 +605,12 @@
   background: color-mix(in srgb, var(--alert-color) 5%, transparent);
 }
 
+/* important, warning and tip a shade deeper than GitHub's, to clear AA on
+   their tinted boxes (4.49, 4.34 and 4.48 with GitHub's values) */
 .markdown-alert-tip {
-  --alert-color: #1a7f37;
+  --alert-color: #197c35;
 }
 
-/* important and warning a shade deeper than GitHub's, to clear AA on their
-   tinted boxes (4.49 and 4.34 with GitHub's values) */
 .markdown-alert-important {
   --alert-color: #7e4ed8;
 }
@@ -589,6 +666,13 @@
   --alert-color: #f9645d;
 }
 
+/* a callout inside another (> > [!tip]) sits on the page's colour with its
+   own tint, not on its parent's tint as well: two tints would take its title
+   under AA (4.2 to 4.4:1), as one keeps it */
+.markdown-alert .markdown-alert {
+  background: color-mix(in srgb, var(--alert-color) 5%, var(--bg));
+}
+
 .markdown-alert .markdown-alert-title {
   display: flex;
   align-items: center;
@@ -599,7 +683,7 @@
   color: var(--alert-color);
 }
 
-/* the plugin puts its own octicon in the title; tint it via currentColor */
+/* the title starts with the family's octicon; tint it via currentColor */
 .markdown-alert .markdown-alert-title svg {
   flex: none;
   fill: currentColor;

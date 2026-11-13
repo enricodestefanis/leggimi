@@ -1,0 +1,45 @@
+# Every push and pull request: the front end's types and lint, its production build, the
+# libraries' known advisories (high and above), and the Rust tests. On Windows, the only
+# platform Leggimi is built for. Nothing is published from here.
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install the front end's packages
+        run: npm ci
+
+      - name: Types and lint (npm run check)
+        run: npm run check
+
+      - name: Production build of the front end
+        run: npm run build
+
+      - name: Known advisories, high and above
+        run: npm audit --audit-level=high --omit=dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test --lib

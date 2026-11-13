@@ -18,6 +18,12 @@ export interface MarkdownDoc {
   content: string;
   /** last modification time, ms since the epoch; 0 when unknown */
   modified: number;
+  /**
+   * how the file was written on disk: "utf-8", "utf-8-bom", "utf-16le", "utf-16be",
+   * or "windows-<code page>" for the system's ANSI code page (e.g. "windows-1252"). Saving
+   * always writes UTF-8. Missing from older backends: read it as "utf-8".
+   */
+  encoding?: string;
 }
 
 /** error string from write_markdown when the file changed on disk since it was read */
@@ -33,6 +39,11 @@ export interface ClipboardText {
   text: string | null;
   /** it holds a picture (which is not a document) */
   image: boolean;
+  /**
+   * its "HTML Format" flavour, the fragment only (between StartFragment and EndFragment),
+   * when it has one: what a page copies beside the plain text. null when absent.
+   */
+  html?: string | null;
 }
 
 /** what became of the window's document on disk */
@@ -66,8 +77,10 @@ export const readMarkdown = (path: string) => invoke<MarkdownDoc>("read_markdown
 // resolves to the file's new modification time; rejects with WRITE_CONFLICT
 // when `expectedModified` (> 0) no longer matches the file on disk. `create`
 // writes a file that is gone (the document was deleted while open).
-export const writeMarkdown = (path: string, content: string, expectedModified: number | null, create = false) =>
-  invoke<number>("write_markdown", { path, content, expectedModified, create });
+// `bom` writes a UTF-8 BOM first: for a file that had one, or was read as UTF-16 or ANSI
+// (MarkdownDoc.encoding), which Windows PowerShell 5.1 reads back right only with it.
+export const writeMarkdown = (path: string, content: string, expectedModified: number | null, create = false, bom = false) =>
+  invoke<number>("write_markdown", { path, content, expectedModified, create, bom });
 export const existingPaths = (paths: string[]) => invoke<string[]>("existing_paths", { paths });
 export const exportFile = (path: string, content: string) =>
   invoke<void>("export_file", { path, content });
@@ -107,6 +120,10 @@ export const watchTree = (root: string, rearm = false) =>
 export const resolvePath = (dir: string, rel: string) => invoke<string>("resolve_path", { dir, rel });
 // a document link without extension, or to a folder: the file it stands for
 export const resolveDoc = (dir: string, rel: string) => invoke<string | null>("resolve_doc", { dir, rel });
+// a file named `name` (any extension, compared ignoring case) in `dir` or below it, as the
+// file pane walks folders (same depth limit and skipped folders); the shortest path wins.
+// null when none. For `![[picture.png]]` and `[[Note]]` written by note-taking apps.
+export const findInFolder = (dir: string, name: string) => invoke<string | null>("find_in_folder", { dir, name });
 export const showWindow = () => invoke<void>("show_window");
 /**
  * A new window, for a file or (path null) on the home; with `transfer`, a tab

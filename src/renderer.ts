@@ -4,14 +4,15 @@ import type StateBlock from "markdown-it/lib/rules_block/state_block.mjs";
 import type StateInline from "markdown-it/lib/rules_inline/state_inline.mjs";
 import anchor from "markdown-it-anchor";
 import taskLists from "markdown-it-task-lists";
-import githubAlerts from "markdown-it-github-alerts";
+import mark from "markdown-it-mark";
 import footnote from "markdown-it-footnote";
 import frontMatter from "markdown-it-front-matter";
 import hljs from "highlight.js/lib/common";
 import DOMPurify from "dompurify";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import { resolvePath } from "./ipc";
+import { findInFolder, resolvePath } from "./ipc";
+import callouts from "./callouts";
 import { dropAppProtocol, namesAppProtocol, reachable } from "./reach";
 import { unmark as unmarkZoomable } from "./lightbox";
 import * as fm from "./frontmatter";
@@ -30,8 +31,8 @@ const CHECK_ICON =
 // dropped, each space a hyphen: "1. Introduzione" → "1-introduzione", "Q&A" →
 // "qa", "Attività" → "attività". Tables of contents written for GitHub, or by
 // AI assistants, link to these. A title with nothing left (only emoji or
-// punctuation) keeps its old id.
-function headingSlug(title: string): string {
+// punctuation) keeps its old id. Also what [[Note#Heading]] points to.
+export function headingSlug(title: string): string {
   return title.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-") || legacySlug(title);
 }
 
@@ -75,7 +76,10 @@ const md: MarkdownIt = MarkdownIt({
   // file), not a click in the text
   .use(taskLists, { enabled: true, label: false })
   // KaTeX joins on demand: see loadKatex
-  .use(githubAlerts)
+  // GitHub's alerts and the callouts of note-taking apps (callouts.ts)
+  .use(callouts)
+  // ==highlighted== text, as Obsidian and others write it: <mark>
+  .use(mark)
   .use(footnote)
   // the plugin reports the YAML through a callback; md.render is synchronous,
   // so the value belongs to the render in flight
@@ -124,6 +128,128 @@ md.linkify.add("www.", {
 // The text stays as typed: no (c) → ©, (tm) → ™, -- → –, ... → … (a "--line"
 // in prose is a flag, not a dash); quotes still curl.
 md.disable("replacements");
+
+/* ---- wikilinks: [[Note]] and ![[picture.png]] ---- */
+
+// The links of Obsidian, Logseq, Foam and GitHub's wikis, read as ordinary links: [[Note]],
+// [[Note|shown text]], [[Note#Heading]], [[#Heading]], [[Note#^block]], [[folder/Note]]. Each
+// becomes <a class="wikilink" href="Note.md" data-wikilink="Note">: the href is the note
+// beside the document; main.ts looks further in the folder when that is not there. There is
+// no index of notes, so no link shows as broken. ![[picture.png|300]] shows the picture
+// (rewriteLocalUrls looks for it in the folder's tree too); ![[Note]] and other files are a
+// link (class "embed"), not the note's text.
+
+const PICTURE_EXT_RE = /\.(?:png|jpe?g|gif|webp|svg|bmp|avif|ico)$/i;
+// a file's extension, as far as a name can tell: a letter, then letters or digits, after the
+// last dot ("v2.3" and "2026.11.13" are names of notes, without one)
+const EXT_RE = /\.[a-z][a-z0-9]{0,7}$/i;
+const MD_EXT_RE = /\.(?:md|markdown|mdown|mkdn?|mkd|mdwn|mdtxt|mdtext)$/i;
+// "https:", "mailto:", "C:": not the name of a note
+const SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
+
+// a name as a relative URL: "#" and "?" are part of a file's name, not a fragment or a query
+const nameUrl = (name: string): string => encodeURI(name).replace(/[?#]/g, (c) => encodeURIComponent(c));
+
+type Wikilink =
+  | { kind: "link"; href: string; target: string; text: string }
+  | { kind: "picture"; name: string; src: string; alt: string; width?: string; height?: string };
+
+// What a [[…]] holds (`inner`, without its brackets), or null when it is no wikilink.
+function readWikilink(inner: string, embed: boolean): Wikilink | null {
+  // "\|", as a table cell needs it, is the alias's bar too
+  const body = inner.replace(/\\\|/g, "|");
+  const bar = body.indexOf("|");
+  const ref = (bar < 0 ? body : body.slice(0, bar)).trim();
+  const after = bar < 0 ? "" : body.slice(bar + 1);
+  try {
+    if (embed && PICTURE_EXT_RE.test(ref)) {
+      // ![[picture.png|300]], |300x200, |the alt text
+      let alt = ref;
+      let width: string | undefined;
+      let height: string | undefined;
+      for (const part of bar < 0 ? [] : after.split("|").map((s) => s.trim())) {
+        const size = /^(\d{1,5})(?:x(\d{1,5}))?$/.exec(part);
+        if (size) [width, height] = [size[1], size[2]];
+        else if (part) alt = part;
+      }
+      return { kind: "picture", name: ref, src: nameUrl(ref), alt, width, height };
+    }
+    const hash = ref.indexOf("#");
+    const target = (hash < 0 ? ref : ref.slice(0, hash)).trim();
+    const sections = hash < 0 ? [] : ref.slice(hash + 1).split("#").map((s) => s.trim()).filter(Boolean);
+    if ((!target && sections.length === 0) || SCHEME_RE.test(target)) return null;
+    const last = sections.length ? sections[sections.length - 1] : "";
+    // a block (#^id) has no anchor here: the note itself
+    const block = last.startsWith("^");
+    const note = !target || MD_EXT_RE.test(target) || !EXT_RE.test(target);
+    // a heading's id as the renderer makes it; another file's fragment as written (a PDF's #page=3)
+    const fragment = !last || block ? "" : note ? `#${headingSlug(last)}` : `#${encodeURI(sections.join("#"))}`;
+    const file = !target ? "" : EXT_RE.test(target) ? target : `${target}.md`;
+    const href = file ? nameUrl(file) + fragment : fragment || "#";
+    // "Note › Heading"; another file (a PDF's #page=3) by its name
+    const shown = target ? [target, ...(block || !note ? [] : sections)] : sections;
+    return { kind: "link", href, target, text: after.trim() || shown.join(" › ") };
+  } catch {
+    return null; // a lone surrogate: encodeURI cannot write it
+  }
+}
+
+function wikilinkRule(state: StateInline, silent: boolean): boolean {
+  const src = state.src;
+  const embed = src.charCodeAt(state.pos) === 0x21; /* ! */
+  const open = state.pos + (embed ? 1 : 0);
+  if (!src.startsWith("[[", open)) return false;
+  const close = src.indexOf("]]", open + 2);
+  if (close < 0 || close + 2 > state.posMax) return false;
+  const inner = src.slice(open + 2, close);
+  // nothing in it, or a bracket or a line break: not a wikilink
+  if (!inner.trim() || /[[\]\r\n]/.test(inner)) return false;
+  // [[1]](https://…) is a link whose text is in brackets; [[[x]]] is brackets (CommonMark)
+  if (src.charCodeAt(close + 2) === 0x28 /* ( */ || src.charCodeAt(close + 2) === 0x5d /* ] */) return false;
+  if (!embed && open > 0 && src.charCodeAt(open - 1) === 0x5b /* [ */) return false;
+  // [[TOC]] is the table of contents (renderTocPlaceholders)
+  if (!embed && /^\s*toc\s*$/i.test(inner)) return false;
+  // [[label]] around a reference the document defines ([label]: /url) is that link in brackets
+  const refs = (state.env as { references?: Record<string, unknown> } | undefined)?.references;
+  if (refs && refs[state.md.utils.normalizeReference(inner)] !== undefined) return false;
+  const link = readWikilink(inner, embed);
+  // no link inside a link (<a href> written in HTML: markdown-it counts them in linkLevel,
+  // which its types leave out)
+  if (!link || (link.kind === "link" && ((state as { linkLevel?: number }).linkLevel ?? 0) > 0)) return false;
+  if (!silent) {
+    if (link.kind === "picture") {
+      const img = state.push("image", "img", 0);
+      img.attrs = [
+        ["src", link.src],
+        ["alt", ""],
+      ];
+      if (link.width) img.attrs.push(["width", link.width]);
+      if (link.height) img.attrs.push(["height", link.height]);
+      img.attrs.push(["data-embed", link.name]);
+      const alt = new state.Token("text", "", 0);
+      alt.content = link.alt;
+      img.children = [alt];
+      img.content = link.alt;
+      img.markup = "![[";
+    } else {
+      const a = state.push("link_open", "a", 1);
+      // the target from the source as written: the typographer only ever curls the text
+      a.attrs = [
+        ["class", embed ? "wikilink embed" : "wikilink"],
+        ["href", link.href],
+        ["data-wikilink", link.target],
+      ];
+      a.markup = embed ? "![[" : "[[";
+      state.push("text", "", 0).content = link.text;
+      state.push("link_close", "a", -1).markup = "]]";
+    }
+  }
+  state.pos = close + 2;
+  return true;
+}
+
+// before "link", which would read [[…]] as text in brackets; "!" first, before "image"
+md.inline.ruler.before("link", "wikilink", wikilinkRule);
 
 let pendingFrontMatter: string | null = null;
 
@@ -604,6 +730,84 @@ async function localUrl(dir: string, url: string): Promise<string | null> {
   return asset + fragment;
 }
 
+// ![[picture.png]] names a picture anywhere in the document's folder, as note-taking apps keep
+// them (an "attachments" folder): one that is not beside the document is looked for in the
+// folder's tree (find_in_folder), then read as any picture there. Found ones are kept, as
+// relative URLs; a miss for a few seconds, so that the live preview, rendering at every pause
+// in typing, does not walk the folder each time.
+const foundEmbeds = new Map<string, string>();
+const missedEmbeds = new Map<string, number>();
+// one walk per name at a time: a picture shown twice asks once
+const embedLookups = new Map<string, Promise<string | null>>();
+// a miss is looked for again after half a minute, or at once when files come and go
+// (forgetFoundFiles): a walk can take up to 20 000 entries
+const EMBED_MISS_MS = 30_000;
+
+/**
+ * Files came or went in the file pane's folder (its watcher's "tree-changed"): pictures
+ * found or missed by name, and files resolved, are looked for again at the next render.
+ */
+export function forgetFoundFiles(): void {
+  foundEmbeds.clear();
+  missedEmbeds.clear();
+  resolvedUrls.clear();
+}
+
+// The relative URL of the file find_in_folder finds for `name` under `dir`, or null.
+async function findEmbed(dir: string, name: string): Promise<string | null> {
+  let path: string | null = null;
+  try {
+    path = await findInFolder(dir, name);
+  } catch {
+    path = null;
+  }
+  // what it found, as a path inside the folder (it never answers another)
+  const base = dir.replace(/[\\/]+$/, "");
+  if (
+    path === null ||
+    path.length <= base.length + 1 ||
+    path.slice(0, base.length).toLowerCase() !== base.toLowerCase() ||
+    !/[\\/]/.test(path[base.length])
+  ) {
+    return null;
+  }
+  return path
+    .slice(base.length + 1)
+    .split(/[\\/]+/)
+    .map((s) => encodeURIComponent(s))
+    .join("/");
+}
+
+async function embedUrl(dir: string, name: string): Promise<string | null> {
+  // never a name that leaves the folder, starts at a root or a drive, or is on another computer
+  if (!name || /^(?:[\\/]|[a-z]:)/i.test(name) || /(?:^|[\\/])\.\.(?:[\\/]|$)/.test(name) || !reachable(dir, name)) {
+    return null;
+  }
+  const key = `${dir}\n${name}`;
+  let rel = foundEmbeds.get(key);
+  if (rel === undefined) {
+    if (performance.now() - (missedEmbeds.get(key) ?? -Infinity) < EMBED_MISS_MS) return null;
+    let job = embedLookups.get(key);
+    if (!job) {
+      job = findEmbed(dir, name).finally(() => embedLookups.delete(key));
+      embedLookups.set(key, job);
+    }
+    const found = await job;
+    if (found === null) {
+      if (missedEmbeds.size > 500) missedEmbeds.clear();
+      missedEmbeds.set(key, performance.now());
+      return null;
+    }
+    if (foundEmbeds.size > 500) foundEmbeds.clear();
+    foundEmbeds.set(key, found);
+    rel = found;
+  }
+  const url = await localUrl(dir, rel);
+  // moved or removed since it was found: looked for again next time
+  if (url === null) foundEmbeds.delete(key);
+  return url;
+}
+
 // An address on another computer (reach.ts). The page must not be left to load it either: read
 // as a web address, "//server/a.png" is that server over http.
 const offLimits = (dir: string, url: string): boolean =>
@@ -684,22 +888,26 @@ async function rewriteLocalUrls(root: HTMLElement, dir: string | null): Promise<
   for (const img of root.querySelectorAll("img")) {
     const src = img.getAttribute("src") ?? "";
     if (!isLocalUrl(src)) continue;
+    // ![[picture.png]] not beside the document: somewhere in its folder (embedUrl)
+    const embed = img.dataset.embed;
     jobs.push(
-      localUrl(dir, src).then((url) => {
-        if (url) {
-          img.src = url;
-          return;
-        }
-        if (offLimits(dir, src)) {
-          img.removeAttribute("src");
-          if (!img.alt) img.alt = src;
-        }
-        // with a srcset or a <picture>, another candidate may still load
-        if (!img.hasAttribute("srcset") && !img.closest("picture")) {
-          missing.add(img);
-          if (!img.alt) img.alt = src;
-        }
-      }),
+      localUrl(dir, src)
+        .then((url) => url ?? (embed !== undefined && !offLimits(dir, src) ? embedUrl(dir, embed) : null))
+        .then((url) => {
+          if (url) {
+            img.src = url;
+            return;
+          }
+          if (offLimits(dir, src)) {
+            img.removeAttribute("src");
+            if (!img.alt) img.alt = src;
+          }
+          // with a srcset or a <picture>, another candidate may still load
+          if (!img.hasAttribute("srcset") && !img.closest("picture")) {
+            missing.add(img);
+            if (!img.alt) img.alt = src;
+          }
+        }),
     );
   }
   await Promise.all(jobs);
@@ -872,14 +1080,16 @@ function wrapCodeBlocks(root: HTMLElement): void {
     btn.type = "button";
     btn.title = t("render.copy");
     btn.innerHTML = COPY_ICON;
-    btn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(code.textContent ?? "");
-        btn.innerHTML = CHECK_ICON;
-        setTimeout(() => (btn.innerHTML = COPY_ICON), 1200);
-      } catch {
-        /* clipboard unavailable */
-      }
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(code.textContent ?? "").then(
+        () => {
+          btn.innerHTML = CHECK_ICON;
+          setTimeout(() => (btn.innerHTML = COPY_ICON), 1200);
+        },
+        () => {
+          /* clipboard unavailable */
+        },
+      );
     });
     head.append(label, btn);
     pre.replaceWith(wrap);
@@ -915,14 +1125,16 @@ function wrapTables(root: HTMLElement): void {
     table.replaceWith(block);
     scroll.append(table);
     const copy = tableButton("table-copy", t("render.copyTable"), TABLE_ICON);
-    copy.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(tableToTsv(table));
-        copy.innerHTML = CHECK_ICON;
-        setTimeout(() => (copy.innerHTML = TABLE_ICON), 1200);
-      } catch {
-        /* clipboard unavailable */
-      }
+    copy.addEventListener("click", () => {
+      navigator.clipboard.writeText(tableToTsv(table)).then(
+        () => {
+          copy.innerHTML = CHECK_ICON;
+          setTimeout(() => (copy.innerHTML = TABLE_ICON), 1200);
+        },
+        () => {
+          /* clipboard unavailable */
+        },
+      );
     });
     const actions = document.createElement("div");
     actions.className = "table-actions";

@@ -24,8 +24,15 @@
           vuelve allí cuando lo abres de nuevo.
         </p>
         <p>
-          <strong>Pegar y leer:</strong> el Markdown copiado de ChatGPT, de Claude o de una página web se puede
-          leer sin guardarlo antes. Pulsa <kbd>Ctrl</kbd>+<kbd>V</kbd> en cualquier sitio fuera del editor y de
+          También se abren los archivos que no están en UTF-8: UTF-16, que es lo que escribe Windows PowerShell
+          5.1 con <code>&gt;</code> o <code>Out-File</code>, y la página de códigos ANSI de Windows, que es lo que
+          escriben <code>Set-Content</code> y los programas más antiguos (por ejemplo, las letras acentuadas en
+          Windows-1252); la búsqueda en la carpeta también los lee. Leggimi guarda siempre en UTF-8, y lo avisa
+          la primera vez que guarda uno de estos archivos.
+        </p>
+        <p>
+          <strong>Pegar y leer:</strong> el texto copiado de un chat (ChatGPT, Claude), de una página web, de Word
+          o de Teams se puede leer como Markdown sin guardarlo antes. Pulsa <kbd>Ctrl</kbd>+<kbd>V</kbd> en cualquier sitio fuera del editor y de
           los cuadros de texto (la barra de búsqueda, los filtros), o usa <strong>Pegar desde el
           portapapeles</strong> en la página de inicio o <strong>Pegar Markdown como documento nuevo</strong> en
           la paleta de comandos. El texto se abre en su propia pestaña, con el nombre de su primer título (o, si
@@ -33,6 +40,17 @@
           ese documento; si no, se abre una pestaña nueva en primer plano. Solo se pega texto (si en el
           portapapeles hay una imagen, un aviso lo indica), y dentro del editor <kbd>Ctrl</kbd>+<kbd>V</kbd>
           pega como siempre.
+        </p>
+        <p>
+          El Markdown copiado con el botón <em>Copiar</em> de un chat se lee tal cual. Una parte de una respuesta
+          seleccionada con el ratón, o un fragmento de una página web, de Word o de Teams, conserva sus títulos,
+          listas, tablas, bloques de código, enlaces y fórmulas: Leggimi lee la copia con formato que llega al
+          portapapeles junto al texto y la convierte en Markdown. Una tabla copiada de un terminal (Claude Code,
+          psql, MySQL), dibujada con caracteres de recuadro, se convierte en una tabla Markdown, igual que las líneas de celdas separadas por tabulaciones (una tabla copiada solo como texto, o desde Excel); una respuesta
+          envuelta entera en un bloque <code>```markdown</code> se lee como el documento que contiene; las
+          fórmulas escritas <code>\( … \)</code> o <code>\[ … \]</code>, como las escribe ChatGPT, se leen como
+          fórmulas. Cuando el texto se ha convertido en Markdown, un aviso lo indica, y <strong>Mostrar como se
+          copió</strong> lo muestra exactamente como llegó.
         </p>
         <p>
           El texto pegado se lee como cualquier documento, con el esquema, la búsqueda, la impresión, el PDF,
@@ -193,10 +211,14 @@
         <p>
           Un punto naranja en la pestaña del documento, en lugar de su ×, indica cambios sin guardar; guarda con
           <kbd>Ctrl</kbd>+<kbd>S</kbd> y el punto se convierte un momento en una marca de verificación (los
-          lectores de pantalla anuncian «Guardado»). Salir del modo de edición o abrir otro documento con cambios
-          sin guardar pide confirmación primero. Si el archivo cambia en el disco mientras tienes cambios sin
-          guardar, aparece un aviso en lugar de sobrescribir tu trabajo, y guardar sobre un archivo que cambió
-          desde que lo abriste pide confirmación antes.
+          lectores de pantalla anuncian «Guardado»). Salir del modo de edición, o abrir otro documento en la
+          misma pestaña, con cambios sin guardar pregunta primero, como al cerrar la pestaña:
+          <strong>Guardar</strong>, <strong>No guardar</strong> o <strong>Cancelar</strong>; Guardar va primero,
+          así que <kbd>Intro</kbd> conserva tu trabajo. Si el archivo cambia en el disco mientras tienes cambios
+          sin guardar, aparece un aviso en lugar de sobrescribir tu trabajo, y guardar sobre un archivo que cambió
+          desde que lo abriste pide confirmación antes. <strong>Recargar desde el disco</strong>, en el aviso,
+          pone en el editor el texto del disco, y se puede deshacer: <strong>Deshacer</strong> en el aviso que
+          sigue, o <kbd>Ctrl</kbd>+<kbd>Z</kbd> en el editor, te devuelve tus cambios, sin guardar.
         </p>
         <p>
           Mientras editas, un <strong>doble clic en la vista previa</strong> lleva el cursor del editor a esa
@@ -249,7 +271,10 @@
         <p>
           <strong>Recuperación:</strong> mientras tienes cambios sin guardar, se conserva aparte una copia del
           texto. Si la aplicación se cierra sin guardar (un fallo, un apagado forzado), la próxima vez que abras
-          ese archivo un aviso ofrece restaurarla. El archivo en sí nunca se toca hasta que guardas.
+          ese archivo un aviso ofrece restaurarla. El archivo en sí nunca se toca hasta que guardas, y al guardar
+          se escribe el archivo entero o nada: el texto va a un archivo temporal junto al documento, que luego
+          ocupa su lugar, así que un corte de luz o una unidad desconectada en mitad de un guardado nunca dejan un
+          archivo vacío o cortado.
         </p>
         <p>
           <strong>Imágenes:</strong> pega una captura de pantalla (<kbd>Ctrl</kbd>+<kbd>V</kbd>) o suelta un
@@ -294,7 +319,8 @@
         <p>
           El panel derecho lista los títulos del documento y resalta el que estás leyendo. Haz clic en una entrada
           para saltar a ella. En documentos largos aparece un cuadro de filtro sobre la lista: escribe para acotar
-          los títulos y luego <kbd>↑</kbd> / <kbd>↓</kbd> e <kbd>Intro</kbd> saltan a uno; <kbd>Esc</kbd> lo borra.
+          los títulos (<em>Sin resultados</em> si no queda ninguno) y luego <kbd>↑</kbd> / <kbd>↓</kbd> e
+          <kbd>Intro</kbd> saltan a uno; <kbd>Esc</kbd> lo borra.
         </p>
         <p>
           Tras un salto (desde el esquema, un enlace a una sección, las teclas <kbd>.</kbd> / <kbd>,</kbd> o
@@ -311,7 +337,7 @@
         </p>
 
         <h3>Recarga automática</h3>
-        <p>Los archivos abiertos se vigilan en el disco. Cuando uno cambia, la vista se actualiza sola y conserva tu posición de lectura, útil mientras un documento se regenera; una pestaña en segundo plano se pone al día cuando vuelves a ella. En el modo de edición la actualización solo ocurre mientras tu búfer no tenga cambios sin guardar.</p>
+        <p>Los archivos abiertos se vigilan en el disco. Cuando uno cambia, la vista se actualiza sola y conserva tu posición de lectura, incluso cuando cambia el título de la sección que estás leyendo (un agente que marca un paso como hecho), útil mientras un documento se regenera. Los diagramas Mermaid ya dibujados vuelven al momento, con su propia altura, así que el texto no se mueve. Una pestaña en segundo plano se pone al día cuando vuelves a ella. En el modo de edición la actualización solo ocurre mientras tu búfer no tenga cambios sin guardar; si los tiene, un aviso ofrece <strong>Recargar desde el disco</strong> (ver <em>Edición</em>).</p>
         <p><kbd>F5</kbd> o <kbd>Ctrl</kbd>+<kbd>R</kbd> vuelve a leer el archivo cuando quieras, manteniendo tu posición; con cambios sin guardar no hace nada.</p>
 
         <h3>Representación</h3>
@@ -324,11 +350,13 @@
           <li>En una tabla larga, la fila de encabezado se queda en la parte superior de la ventana mientras lees, hasta que pasa la última fila de la tabla. Una tabla demasiado ancha incluso para toda la ventana se desplaza de lado: su barra de desplazamiento se queda en la parte inferior de la ventana mientras la tabla esté a la vista, así que no hace falta llegar al final de la tabla para moverla; <kbd>Mayús</kbd>+rueda y el panel táctil también funcionan en cualquier punto de la tabla.</li>
           <li>Haz clic en un diagrama o una imagen para abrirlo a pantalla completa: <kbd>+</kbd> / <kbd>−</kbd> o la rueda amplían, arrastrar desplaza y <kbd>Esc</kbd> cierra. <strong>Ajustar</strong> (<kbd>0</kbd>) lo ajusta a la ventana, <strong>Ancho</strong> (<kbd>W</kbd>) al ancho, empezando por arriba, y <strong>100 %</strong> (<kbd>1</kbd>) lo muestra a su tamaño real. El botón de copia ofrece la imagen como PNG (normal o grande), un diagrama también como SVG, y ambos se pueden guardar en un archivo.</li>
           <li>Las fórmulas usan KaTeX: <code>$…$</code> en línea, <code>$$…$$</code> o un bloque de código <code>math</code> (también con un título tras <code>math</code>) para las fórmulas centradas. Los signos de dólar se leen como en GitHub: un bloque <code>$$</code> solo se abre si se cierra, así que un precio como <code>$$ 100</code> no convierte en fórmula el resto del documento; el texto que sigue a un <code>$$</code> de cierre se conserva; <code>$$…$$</code> en mitad de una frase muestra la fórmula sin partir el párrafo; <code>$ x $</code> con espacios dentro e importes como <code>$5 y $10</code> siguen siendo texto.</li>
-          <li>Avisos al estilo de GitHub: una cita que empieza por <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>.</li>
+          <li>Avisos: una cita que empieza por <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> o <code>[!CAUTION]</code>, como en GitHub, o por otro de los tipos de las notas escritas con Obsidian y otras aplicaciones de notas (<code>[!info]</code>, <code>[!todo]</code>, <code>[!example]</code>, <code>[!danger]</code>…), dibujados con el color del más parecido de los cinco de GitHub. Un título tras el tipo (<code>&gt; [!tip] Antes de empezar</code>) ocupa el lugar del nombre del tipo, y un aviso escrito plegado (<code>[!note]-</code>) se muestra abierto.</li>
+          <li><code>==texto resaltado==</code> se resalta, en todos los temas, al imprimir y en Word.</li>
           <li>Notas al pie: <code>[^1]</code> en el texto y <code>[^1]: …</code> en cualquier sitio; las notas se reúnen al final, con enlaces de ida y vuelta.</li>
           <li>Las listas de tareas están activas: al hacer clic en una casilla se actualiza al momento <code>[ ]</code> / <code>[x]</code> en el archivo (con <em>Deshacer</em> en el aviso), o en el búfer del editor mientras editas. Solo la casilla marca la tarea: hacer clic o doble clic en su texto, para seleccionar una palabra, no cambia nada.</li>
           <li>Las tablas tienen dos botones arriba a la derecha, visibles al pasar el ratón o al llegar a ellas con el teclado: <strong>Copiar la tabla (para Excel)</strong> la pone en el portapapeles como texto separado por tabuladores, lista para Excel u Hojas de cálculo de Google, y <strong>Abrir la vista previa</strong> la abre a pantalla completa, para leerla con calma (también desde el menú contextual): se desplaza como la página, su fila de encabezado se queda arriba y, cuando la tabla se desplaza de lado, su primera columna se queda a la izquierda; <kbd>+</kbd> / <kbd>−</kbd> o <kbd>Ctrl</kbd>+rueda cambian el tamaño del texto, y <strong>Ancho</strong> (<kbd>W</kbd>) ajusta la tabla a la ventana. <strong>Filtrar filas</strong> (<kbd>Ctrl</kbd>+<kbd>F</kbd>) deja solo las filas que contienen las palabras que escribes, y un clic en el encabezado de una columna ordena las filas por ella: ascendente, descendente, de vuelta al orden original (números, importes, porcentajes y fechas se reconocen como tales). El documento no cambia, y <strong>Copiar la tabla (para Excel)</strong> en la vista previa copia las filas tal como las ves.</li>
           <li>Los enlaces a otros documentos funcionan como en un wiki: <code>[texto](otro)</code> encuentra <code>otro.md</code>, <code>[texto](carpeta/)</code> abre su <code>index.md</code> o <code>README.md</code>, y <code>otro.md#sección</code> salta a ese título. Los títulos tienen los mismos anclajes que en GitHub (<code>## 1. Introducción</code> → <code>#1-introducción</code>), así que los índices escritos para GitHub o por un asistente de IA también funcionan aquí; los enlaces escritos para versiones anteriores siguen llegando a su destino.</li>
+          <li>También funcionan los enlaces de las notas escritas con Obsidian y otras aplicaciones de notas: <code>[[Nota]]</code>, <code>[[Nota|otro nombre]]</code> y <code>[[Nota#Título]]</code> abren <code>Nota.md</code>, que se busca primero junto al documento y luego por su nombre en la carpeta del panel de archivos. <code>![[imagen.png]]</code> muestra la imagen, <code>![[imagen.png|300]]</code> con 300 píxeles de ancho; se busca en la carpeta del documento y en las carpetas que hay debajo, así que una imagen en una carpeta vecina no se encuentra.</li>
           <li>El front matter YAML entre líneas <code>---</code> se pliega en un bloque <em>Front matter</em> al principio: haz clic para ver los campos en una tabla.</li>
           <li>Un párrafo que solo contiene <code>[TOC]</code> se convierte en un índice de los títulos que siguen, que también va a la impresión, al HTML y al DOCX.</li>
           <li>Las imágenes con ruta relativa se resuelven respecto a la carpeta del documento. Los logotipos pensados para los temas claro y oscuro de GitHub (marcados con <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>, o un <code>&lt;picture&gt;</code> con versión clara y oscura) muestran el del tema de Leggimi; la impresión y las exportaciones usan el claro.</li>

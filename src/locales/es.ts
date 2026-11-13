@@ -242,7 +242,7 @@ const es: Dict = {
   "msg.revealFailed": "No se pudo abrir el Explorador: {err}",
   "msg.notFound": "No encontrado: {name}",
   "msg.fileChanged": "El archivo cambió en el disco. Guardar lo sobrescribirá.",
-  "msg.reload": "Recargar",
+  "msg.reload": "Recargar desde el disco",
   "msg.minRead": "{n} min de lectura",
   "msg.words": "{n} palabras",
   "msg.langReloadQ": "Cambiar el idioma recarga la ventana. ¿Descartar los cambios sin guardar?",
@@ -404,6 +404,16 @@ const es: Dict = {
   // palette commands that have no string of their own elsewhere
   "cmd.keys": "Atajos de teclado",
   "cmd.kwReading": "fuente tamaño texto interlineado ancho tema idioma",
+  // 2.3.0
+  "msg.reloaded": "Recargado desde el disco: tus cambios se han reemplazado.",
+  "msg.leaveEditQ": "«{name}» tiene cambios sin guardar. ¿Guardarlos antes de volver a la lectura?",
+  "msg.openOtherQ": "«{name}» tiene cambios sin guardar. ¿Guardarlos antes de abrir aquí otro archivo?",
+  "msg.savedUtf8": "Guardado en UTF-8: antes el archivo estaba en {enc}.",
+  "toc.countOne": "1 título",
+  "toc.count": "{n} títulos",
+  "editor.label": "Editor: {name}",
+  "msg.pastedConverted": "«{name}» abierto desde el portapapeles y convertido a Markdown.",
+  "msg.pasteAsCopied": "Mostrar como se copió",
 };
 
 export default es;

@@ -25,8 +25,15 @@
           êtes arrêté</strong> et y revient à la prochaine ouverture.
         </p>
         <p>
-          <strong>Coller et lire :</strong> le Markdown copié depuis ChatGPT, Claude ou une page web se lit sans
-          l'enregistrer d'abord. Appuyez sur <kbd>Ctrl</kbd>+<kbd>V</kbd> n'importe où hors de l'éditeur et des
+          Les fichiers qui ne sont pas en UTF-8 s'ouvrent aussi : l'UTF-16, qu'écrit Windows PowerShell 5.1 avec
+          <code>&gt;</code> ou <code>Out-File</code>, et la page de codes ANSI de Windows, qu'écrivent
+          <code>Set-Content</code> et les programmes plus anciens (par exemple les lettres accentuées en
+          Windows-1252) ; la recherche dans le dossier les lit aussi. Leggimi enregistre toujours en UTF-8, et le
+          signale la première fois qu'il enregistre un tel fichier.
+        </p>
+        <p>
+          <strong>Coller et lire :</strong> le texte copié depuis ChatGPT ou Claude, une page web, Word ou Teams se
+          lit comme du Markdown sans l'enregistrer d'abord. Appuyez sur <kbd>Ctrl</kbd>+<kbd>V</kbd> n'importe où hors de l'éditeur et des
           champs de saisie (la barre de recherche, les filtres), ou utilisez <strong>Coller depuis le
           presse-papiers</strong> sur la page d'accueil ou <strong>Coller du Markdown comme nouveau
           document</strong> dans la palette de commandes. Le texte s'ouvre dans son propre onglet, nommé d'après
@@ -34,6 +41,17 @@
           il devient ce document ; sinon, un nouvel onglet s'ouvre au premier plan. Seul du texte est collé (si
           le presse-papiers contient une image, un avis le signale), et dans l'éditeur
           <kbd>Ctrl</kbd>+<kbd>V</kbd> colle comme d'habitude.
+        </p>
+        <p>
+          Le Markdown copié avec le bouton <em>Copier</em> d'une conversation se lit tel quel. Une partie de
+          réponse sélectionnée à la souris, ou un passage d'une page web, de Word ou de Teams, garde ses titres,
+          listes, tableaux, blocs de code, liens et formules : Leggimi lit la copie mise en forme qui arrive dans
+          le presse-papiers avec le texte et la convertit en Markdown. Un tableau copié depuis un terminal
+          (Claude Code, psql, MySQL), dessiné avec des caractères de cadre, devient un tableau Markdown, de même que des lignes de cellules séparées par des tabulations (un tableau copié en texte seul, ou depuis Excel) ; une
+          réponse placée tout entière dans un bloc <code>```markdown</code> se lit comme le document qu'il
+          contient ; les formules écrites <code>\( … \)</code> ou <code>\[ … \]</code>, comme les écrit ChatGPT,
+          se lisent comme des formules. Quand le texte a été converti en Markdown, un avis le signale, et
+          <strong>Afficher tel quel</strong> le montre exactement tel qu'il est arrivé.
         </p>
         <p>
           Le texte collé se lit comme n'importe quel document, avec le plan, la recherche, l'impression, le PDF,
@@ -195,10 +213,15 @@
         <p>
           Un point orange sur l'onglet du document, à la place de sa croix ×, signale des modifications non enregistrées — enregistrez avec
           <kbd>Ctrl</kbd>+<kbd>S</kbd>, et le point devient un instant une coche (les lecteurs d'écran annoncent
-          « Enregistré »). Quitter le mode édition ou ouvrir un autre document avec des modifications non
-          enregistrées demande d'abord confirmation. Si le fichier change sur le disque pendant que vous avez des
-          modifications non enregistrées, un avertissement apparaît au lieu d'écraser votre travail, et
-          enregistrer par-dessus un fichier modifié depuis son ouverture demande confirmation.
+          « Enregistré »). Quitter le mode édition, ou ouvrir un autre document dans le même onglet, avec des
+          modifications non enregistrées pose d'abord la question, comme la fermeture de l'onglet :
+          <strong>Enregistrer</strong>, <strong>Ne pas enregistrer</strong> ou <strong>Annuler</strong> ;
+          Enregistrer vient en premier, si bien qu'un appui sur <kbd>Entrée</kbd> garde votre travail. Si le
+          fichier change sur le disque pendant que vous avez des modifications non enregistrées, un avis apparaît
+          au lieu d'écraser votre travail, et enregistrer par-dessus un fichier modifié depuis son ouverture
+          demande confirmation. <strong>Recharger depuis le disque</strong>, dans l'avis, met le texte du disque
+          dans l'éditeur, et cela s'annule : <strong>Annuler</strong> dans l'avis qui suit, ou
+          <kbd>Ctrl</kbd>+<kbd>Z</kbd> dans l'éditeur, rend vos modifications, non enregistrées.
         </p>
         <p>
           Pendant l'édition, un <strong>double-clic dans l'aperçu</strong> place le curseur de l'éditeur sur ce
@@ -251,7 +274,9 @@
           <strong>Récupération :</strong> tant que vous avez des modifications non enregistrées, une copie du
           texte est mise de côté. Si l'application se ferme sans enregistrer (plantage, arrêt forcé), un avis
           propose de la restaurer à la prochaine ouverture du fichier. Le fichier lui-même n'est jamais touché
-          avant que vous n'enregistriez.
+          avant que vous n'enregistriez, et un enregistrement écrit tout le fichier ou rien : le texte va dans un
+          fichier temporaire à côté du document, qui prend ensuite sa place, si bien qu'une coupure de courant ou
+          un disque débranché au milieu d'un enregistrement ne laisse jamais un fichier vide ou tronqué.
         </p>
         <p>
           <strong>Images :</strong> collez une capture d'écran (<kbd>Ctrl</kbd>+<kbd>V</kbd>) ou déposez un
@@ -298,7 +323,8 @@
         <p>
           Le panneau de droite liste les titres du document et met en évidence celui que vous lisez. Cliquez
           sur une entrée pour y aller. Sur les longs documents, un champ de filtre apparaît au-dessus de la
-          liste : tapez pour restreindre les titres, puis <kbd>↑</kbd> / <kbd>↓</kbd> et <kbd>Entrée</kbd> pour
+          liste : tapez pour restreindre les titres (<em>Aucun résultat</em> s'il n'en reste aucun), puis
+          <kbd>↑</kbd> / <kbd>↓</kbd> et <kbd>Entrée</kbd> pour
           sauter à l'un d'eux ; <kbd>Échap</kbd> l'efface.
         </p>
         <p>
@@ -316,7 +342,7 @@
         </p>
 
         <h3>Rechargement automatique</h3>
-        <p>Les fichiers ouverts sont surveillés sur le disque. Quand l'un d'eux change, la vue se rafraîchit d'elle-même en gardant votre position de lecture — utile pendant qu'un document est régénéré ; un onglet en arrière-plan se met à jour quand vous y revenez. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée.</p>
+        <p>Les fichiers ouverts sont surveillés sur le disque. Quand l'un d'eux change, la vue se rafraîchit d'elle-même en gardant votre position de lecture, même quand le titre de la section que vous lisez change (un agent qui marque une étape comme faite) — utile pendant qu'un document est régénéré. Les diagrammes Mermaid déjà dessinés reviennent aussitôt, à leur propre hauteur, si bien que le texte ne bouge pas. Un onglet en arrière-plan se met à jour quand vous y revenez. En mode édition, le rafraîchissement n'a lieu que tant que votre tampon n'a pas de modification non enregistrée ; sinon un avis propose <strong>Recharger depuis le disque</strong> (voir <em>Édition</em>).</p>
         <p><kbd>F5</kbd> ou <kbd>Ctrl</kbd>+<kbd>R</kbd> relit le fichier à la demande en gardant votre position ; avec des modifications non enregistrées, rien ne se passe.</p>
 
         <h3>Rendu</h3>
@@ -329,11 +355,13 @@
           <li>Dans un long tableau, la ligne d'en-tête reste en haut de la fenêtre pendant la lecture, jusqu'à ce que la dernière ligne du tableau soit passée. Un tableau trop large même pour toute la fenêtre défile horizontalement : sa barre de défilement reste en bas de la fenêtre tant que le tableau est visible, inutile donc d'aller au bout du tableau pour le déplacer ; <kbd>Maj</kbd>+molette et le pavé tactile fonctionnent aussi n'importe où sur le tableau.</li>
           <li>Cliquez sur un diagramme ou une image pour l'ouvrir en plein écran : <kbd>+</kbd> / <kbd>−</kbd> ou la molette zooment, glisser déplace et <kbd>Échap</kbd> ferme. <strong>Ajuster</strong> (<kbd>0</kbd>) l'ajuste à la fenêtre, <strong>Largeur</strong> (<kbd>W</kbd>) à la largeur, en partant du haut, et <strong>100 %</strong> (<kbd>1</kbd>) l'affiche à sa taille réelle. Le bouton de copie propose l'image en PNG (normal ou grand), un diagramme aussi en SVG, et les deux peuvent être enregistrés dans un fichier.</li>
           <li>Les formules utilisent KaTeX : <code>$…$</code> en ligne, <code>$$…$$</code> ou un bloc de code <code>math</code> (même avec un titre après <code>math</code>) pour les formules centrées. Les dollars se lisent comme sur GitHub : un bloc <code>$$</code> ne s'ouvre que s'il est fermé, si bien qu'un prix comme <code>$$ 100</code> ne transforme pas le reste du document en formule ; le texte qui suit un <code>$$</code> fermant est conservé ; <code>$$…$$</code> au milieu d'une phrase affiche la formule sans couper le paragraphe ; <code>$ x $</code> avec des espaces à l'intérieur et les montants comme <code>$5 et $10</code> restent du texte.</li>
-          <li>Encadrés à la GitHub : une citation commençant par <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> ou <code>[!CAUTION]</code>.</li>
+          <li>Encadrés : une citation commençant par <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> ou <code>[!CAUTION]</code>, comme sur GitHub, ou par l'un des autres types des notes écrites avec Obsidian et d'autres applications de prise de notes (<code>[!info]</code>, <code>[!todo]</code>, <code>[!example]</code>, <code>[!danger]</code>…), dessinés dans la couleur du plus proche des cinq de GitHub. Un titre après le type (<code>&gt; [!tip] Avant de commencer</code>) prend la place du nom du type, et un encadré écrit replié (<code>[!note]-</code>) s'affiche ouvert.</li>
+          <li><code>==texte surligné==</code> est surligné, dans tous les thèmes, à l'impression et dans Word.</li>
           <li>Notes de bas de page : <code>[^1]</code> dans le texte et <code>[^1]: …</code> n'importe où ; les notes sont rassemblées à la fin, avec des liens aller-retour.</li>
           <li>Les listes de tâches sont actives : cliquer sur une case met aussitôt à jour <code>[ ]</code> / <code>[x]</code> dans le fichier (avec <em>Annuler</em> dans l'avis), ou dans le tampon de l'éditeur pendant l'édition. Seule la case coche la tâche : cliquer ou double-cliquer sur son texte, pour sélectionner un mot, ne change rien.</li>
           <li>Les tableaux ont deux boutons en haut à droite, visibles au survol ou quand vous les atteignez au clavier : <strong>Copier le tableau (pour Excel)</strong> le place dans le presse-papiers en texte séparé par des tabulations, prêt pour Excel ou Google Sheets, et <strong>Ouvrir l'aperçu</strong> l'ouvre en plein écran, pour le lire à l'aise (aussi depuis le menu contextuel) : il défile comme la page, sa ligne d'en-tête reste en haut et, quand le tableau défile de côté, sa première colonne reste à gauche ; <kbd>+</kbd> / <kbd>−</kbd> ou <kbd>Ctrl</kbd>+molette changent la taille du texte, et <strong>Largeur</strong> (<kbd>W</kbd>) ajuste le tableau à la fenêtre. <strong>Filtrer les lignes</strong> (<kbd>Ctrl</kbd>+<kbd>F</kbd>) ne garde que les lignes qui contiennent les mots tapés, et un clic sur l'en-tête d'une colonne trie les lignes selon celle-ci : croissant, décroissant, retour à l'ordre d'origine (nombres, montants, pourcentages et dates sont reconnus comme tels). Le document ne change pas, et <strong>Copier le tableau (pour Excel)</strong> copie dans l'aperçu les lignes telles que vous les voyez.</li>
           <li>Les liens vers d'autres documents fonctionnent comme dans un wiki : <code>[texte](autre)</code> trouve <code>autre.md</code>, <code>[texte](dossier/)</code> ouvre son <code>index.md</code> ou <code>README.md</code>, et <code>autre.md#section</code> saute à ce titre. Les titres ont les mêmes ancres que sur GitHub (<code>## 1. Introduction</code> → <code>#1-introduction</code>) : les tables des matières écrites pour GitHub ou par un assistant IA fonctionnent donc ici aussi, et les liens écrits pour les versions précédentes arrivent toujours à destination.</li>
+          <li>Les liens des notes écrites avec Obsidian et d'autres applications de prise de notes fonctionnent aussi : <code>[[Note]]</code>, <code>[[Note|autre nom]]</code> et <code>[[Note#Titre]]</code> ouvrent <code>Note.md</code>, cherchée d'abord à côté du document, puis par son nom dans le dossier du panneau des fichiers. <code>![[image.png]]</code> affiche l'image, <code>![[image.png|300]]</code> sur 300 pixels de large ; elle est cherchée dans le dossier du document et dans les dossiers en dessous, si bien qu'une image dans un dossier voisin n'est pas trouvée.</li>
           <li>Le front matter YAML entre des lignes <code>---</code> est replié dans un bloc <em>Front matter</em> en tête : cliquez pour voir les champs en tableau.</li>
           <li>Un paragraphe ne contenant que <code>[TOC]</code> devient une table des matières des titres qui suivent, présente aussi à l'impression, en HTML et en DOCX.</li>
           <li>Les images à chemin relatif sont résolues par rapport au dossier du document. Les logos prévus pour les thèmes clair et sombre de GitHub (marqués <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>, ou un <code>&lt;picture&gt;</code> avec une version claire et une version sombre) affichent celui du thème de Leggimi ; l'impression et les exports utilisent le clair.</li>

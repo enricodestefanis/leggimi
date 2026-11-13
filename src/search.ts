@@ -1,3 +1,5 @@
+import { fmtNumber, t } from "./i18n";
+
 interface SearchEls {
   root: HTMLElement; // the article to search in
   pane: HTMLElement; // the scroll container
@@ -9,15 +11,35 @@ interface SearchEls {
   btnPrev: HTMLButtonElement;
   btnNext: HTMLButtonElement;
   btnClose: HTMLButtonElement;
+  /** speaks a status message to screen readers (notices.announce) */
+  say?: (text: string) => void;
 }
 
 let els: SearchEls;
 let ranges: Range[] = [];
 let idx = -1;
+let sayTimer = 0;
+
+/** How many matches, in words: "No matches", "1 result", "12 results". */
+export function countWords(n: number): string {
+  return n === 0 ? t("pane.noMatches") : n === 1 ? t("pal.countOne") : t("pal.count", { n: fmtNumber(n) });
+}
+
+// The count reaches a screen reader once typing pauses (WCAG 4.1.3), as the
+// palette does: not at every key, and not when a reload of the file recounts.
+function sayCountSoon(): void {
+  clearTimeout(sayTimer);
+  sayTimer = window.setTimeout(() => {
+    if (!els.bar.hidden && els.input.value) els.say?.(countWords(ranges.length));
+  }, 300);
+}
 
 export function init(elements: SearchEls): void {
   els = elements;
-  els.input.addEventListener("input", refresh);
+  els.input.addEventListener("input", () => {
+    refresh();
+    sayCountSoon();
+  });
   els.input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -47,6 +69,7 @@ export function openWith(query: string): void {
 }
 
 export function close(): void {
+  clearTimeout(sayTimer);
   els.bar.hidden = true;
   ranges = [];
   idx = -1;
@@ -124,7 +147,11 @@ function paint(): void {
     CSS.highlights.set("find", new Highlight(...ranges));
     if (idx >= 0) CSS.highlights.set("find-current", new Highlight(ranges[idx]));
   }
-  if (els) els.counter.textContent = ranges.length > 0 ? `${idx + 1}/${ranges.length}` : "0/0";
+  if (!els) return;
+  // nothing typed: no count; typed but absent: say so in words, not "0/0"
+  const none = ranges.length === 0 && !!els.input.value && !els.bar.hidden;
+  els.counter.textContent = ranges.length > 0 ? `${idx + 1}/${ranges.length}` : none ? t("pane.noMatches") : "";
+  els.counter.classList.toggle("none", none);
 }
 
 function scrollToCurrent(): void {

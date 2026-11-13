@@ -242,7 +242,7 @@ const zh: Dict = {
   "msg.revealFailed": "无法打开文件资源管理器：{err}",
   "msg.notFound": "未找到：{name}",
   "msg.fileChanged": "文件已在磁盘上被修改。保存将覆盖它。",
-  "msg.reload": "重新加载",
+  "msg.reload": "从磁盘重新加载",
   "msg.minRead": "阅读约 {n} 分钟",
   "msg.words": "{n} 字",
   "msg.langReloadQ": "切换语言会重新加载窗口。要放弃未保存的更改吗？",
@@ -404,6 +404,16 @@ const zh: Dict = {
   // palette commands that have no string of their own elsewhere
   "cmd.keys": "键盘快捷键",
   "cmd.kwReading": "字体 文字大小 行距 栏宽 主题 语言",
+  // 2.3.0
+  "msg.reloaded": "已从磁盘重新加载：你的修改已被替换。",
+  "msg.leaveEditQ": "“{name}”有未保存的更改。要在返回阅读前保存吗？",
+  "msg.openOtherQ": "“{name}”有未保存的更改。要在此处打开其他文件前保存吗？",
+  "msg.savedUtf8": "已按 UTF-8 保存：此文件原为 {enc} 编码。",
+  "toc.countOne": "1 个标题",
+  "toc.count": "{n} 个标题",
+  "editor.label": "编辑器：{name}",
+  "msg.pastedConverted": "已从剪贴板打开“{name}”，并转换为 Markdown。",
+  "msg.pasteAsCopied": "按原样显示",
 };
 
 export default zh;

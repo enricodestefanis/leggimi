@@ -6,6 +6,24 @@ type MermaidModule = typeof import("mermaid")["default"];
 let mermaid: MermaidModule | null = null;
 let seq = 0;
 
+// Diagrams already drawn, by scheme and source: a document read again (the file
+// changed on disk, an edit in the preview, a tab coming back) gets them at once,
+// at their own height, before the reading place is put back. Drawing them again
+// one after another changed the heights under that place while it was being
+// restored, and the text being read slid up (report C-01). The oldest go first.
+const drawn = new Map<string, string>();
+const DRAWN_MAX = 60;
+// a dark drawing takes the page's own background (see load): Dark and Black differ
+const pageBg = (): string => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+const keyOf = (source: string, dark: boolean): string => (dark ? `d\u0000${pageBg()}\u0000` : "l\u0000") + source;
+
+function remember(source: string, dark: boolean, svg: string): void {
+  const k = keyOf(source, dark);
+  drawn.delete(k);
+  drawn.set(k, svg);
+  while (drawn.size > DRAWN_MAX) drawn.delete(drawn.keys().next().value as string);
+}
+
 async function load(dark: boolean): Promise<MermaidModule> {
   if (!mermaid) mermaid = (await import("mermaid")).default;
   // mermaid's dark theme draws edge labels on light grey boxes; the page background
@@ -38,6 +56,7 @@ export async function renderMermaidSvg(source: string, dark: boolean): Promise<s
   const id = `mmd-${++seq}`;
   try {
     const { svg } = await m.render(id, source);
+    remember(source, dark, svg);
     return svg;
   } catch (err) {
     // mermaid can leave a stray error node in <body>
@@ -46,16 +65,51 @@ export async function renderMermaidSvg(source: string, dark: boolean): Promise<s
   }
 }
 
+function holderFor(code: HTMLElement, source: string): HTMLDivElement {
+  const holder = document.createElement("div");
+  holder.className = "mermaid-diagram";
+  // keep the scroll-sync anchor alive on the diagram that replaces the fence
+  if (code.dataset.sourceLine) holder.dataset.sourceLine = code.dataset.sourceLine;
+  holder.dataset.mmdSource = source;
+  return holder;
+}
+
+/**
+ * The diagrams of `article` drawn before, put in place at once (no waiting): call it right
+ * after the article's text changes and before the reading place is restored. A source that
+ * appears twice is placed once; the copy is drawn afresh (two SVGs must not share ids).
+ * Returns how many were placed; renderMermaidIn draws the rest.
+ */
+export function placeDrawnDiagrams(article: HTMLElement, dark: boolean): number {
+  // a drawing already in the article (placed by an earlier call) counts as used
+  const used = new Set<string>(
+    [...article.querySelectorAll<HTMLElement>(".mermaid-diagram[data-mmd-source]")].map((h) => keyOf(h.dataset.mmdSource ?? "", dark)),
+  );
+  let n = 0;
+  for (const code of article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")) {
+    const source = code.textContent ?? "";
+    const k = keyOf(source, dark);
+    const svg = drawn.get(k);
+    if (svg === undefined || used.has(k)) continue;
+    used.add(k);
+    const holder = holderFor(code, source);
+    holder.innerHTML = svg;
+    (code.parentElement as HTMLPreElement).replaceWith(holder);
+    n++;
+  }
+  return n;
+}
+
 export async function renderMermaidIn(article: HTMLElement, dark: boolean): Promise<void> {
+  // before the first wait, so a caller that does not await still gets them in this task
+  placeDrawnDiagrams(article, dark);
   const codes = [...article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")];
   if (codes.length === 0) return;
   for (const code of codes) {
     const pre = code.parentElement as HTMLPreElement;
     const source = code.textContent ?? "";
-    const holder = document.createElement("div");
-    holder.className = "mermaid-diagram";
-    // keep the scroll-sync anchor alive on the diagram that replaces the fence
-    if (code.dataset.sourceLine) holder.dataset.sourceLine = code.dataset.sourceLine;
+    const holder = holderFor(code, source);
+    delete holder.dataset.mmdSource;
     pre.replaceWith(holder);
 
     try {
@@ -78,8 +132,14 @@ export async function rerenderForTheme(article: HTMLElement, dark: boolean): Pro
   const holders = [...article.querySelectorAll<HTMLElement>(".mermaid-diagram[data-mmd-source]")];
   if (holders.length === 0) return;
   for (const holder of holders) {
+    const source = holder.dataset.mmdSource ?? "";
     try {
-      holder.innerHTML = await renderMermaidSvg(holder.dataset.mmdSource ?? "", dark);
+      // a diagram drawn before in that scheme comes back without the wait, unless the
+      // same source shows twice in this article (two SVGs must not share ids)
+      const k = keyOf(source, dark);
+      const twice = holders.filter((h) => h.dataset.mmdSource === source).length > 1;
+      const svg = !twice ? drawn.get(k) : undefined;
+      holder.innerHTML = svg ?? (await renderMermaidSvg(source, dark));
     } catch {
       /* keep the diagram that is already on screen */
     }

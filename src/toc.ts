@@ -15,6 +15,9 @@ const SETTLE_IDLE_MS = 250;
 let heads: HTMLElement[] = [];
 let items: HTMLButtonElement[] = [];
 let cursor = -1; // index into items, the keyboard-highlighted filter result
+// the outline's list, and the "No matches" row a filter that leaves nothing shows in it
+let listEl: HTMLElement | null = null;
+let emptyRow: HTMLElement | null = null;
 // index into items, the entry the scroll-spy (or a jump) highlights
 let current = -1;
 // the reading keys' "next / previous heading", bound to the spy's state by build()
@@ -65,6 +68,8 @@ export function build(article: HTMLElement, list: HTMLElement, scrollPane: HTMLE
   items = [];
   cursor = -1;
   list.replaceChildren();
+  listEl = list;
+  emptyRow = null;
 
   current = -1;
   const setActive = (index: number) => {
@@ -213,7 +218,7 @@ export function jumpTo(h: HTMLElement): boolean {
 
 // Hides the entries that don't contain `query` (case-insensitive) and puts
 // the keyboard cursor on the first one left. Returns how many are visible.
-export function setFilter(query: string): number {
+export function setFilter(query: string, noMatches = ""): number {
   const q = query.trim().toLowerCase();
   let visible = 0;
   items.forEach((it) => {
@@ -222,6 +227,19 @@ export function setFilter(query: string): number {
     if (show) visible++;
   });
   setCursor(q ? firstVisible(0, 1) : -1);
+  // a filter that leaves nothing says so (the pane used to go blank: report A-05)
+  const none = !!q && visible === 0 && items.length > 0 && !!noMatches;
+  if (none && listEl) {
+    if (!emptyRow) {
+      emptyRow = document.createElement("div");
+      emptyRow.className = "search-empty toc-empty";
+      listEl.append(emptyRow);
+    }
+    emptyRow.textContent = noMatches;
+  } else {
+    emptyRow?.remove();
+    emptyRow = null;
+  }
   return visible;
 }
 

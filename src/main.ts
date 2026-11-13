@@ -18,8 +18,8 @@ import { ask, message, open as openDialog, save as saveDialog } from "@tauri-app
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import * as ipc from "./ipc";
-import { applyScheme, render, renderFragment } from "./renderer";
-import { renderMermaidIn, rerenderForTheme } from "./mermaid";
+import { applyScheme, forgetFoundFiles, render, renderFragment } from "./renderer";
+import { placeDrawnDiagrams, renderMermaidIn, rerenderForTheme } from "./mermaid";
 import * as toc from "./toc";
 import * as tree from "./tree";
 import * as search from "./search";
@@ -138,7 +138,23 @@ let previewDirty = false;
 let previewsInFlight = 0;
 // the watcher's echo of our own saves is ignored for a moment, file by file
 const ownWrites = new Map<string, number>();
-const noteOwnWrite = (path: string): void => void ownWrites.set(path.toLowerCase(), Date.now() + 1500);
+const ownWriteChecks = new Map<string, number>();
+const OWN_WRITE_MS = 1500;
+// A change made by another program within that window was dropped for good (report
+// B-10: an agent still writing its plan, right after a tick): once it is over, the
+// file is compared with what the window holds, once, and treated as any change.
+const noteOwnWrite = (path: string): void => {
+  const k = path.toLowerCase();
+  ownWrites.set(k, Date.now() + OWN_WRITE_MS);
+  clearTimeout(ownWriteChecks.get(k));
+  ownWriteChecks.set(
+    k,
+    window.setTimeout(() => {
+      ownWriteChecks.delete(k);
+      recheckAfterOwnWrite(path);
+    }, OWN_WRITE_MS + 100),
+  );
+};
 const isOwnWrite = (path: string): boolean => (ownWrites.get(path.toLowerCase()) ?? 0) > Date.now();
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
@@ -226,7 +242,14 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
       return "shown";
     }
     if (editing && editorMod?.isDirty() && currentDoc && !isDocAt(currentDoc, doc.path)) {
-      if (!(await confirmDiscard())) return "kept";
+      // as when leaving the editor: Save / Don't save / Cancel, Save first
+      const was = currentDoc;
+      const answer = await askSave(t("msg.openOtherQ", { name: docName(was) }), t("msg.save"));
+      if (answer === "cancel" || currentDoc !== was) return "kept";
+      if (answer === "save") {
+        await saveFile();
+        if (editorMod?.isDirty()) return "kept";
+      } else drafts.remove(docKey(was));
     }
     const prevPath = currentDoc?.path ?? null;
     const sameDoc = prevPath !== null && samePath(prevPath, doc.path);
@@ -249,6 +272,8 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     if (editing && prevPath !== null && !samePath(prevPath, doc.path)) exitEditMode();
 
     await render(doc, article);
+    // diagrams drawn before come back at their height before the place is put back (C-01)
+    placeDrawnDiagrams(article, theme.isDark());
     errorShown = false;
     // a notice about what was on screen before ("not found", "changed on
     // disk") is not about this document; nor is "no longer on disk" once
@@ -279,7 +304,9 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     const jump = (): HTMLElement | null =>
       opts.anchor !== undefined ? scrollToId(opts.anchor) : opts.line !== undefined ? scrollToSourceLine(opts.line - 1) : null;
     const landed = jump();
-    if (!landed && !restoreRemembered(target)) contentPane.scrollTop = 0;
+    // the place on screen before a reload of this document: kept even if its heading was renamed
+    const same = target !== null && target === anchor;
+    if (!landed && !restoreRemembered(target, same)) contentPane.scrollTop = 0;
     // A place restored by Back appears at once, as in a browser; so does the
     // first document of a window, whose own appearance is the transition (a
     // fade on top of it would only make the start feel slower).
@@ -298,7 +325,7 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
         wide.markWide(article);
         // diagrams change the heights above the anchor: re-apply it, unless
         // the reader has already moved on
-        if (currentDoc === doc && contentPane.scrollTop === applied && !jump() && target) restoreRemembered(target);
+        if (currentDoc === doc && contentPane.scrollTop === applied && !jump() && target) restoreRemembered(target, same);
         updateProgress();
       })
       .catch(() => {});
@@ -310,7 +337,7 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     // Same-root selection just moves the highlight: a rebuild would discard the
     // user's collapsed folders and flicker. Same-document reopens (watcher
     // reloads) still rebuild so files added or removed on disk get picked up.
-    if (rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path)) refreshTree();
+    if (rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path)) void refreshTree();
     reportTabs();
     if (!sameDoc) {
       recents.push(doc);
@@ -382,6 +409,45 @@ async function sameOnDisk(doc: ipc.MarkdownDoc): Promise<boolean> {
   }
 }
 
+// The file in front changed on disk (the watcher said so, or the window after one of
+// our own writes ended): another text is read in, or reported over unsaved edits.
+function onFrontChanged(): void {
+  // a document on its way replaces this one, or (a reload) reads it anew:
+  // a reload queued behind it would bring the old one back
+  if (opening || switching || !currentDoc || currentDoc.path === null || docGone) return;
+  const doc = currentDoc;
+  void sameOnDisk(doc).then((same) => {
+    // read meanwhile: another document, a save, or one on its way
+    if (same || currentDoc !== doc || opening || switching) return;
+    if (editing && editorMod?.isDirty()) {
+      // never clobber a dirty buffer
+      showFileChangedNotice();
+      return;
+    }
+    if (editing) void reloadFromDisk();
+    else void openFile(doc.path, { preserveScroll: true });
+  });
+}
+
+// The window after one of our own writes to `path` is over: what came meanwhile
+// from someone else is read now. The tab in front as the watcher would; a tab
+// behind is marked to read its file again when it comes forward.
+function recheckAfterOwnWrite(path: string): void {
+  if (!session.hasActive()) return;
+  for (const tab of session.tabs) {
+    if (tab === session.active() || tab.closing || !isTabOf(tab, path)) continue;
+    const doc = tab.doc;
+    if (!doc || doc.path === null || tab.stale) continue;
+    void ipc
+      .readMarkdown(doc.path)
+      .then((disk) => {
+        if (tab.doc === doc && disk.content !== doc.content) tab.stale = true;
+      })
+      .catch(() => {});
+  }
+  if (currentDoc && currentDoc.path !== null && samePath(currentDoc.path, path)) onFrontChanged();
+}
+
 function showFileChangedNotice(): void {
   showNotice(t("msg.fileChanged"), {
     sticky: true,
@@ -410,6 +476,8 @@ function updateTitles(): void {
   }
   // the title stays in the page, out of sight, for screen readers and the tests
   docTitle.textContent = currentDoc ? docName(currentDoc) : "";
+  // the editor's text box is named after its document (WCAG 4.1.2, report A-07)
+  editorMod?.setLabel(currentDoc ? t("editor.label", { name: docName(currentDoc) }) : t("pal.editor"));
   docTitle.title = currentDoc?.path ?? "";
   getCurrentWindow()
     .setTitle(currentDoc ? `${dirty ? "• " : ""}${t("toolbar.windowTitle", { name: docName(currentDoc) })}` : "Leggimi")
@@ -431,10 +499,21 @@ async function toggleEditMode(): Promise<void> {
     writeDraft();
     return;
   }
-  if (editorMod?.isDirty()) {
-    if (!(await confirmDiscard())) return;
-    // restore the saved document in the article before leaving the split view
-    if (currentDoc) await openFile(currentDoc.path, { preserveScroll: true });
+  if (editorMod?.isDirty() && currentDoc) {
+    // the question closing the tab asks (report A-02: it offered only Discard, and Enter
+    // pressed it): Save is the first button, so Enter keeps the work
+    const doc = currentDoc;
+    const answer = await askSave(t("msg.leaveEditQ", { name: docName(doc) }), t("msg.save"));
+    if (answer === "cancel" || currentDoc !== doc || !editing) return;
+    if (answer === "save") {
+      await saveFile();
+      // not written (the other version kept, an error): the edits stay in the editor
+      if (editorMod?.isDirty()) return;
+    } else {
+      drafts.remove(docKey(doc));
+      // restore the saved document in the article before leaving the split view
+      await openFile(doc.path, { preserveScroll: true });
+    }
   }
   exitEditMode();
 }
@@ -584,19 +663,6 @@ function insertInto(tab: session.Tab, text: string): void {
   strip.render();
 }
 
-const confirmDiscard = async (): Promise<boolean> => {
-  // labelled buttons: without them Windows writes Yes/No in its own language
-  const ok = await ask(t("msg.discardQ"), {
-    title: t("msg.discardTitle"),
-    kind: "warning",
-    okLabel: t("msg.discard"),
-    cancelLabel: t("msg.cancel"),
-  }).catch(() => false);
-  // a deliberate discard also drops the recovery draft of that buffer
-  if (ok && currentDoc) drafts.remove(docKey(currentDoc));
-  return ok;
-};
-
 /* ---- recovery drafts ---- */
 
 let draftTimer: number | undefined;
@@ -705,7 +771,7 @@ function schedulePreview(): void {
   clearTimeout(previewTimer);
   previewTimer = window.setTimeout(() => {
     previewDirty = false;
-    if (editorMod) updatePreview(editorMod.currentText());
+    if (editorMod) void updatePreview(editorMod.currentText());
   }, 200);
 }
 
@@ -719,12 +785,6 @@ async function updatePreview(content: string): Promise<void> {
     const staging = await renderFragment({ ...currentDoc, content });
     if (gen !== previewGen) return; // a newer render superseded this one
 
-    // reuse already-rendered mermaid SVGs so untouched diagrams don't flicker
-    const mmdCache = new Map<string, string>();
-    for (const h of article.querySelectorAll<HTMLElement>(".mermaid-diagram[data-mmd-source]")) {
-      mmdCache.set(h.dataset.mmdSource ?? "", h.innerHTML);
-    }
-
     // in edit mode the editor viewport is the source of truth for the preview
     // position; the heading anchor only serves the non-editing path
     const anchor = editing ? null : captureScrollAnchor(contentPane, article);
@@ -732,17 +792,8 @@ async function updatePreview(content: string): Promise<void> {
     const keep = collectMedia(article);
     article.replaceChildren(...staging.childNodes);
     restoreMedia(keep, article);
-    for (const code of article.querySelectorAll<HTMLElement>("pre > code.language-mermaid")) {
-      const source = code.textContent ?? "";
-      const cached = mmdCache.get(source);
-      if (cached === undefined) continue;
-      const holder = document.createElement("div");
-      holder.className = "mermaid-diagram";
-      holder.innerHTML = cached;
-      holder.dataset.mmdSource = source;
-      if (code.dataset.sourceLine) holder.dataset.sourceLine = code.dataset.sourceLine;
-      (code.parentElement as HTMLPreElement).replaceWith(holder);
-    }
+    // diagrams already drawn come back at once, so untouched ones neither flicker nor move the text
+    placeDrawnDiagrams(article, theme.isDark());
     collectPreviewAnchors();
     lightbox.markAll(article);
     wide.markWide(article);
@@ -920,9 +971,11 @@ function syncPreviewToEditor(reveal = false, retry = true): void {
 // `create`: the file was deleted while open (the tab in front's, by default)
 async function writeDocument(doc: ipc.MarkdownDoc, content: string, create = docGone): Promise<number | null> {
   noteOwnWrite(doc.path);
+  // a UTF-8 BOM the file had stays; one read as UTF-16 or ANSI gets one (wroteAsUtf8)
+  const bom = !!doc.encoding && doc.encoding !== "utf-8";
   // a document deleted while open is written again: that is what saving it means
   try {
-    const modified = await ipc.writeMarkdown(doc.path, content, doc.modified, create);
+    const modified = await ipc.writeMarkdown(doc.path, content, doc.modified, create, bom);
     if (create && currentDoc === doc) onDocBack();
     return modified;
   } catch (err) {
@@ -936,8 +989,19 @@ async function writeDocument(doc: ipc.MarkdownDoc, content: string, create = doc
     }).catch(() => false);
     if (!overwrite) return null;
     noteOwnWrite(doc.path);
-    return ipc.writeMarkdown(doc.path, content, null);
+    return ipc.writeMarkdown(doc.path, content, null, false, bom);
   }
+}
+
+// A file read in another encoding (UTF-16 from Windows PowerShell, ANSI) is written in
+// UTF-8, as every save is: said once, at its first save (report B-06). "" otherwise.
+// It is UTF-8 with a BOM from then on, which Windows PowerShell 5.1 reads back right.
+function wroteAsUtf8(doc: ipc.MarkdownDoc): string {
+  const enc = doc.encoding;
+  if (!enc || enc === "utf-8" || enc === "utf-8-bom") return "";
+  doc.encoding = "utf-8-bom";
+  const name = /^utf-16/.test(enc) ? "UTF-16" : enc.startsWith("windows-") ? `ANSI (Windows-${enc.slice(8)})` : enc.toUpperCase();
+  return t("msg.savedUtf8", { enc: name });
 }
 
 async function saveFile(): Promise<void> {
@@ -952,6 +1016,7 @@ async function saveFile(): Promise<void> {
   try {
     const modified = await writeDocument(doc, content);
     if (modified === null) return;
+    const utf8 = wroteAsUtf8(doc);
     if (currentDoc !== doc) {
       // its tab went behind meanwhile: the one saved keeps the news
       savedBehind(doc, content, modified);
@@ -962,6 +1027,7 @@ async function saveFile(): Promise<void> {
     drafts.remove(doc.path);
     hideNotice(true);
     showSaved();
+    if (utf8) showNotice(utf8, { kind: "info" });
   } catch (err) {
     showNotice(t("msg.saveFailed", { err: String(err) }), { kind: "error" });
   }
@@ -1080,7 +1146,8 @@ function showSaved(): void {
 
 /* ---- task-list checkboxes in the preview ---- */
 
-const TASK_MARK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\])/;
+// inside a quote or a callout too ("> - [ ] …", "> > 1. [x] …"): a tick there was never written
+const TASK_MARK_RE = /^((?:\s*>)*\s*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\])/;
 
 // The box already toggled natively; mirror it in the source line. In edit
 // mode that edits the buffer; while reading it writes the file right away,
@@ -1095,7 +1162,11 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
   const lines = source.split(/\r?\n/);
   const old = lines[line] ?? "";
   const next = old.replace(TASK_MARK_RE, (_m, pre: string, _mark: string, post: string) => `${pre}${box.checked ? "x" : " "}${post}`);
-  if (next === old) return;
+  // a line it cannot find its box in: the box goes back, rather than show a tick the file lacks
+  if (next === old) {
+    box.checked = !box.checked;
+    return;
+  }
   if (editing && editorMod) {
     editorMod.replaceLine(line, next);
     return;
@@ -1122,6 +1193,7 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
       box.checked = !box.checked;
       return;
     }
+    const utf8 = wroteAsUtf8(doc);
     if (currentDoc !== doc) {
       // its tab went behind meanwhile: the tick stays, and the tab has the file's news
       const tab = session.tabs.find((x) => x.doc === doc);
@@ -1133,7 +1205,8 @@ async function onTaskToggle(box: HTMLInputElement): Promise<void> {
     // the attribute too: exports and the rich copy read the markup, not the live state
     box.toggleAttribute("checked", box.checked);
     const before = doc.content;
-    showNotice(t(box.checked ? "msg.taskChecked" : "msg.taskUnchecked"), {
+    const said = t(box.checked ? "msg.taskChecked" : "msg.taskUnchecked");
+    showNotice(utf8 ? `${said} ${utf8}` : said, {
       kind: "success",
       action: {
         label: t("msg.undo"),
@@ -1172,13 +1245,61 @@ async function reloadFromDisk(): Promise<void> {
     }
     // another document took the tab while the file was being read
     if (!isDocAt(currentDoc, path)) return;
+    // unsaved edits replaced by the disk's text: steps Ctrl+Z (or Undo) takes back
+    // (report A-01: it used to be gone with no question and no way back). While
+    // editing the history always stays: a second change on disk after a reload over
+    // edits (an agent writing again) is one more step to walk back, not their end.
+    const pending = reloaded !== null && reloaded.doc === currentDoc;
+    const replaced = editing && (!!editorMod?.isDirty() || pending);
+    const steps = replaced ? (pending && reloaded ? reloaded.steps + 1 : 1) : 0;
     currentDoc = doc;
-    editorMod?.setContent(doc.content);
+    if (editing && editorMod) editorMod.replaceAll(doc.content);
+    else editorMod?.setContent(doc.content);
     await updatePreview(doc.content);
     hideNotice(true);
+    if (replaced) showReloadedNotice(doc, steps);
   } catch (err) {
     showNotice(t("msg.reloadFailed", { err: String(err) }), { kind: "error" });
   }
+}
+
+// "Reloaded from disk: your edits were replaced." with Undo: the edits come back
+// (unsaved, over the disk's new text, which the notice about it says again). It
+// stays until used or dismissed, and goes at the first edit after the reload: Undo
+// would then take back that edit, not the reload (Ctrl+Z still walks back to it).
+// The reload Undo takes back: the document it read, the text it put in the editor,
+// and how many reloads in a row (each one step of the editor's history) since the edits.
+let reloaded: { doc: ipc.MarkdownDoc; text: string; steps: number } | null = null;
+function showReloadedNotice(doc: ipc.MarkdownDoc, steps: number): void {
+  const state = { doc, text: doc.content.replace(/\r\n/g, "\n"), steps };
+  reloaded = state;
+  showNotice(t("msg.reloaded"), {
+    kind: "info",
+    sticky: true,
+    action: {
+      label: t("msg.undo"),
+      fn: () => {
+        if (reloaded === state) reloaded = null;
+        hideNotice(true);
+        if (currentDoc !== doc || !editing || !editorMod) return;
+        // edited since (in another tab's absence too): Undo would take back that edit
+        if (editorMod.currentText() !== state.text) return;
+        for (let i = 0; i < state.steps; i++) editorMod.undoLast();
+        editorMod.focus();
+        if (editorMod.isDirty()) showFileChangedNotice();
+      },
+    },
+    onDismiss: () => {
+      if (reloaded === state) reloaded = null;
+    },
+  });
+}
+
+// an edit after a reload: its Undo notice has done its time
+function dropReloadedNotice(): void {
+  if (reloaded === null || !editorMod || editorMod.currentText() === reloaded.text) return;
+  reloaded = null;
+  if (document.getElementById("notice-msg")?.textContent === t("msg.reloaded")) hideNotice(true);
 }
 
 /* ---- the document renamed or deleted on disk ---- */
@@ -1203,7 +1324,7 @@ function onDocRenamed(to: string): void {
   syncFrontTab();
   updateTitles();
   reportTabs();
-  if (!tree.setActive(treeRoot, to)) refreshTree();
+  if (!tree.setActive(treeRoot, to)) void refreshTree();
   showNotice(t("msg.renamedTo", { name: fileName(to) }), { kind: "info" });
 }
 
@@ -1213,7 +1334,7 @@ function onDocRemoved(): void {
   if (!currentDoc || currentDoc.path === null || docGone) return;
   docGone = true;
   showGoneNotice();
-  refreshTree();
+  void refreshTree();
 }
 
 function showGoneNotice(): void {
@@ -1229,7 +1350,7 @@ function onDocBack(): void {
   if (!docGone) return;
   docGone = false;
   hideNotice(true);
-  refreshTree();
+  void refreshTree();
 }
 
 // "Save again": the text on screen (the editor's, while editing) back to its file
@@ -1269,7 +1390,7 @@ async function checkDocOnDisk(): Promise<void> {
 function reportMissing(path: string): void {
   recents.remove(path);
   if (!emptyState.hidden) renderRecents().catch(() => {});
-  refreshTree();
+  void refreshTree();
   if (treeSearch.value.trim()) void runFolderSearch();
   showNotice(t("msg.notFound", { name: fileName(path) }));
 }
@@ -1892,27 +2013,67 @@ function makePastedTab(text: string, o: { id?: string; original?: string; home?:
 // Pasted text in a tab of its own, in front, placed as a file opened from
 // within the window is: a start page in front becomes it, else it comes
 // right after the tab in front
-function openPasted(text: string): session.Tab {
+function openPasted(text: string): { tab: session.Tab; shown: Promise<boolean> } {
   const tab = makePastedTab(text);
   const front = latestFront();
   session.insertAfter(tab, front);
   if (session.isStartPage(front)) front.closing = true;
   strip.render(tab);
   reportTabs();
-  void activateTab(tab);
-  return tab;
+  return { tab, shown: activateTab(tab) };
+}
+
+// What the clipboard held, as the Markdown to open (pasteConvert.ts, loaded on the
+// first paste): a selection copied from a chat page through its HTML, a terminal's
+// tables, a ```markdown wrapper, \( \) math. Its own failure falls back to the text.
+async function pastedMarkdown(raw: string | null, html: string | null): Promise<{ markdown: string; plain: string; changed: boolean }> {
+  const plain = pastedText(raw ?? "");
+  try {
+    const { convertPaste } = await import("./pasteConvert");
+    const r = await convertPaste({ text: raw, html });
+    return { markdown: r.markdown, plain: r.plain, changed: r.changes.length > 0 && r.markdown !== r.plain };
+  } catch {
+    return { markdown: plain, plain, changed: false };
+  }
 }
 
 // Every way of pasting ends here: Ctrl+V's text, or the clipboard as Rust
 // read it (the start page's button, the palette). Nothing to read, or a
 // picture alone, is said so; text next to a picture (Excel copies both) is read.
-function openPastedOrSay(raw: string | null, image: boolean): void {
-  const text = pastedText(raw ?? "");
-  if (!text.trim()) {
+async function openPastedOrSay(raw: string | null, image: boolean, html: string | null = null): Promise<void> {
+  const { markdown, plain, changed } = await pastedMarkdown(raw, html);
+  if (!markdown.trim()) {
     sayAboutPaste(t(image ? "msg.pasteImage" : "msg.pasteEmpty"), "info");
     return;
   }
-  notices.announce(t("msg.pastedOpened", { name: tabName(openPasted(text)) }));
+  const { tab, shown } = openPasted(markdown);
+  if (!changed) {
+    notices.announce(t("msg.pastedOpened", { name: tabName(tab) }));
+    return;
+  }
+  // said once the tab is in front (bringing it there clears the notice bar), with the
+  // way back to the text exactly as it was copied
+  if (!(await shown) || session.active() !== tab) return;
+  const doc = tab.doc;
+  if (!doc || doc.path !== null) return;
+  // a clipboard with HTML and no plain text has nothing "as copied" to show
+  const action = plain.trim() ? { label: t("msg.pasteAsCopied"), fn: () => showPastedAsCopied(tab, doc.paste, plain) } : undefined;
+  showNotice(t("msg.pastedConverted", { name: tabName(tab) }), { kind: "info", action });
+}
+
+// "Show as copied": the pasted tab reads the clipboard's plain text instead of the
+// Markdown made of it, as untouched (it is what was pasted now), titled after it
+function showPastedAsCopied(tab: session.Tab, paste: Pasted, plain: string): void {
+  hideNotice(true);
+  if (session.active() !== tab || !currentDoc || currentDoc.path !== null || currentDoc.paste !== paste) return;
+  if (editing || frontChanged()) return;
+  paste.original = plain;
+  currentDoc = pastedDoc(paste, plain);
+  tab.doc = currentDoc;
+  void updatePreview(plain).then(() => {
+    followPastedTitle();
+    updateTitles();
+  });
 }
 
 // What a paste that opened nothing says: on the notice bar, unless the bar
@@ -1927,7 +2088,7 @@ function sayAboutPaste(message: string, kind: "info" | "error"): void {
 async function pasteFromClipboard(): Promise<void> {
   try {
     const clip = await ipc.readClipboardText();
-    openPastedOrSay(clip.text, clip.image);
+    await openPastedOrSay(clip.text, clip.image, clip.html ?? null);
   } catch (err) {
     // another program holding the clipboard is a moment's wait, not a failure
     if (String(err) === ipc.CLIPBOARD_BUSY) sayAboutPaste(t("msg.pasteBusy"), "info");
@@ -1941,7 +2102,9 @@ function onPaste(e: ClipboardEvent): void {
   e.preventDefault();
   const data = e.clipboardData;
   const image = [...data.items].some((i) => i.kind === "file" && i.type.startsWith("image/"));
-  openPastedOrSay(data.getData("text/plain"), image);
+  // the HTML a page copies beside its text: read now, the event's data is gone after it
+  const html = data.types.includes("text/html") ? data.getData("text/html") : "";
+  void openPastedOrSay(data.getData("text/plain"), image, html || null);
 }
 
 // not in the editor (its format bar included) or a text field, and nothing in
@@ -2169,6 +2332,7 @@ async function resumeView(tab: session.Tab): Promise<void> {
     } else {
       const text = v?.editing && v.editor && editorMod ? editorMod.snapshotText(v.editor) : doc.content;
       await render({ ...doc, content: text }, article);
+      placeDrawnDiagrams(article, theme.isDark());
       lightbox.markAll(article);
       renderMermaidIn(article, theme.isDark())
         .then(() => {
@@ -2190,7 +2354,8 @@ async function resumeView(tab: session.Tab): Promise<void> {
   panes.refresh();
   wide.markWide(article);
   updateDocMeta();
-  if (!restoreRemembered(v?.anchor ?? null)) contentPane.scrollTop = 0;
+  // the tab's own place in its own document, even if the file changed while it was behind
+  if (!restoreRemembered(v?.anchor ?? null, true)) contentPane.scrollTop = 0;
   if (editing && v?.previewStale && editorMod) void updatePreview(editorMod.currentText());
   search.restore(v?.find ?? null);
   if (v?.notice) showNotice(v.notice.message, v.notice.opts);
@@ -2283,6 +2448,7 @@ async function ensureEditor(): Promise<boolean> {
     onDocChanged: () => {
       schedulePreview();
       scheduleDraft();
+      dropReloadedNotice();
     },
     onDirtyChanged: () => updateTitles(),
     onScroll: () => scheduleSyncPreview(),
@@ -2293,10 +2459,10 @@ async function ensureEditor(): Promise<boolean> {
       scheduleSyncPreview(true);
     },
     requestSave: () => {
-      saveFile();
+      void saveFile();
     },
     onImagePasted: (file) => {
-      insertPastedImage(file);
+      void insertPastedImage(file);
     },
   });
   return true;
@@ -2456,6 +2622,7 @@ async function saveTab(tab: session.Tab): Promise<boolean> {
   try {
     const modified = await writeDocument(doc, content, tab.view?.docGone ?? false);
     if (modified === null) return false;
+    wroteAsUtf8(doc);
     savedBehind(doc, content, modified);
     if (tab.view) tab.view.docGone = false;
     return true;
@@ -3238,21 +3405,21 @@ function buildDocMenu(target: HTMLElement, y: number): contextMenu.MenuSpec {
     href !== "" && {
       label: t("ctx.openLink"),
       icon: isLocalDocLink(href) ? MENU_ICON.open : MENU_ICON.web,
-      run: () => followLink(href),
+      run: () => followLink(href, "here", link),
     },
     href !== "" &&
       isLocalDocLink(href) && {
         label: t("ctx.openNewTab"),
         icon: MENU_ICON.tab,
         kbd: t("file.ctrlClick"),
-        run: () => followLink(href, "tab"),
+        run: () => followLink(href, "tab", link),
       },
     href !== "" &&
       isLocalDocLink(href) && {
         label: t("ctx.openNewWindow"),
         icon: MENU_ICON.window,
         kbd: t("file.shiftClick"),
-        run: () => followLink(href, "window"),
+        run: () => followLink(href, "window", link),
       },
     href !== "" && {
       label: t("ctx.copyLinkAddress"),
@@ -3356,21 +3523,55 @@ function openFolderSearch(query?: string | null): void {
 // open in the viewer (or, on request, in a tab or a window of its own). Local links resolve
 // like a wiki: `doc`, `doc.md`, `folder/` (its index.md or README.md), with
 // an optional `#heading`.
-function followLink(href: string, where: Where = "here"): void {
+function followLink(href: string, where: Where = "here", link?: Element | null): void {
   const hashAt = href.indexOf("#");
   const target = hashAt >= 0 ? href.slice(0, hashAt) : href;
   const anchor = hashAt >= 0 ? decodeSafe(href.slice(hashAt + 1)) : undefined;
+  // [[Note]] as note-taking apps write it (renderer.ts): looked up by name when it is
+  // not next to the document
+  const wiki = link instanceof HTMLElement && link.dataset.wikilink !== undefined;
   if (!target) {
     if (anchor) jumpToAnchor(anchor);
   } else if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
     // web pages to the browser, mail and phone links to their apps
     if (/^(https?|mailto|tel):/i.test(href)) openUrl(href).catch(() => {});
   } else if (currentDoc && currentDoc.dir !== null) {
-    void openLocalLink(currentDoc.dir, decodeSafe(target), anchor, where);
+    void openLocalLink(currentDoc.dir, decodeSafe(target), anchor, where, wiki);
   } else if (currentDoc) {
     // pasted text is in no folder: a relative link leads nowhere until it is saved
     showNotice(t("msg.pastedLink"), { kind: "info", action: { label: t("tab.saveAs"), fn: () => void saveAsFront() } });
   }
+}
+
+// A [[Note]] that is not next to its document, by name, as note-taking apps find it:
+// first among the files the pane lists (its folder, as the palette offers them), the
+// shallowest; then below the document's folder (find_in_folder). Only the name counts
+// when the link names no folder. null: there is none.
+async function findByName(dir: string, rel: string): Promise<string | null> {
+  const parts = rel.split(/[\\/]/).filter(Boolean);
+  const name = parts.pop() ?? "";
+  if (!name || parts.includes("..")) return null;
+  const tail = [...parts, name].join("\\").toLowerCase();
+  const fits = (path: string): boolean => {
+    const p = path.toLowerCase();
+    return p === tail || p.endsWith("\\" + tail);
+  };
+  const found: string[] = [];
+  if (treeJson) {
+    const walk = (n: ipc.TreeNode): void => {
+      if (!n.isDir && fits(n.path)) found.push(n.path);
+      n.children.forEach(walk);
+    };
+    try {
+      walk(JSON.parse(treeJson) as ipc.TreeNode);
+    } catch {
+      /* no listing to look in */
+    }
+  }
+  const depth = (p: string): number => p.split("\\").length;
+  found.sort((a, b) => depth(a) - depth(b) || a.length - b.length);
+  if (found[0]) return found[0];
+  return ipc.findInFolder(dir, [...parts, name].join("\\")).catch(() => null);
 }
 
 // What a link may hand to its default app; keep in sync with OPEN_EXTERNALLY
@@ -3382,14 +3583,15 @@ const OPEN_EXTERNALLY =
 // image in the preview, a folder in the file pane. Any other file is never
 // read as text: a notice offers it to its default app, or shows it in File
 // Explorer when it is not a document (a program, a script).
-async function openLocalLink(dir: string, rel: string, anchor: string | undefined, where: Where): Promise<void> {
+async function openLocalLink(dir: string, rel: string, anchor: string | undefined, where: Where, wiki = false): Promise<void> {
   // a file on another computer: looking it up would have Windows call that computer (reach.ts)
   if (!reachable(dir, rel)) {
     showNotice(t("msg.otherComputer", { name: rel }), { kind: "info" });
     return;
   }
   const tab = session.active();
-  const p = await ipc.resolveDoc(dir, rel).catch(() => null);
+  let p = await ipc.resolveDoc(dir, rel).catch(() => null);
+  if (!p && wiki) p = await findByName(dir, rel);
   // another tab came forward meanwhile: the link was about the one that left
   if (where === "here" && session.active() !== tab) return;
   if (p && isMarkdownPath(p)) {
@@ -3424,7 +3626,7 @@ async function openLocalLink(dir: string, rel: string, anchor: string | undefine
   const folder = await ipc.resolvePath(dir, rel).catch(() => null);
   if (folder && (await ipc.listTree(folder).then(() => true, () => false))) {
     browseRoot = folder;
-    refreshTree();
+    void refreshTree();
     panes.show("tree");
     return;
   }
@@ -3535,9 +3737,10 @@ function wireDragScroll(): void {
   contentPane.addEventListener("auxclick", (e) => {
     if (e.button !== 1) return;
     e.preventDefault();
-    const href = middleLink ? linkHref(middleLink) : "";
+    const link = middleLink;
+    const href = link ? linkHref(link) : "";
     middleLink = null;
-    if (href) followLink(href, "tab");
+    if (href) followLink(href, "tab", link);
   });
 }
 
@@ -3624,9 +3827,19 @@ async function runFolderSearch(): Promise<void> {
     const hits = await ipc.searchInTree(browseRoot, q);
     if (gen !== folderSearchGen) return; // a newer query superseded this one
     renderFolderSearch(hits, q);
+    // how many, for screen readers (WCAG 4.1.3); the list itself says it on screen
+    sayCountSoon(search.countWords(hits.length));
   } catch {
     /* folder gone mid-search: keep whatever is on screen */
   }
+}
+
+// A search box's count, spoken once typing pauses (300 ms, as the palette does); "" says nothing.
+let sayCountTimer = 0;
+function sayCountSoon(text: string): void {
+  clearTimeout(sayCountTimer);
+  if (!text) return;
+  sayCountTimer = window.setTimeout(() => notices.announce(text), 300);
 }
 
 function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
@@ -3652,8 +3865,8 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       name.textContent = hit.name;
       name.title = hit.path;
       file.append(name);
-      file.addEventListener("click", (e) => openHit(hit.path, q, e));
-      onMiddleClick(file, (e) => openHit(hit.path, q, e));
+      file.addEventListener("click", (e) => void openHit(hit.path, q, e));
+      onMiddleClick(file, (e) => void openHit(hit.path, q, e));
       searchResults.append(file);
     }
     if (hit.line > 0) {
@@ -3662,8 +3875,8 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       row.className = "search-hit";
       row.title = t("pane.lineN", { n: hit.line });
       row.append(...highlightMatch(hit.preview, q));
-      row.addEventListener("click", (e) => openHit(hit.path, q, e, hit.line));
-      onMiddleClick(row, (e) => openHit(hit.path, q, e, hit.line));
+      row.addEventListener("click", (e) => void openHit(hit.path, q, e, hit.line));
+      onMiddleClick(row, (e) => void openHit(hit.path, q, e, hit.line));
       searchResults.append(row);
     }
   }
@@ -3718,15 +3931,18 @@ async function goUp(): Promise<void> {
   const parent = await ipc.parentDir(browseRoot).catch(() => null);
   if (parent) {
     browseRoot = parent;
-    refreshTree();
+    void refreshTree();
   }
 }
 
 /* ---- reading position, progress bar, reading time ---- */
 
 // A remembered anchor is only honoured while its heading still exists: a
-// rewritten document should open at the top, not at a stray offset.
-function restoreRemembered(saved: ScrollAnchor | null): boolean {
+// rewritten document should open at the top, not at a stray offset. The same
+// document read again (`same`: a reload, its tab coming back) whose heading was
+// renamed meanwhile, as an agent marking a step done does, keeps the place by its
+// distance from the top instead (report C-02: it jumped to the top).
+function restoreRemembered(saved: ScrollAnchor | null, same = false): boolean {
   if (!saved) return false;
   if (!saved.id) {
     if (saved.offset <= 0) return false;
@@ -3734,7 +3950,11 @@ function restoreRemembered(saved: ScrollAnchor | null): boolean {
     return true;
   }
   // positions saved before 1.15.1 name the heading by its old id
-  if (saved.id && !findHeading(article, saved.id)) return false;
+  if (saved.id && !findHeading(article, saved.id)) {
+    if (!same || saved.top === undefined || saved.top <= 0) return false;
+    contentPane.scrollTop = Math.min(saved.top, contentPane.scrollHeight - contentPane.clientHeight);
+    return true;
+  }
   restoreScrollAnchor(contentPane, article, saved);
   return true;
 }
@@ -3805,7 +4025,7 @@ function setupTocFilter(headings: number, keep: boolean): void {
   const show = headings >= TOC_FILTER_MIN;
   tocFilterWrap.hidden = !show;
   if (!show || !keep) tocFilter.value = "";
-  toc.setFilter(tocFilter.value);
+  toc.setFilter(tocFilter.value, t("pane.noMatches"));
   tocFilterClear.hidden = tocFilter.value.length === 0;
 }
 
@@ -4275,8 +4495,8 @@ function wireUi(): void {
   // from the keyboard (no pointer: detail 0) the keys go into a pane that opens over the text
   $("#btn-tree").addEventListener("click", (e) => panes.toggle("tree", { focus: e.detail === 0 }));
   $("#btn-toc").addEventListener("click", (e) => panes.toggle("toc", { focus: e.detail === 0 }));
-  $("#btn-open").addEventListener("click", chooseFile);
-  $("#btn-open-empty").addEventListener("click", chooseFile);
+  $("#btn-open").addEventListener("click", () => void chooseFile());
+  $("#btn-open-empty").addEventListener("click", () => void chooseFile());
   $("#btn-paste-empty").addEventListener("click", () => void pasteFromClipboard());
   // Ctrl+V and Shift+Insert outside the editor and the text fields: a document of its own
   document.addEventListener("paste", onPaste);
@@ -4348,8 +4568,10 @@ function wireUi(): void {
 
   // outline filter
   tocFilter.addEventListener("input", () => {
-    toc.setFilter(tocFilter.value);
+    const n = toc.setFilter(tocFilter.value, t("pane.noMatches"));
     tocFilterClear.hidden = tocFilter.value.length === 0;
+    // the count reaches screen readers once typing pauses (WCAG 4.1.3)
+    sayCountSoon(tocFilter.value.trim() ? (n === 0 ? t("pane.noMatches") : n === 1 ? t("toc.countOne") : t("toc.count", { n: i18n.fmtNumber(n) })) : "");
   });
   tocFilter.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -4383,8 +4605,8 @@ function wireUi(): void {
     rating.done();
     hideRateToast();
   });
-  btnEdit.addEventListener("click", () => toggleEditMode());
-  btnSave.addEventListener("click", () => saveFile());
+  btnEdit.addEventListener("click", () => void toggleEditMode());
+  btnSave.addEventListener("click", () => void saveFile());
   btnShare.addEventListener("click", (e) => {
     e.stopPropagation(); // the document click-away handler must not see this
     toggleShareMenu();
@@ -4404,7 +4626,7 @@ function wireUi(): void {
   });
   $("#share-copy").addEventListener("click", () => {
     hideShareMenu();
-    copyDocAsRichText();
+    void copyDocAsRichText();
   });
   $("#share-print").addEventListener("click", () => {
     hideShareMenu();
@@ -4424,11 +4646,11 @@ function wireUi(): void {
   });
   $("#export-html").addEventListener("click", () => {
     hideShareMenu();
-    exportDocAsHtml();
+    void exportDocAsHtml();
   });
   $("#export-docx").addEventListener("click", () => {
     hideShareMenu();
-    exportDocAsDocx();
+    void exportDocAsDocx();
   });
   // the Aa popover closes itself on a click elsewhere
   document.addEventListener("click", (e) => {
@@ -4454,7 +4676,8 @@ function wireUi(): void {
   });
   // a language change reloads the window: every module reads the dictionary
   // at load time, and a reload is cheaper than rebuilding menus and keymaps
-  $("#rs-lang").addEventListener("click", async (e) => {
+  $("#rs-lang").addEventListener("click", (e) => void pickLanguage(e));
+  async function pickLanguage(e: MouseEvent): Promise<void> {
     const opt = (e.target as HTMLElement).closest<HTMLButtonElement>(".rs-opt");
     if (!opt) return;
     const next = opt.dataset.value as i18n.LangPref;
@@ -4475,7 +4698,7 @@ function wireUi(): void {
     // WebView2's own parts (its menus, the spelling dictionary) follow at the next start
     await ipc.rememberLanguage(next).catch(() => {});
     location.reload();
-  });
+  }
   prefs.onChange(() => {
     syncReadingMenu();
     editorMod?.refresh();
@@ -4486,7 +4709,7 @@ function wireUi(): void {
   $("#help-close").addEventListener("click", () => helpDialog.close());
   // rating from the help counts: the card does not ask again
   $("#help-rate").addEventListener("click", rateOnStore);
-  btnUp.addEventListener("click", goUp);
+  btnUp.addEventListener("click", () => void goUp());
   treeSearch.addEventListener("input", scheduleFolderSearch);
   treeSearch.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -4518,6 +4741,7 @@ function wireUi(): void {
     btnPrev: $("#find-prev"),
     btnNext: $("#find-next"),
     btnClose: $("#find-close"),
+    say: (text) => notices.announce(text),
   });
 
   // F5, Ctrl+R: the file from disk, never WebView2's reload (which restarts
@@ -4664,17 +4888,17 @@ function wireUi(): void {
       }
     } else if (e.ctrlKey && e.key.toLowerCase() === "o") {
       e.preventDefault();
-      chooseFile();
+      void chooseFile();
     } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "e") {
       e.preventDefault();
       toggleShareMenu();
     } else if (e.ctrlKey && e.key.toLowerCase() === "e") {
       e.preventDefault();
-      toggleEditMode();
+      void toggleEditMode();
     } else if (e.ctrlKey && e.key.toLowerCase() === "s") {
       // always swallow it: WebView2 would otherwise open its save-page dialog
       e.preventDefault();
-      saveFile();
+      void saveFile();
     } else if (e.ctrlKey && e.key.toLowerCase() === "b") {
       e.preventDefault();
       panes.toggle("tree", { focus: true });
@@ -4687,7 +4911,7 @@ function wireUi(): void {
       void printDoc();
     } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "c") {
       e.preventDefault();
-      copyDocAsRichText();
+      void copyDocAsRichText();
       // !e.altKey below: on Windows AltGr reports Ctrl+Alt, and AltGr symbol
       // combos must keep working while typing in the editor.
       // preventDefault also suppresses WebView2's whole-page zoom.
@@ -4754,7 +4978,7 @@ function wireUi(): void {
     const href = linkHref(a);
     if (!href) return;
     e.preventDefault();
-    followLink(href, whereFrom(e));
+    followLink(href, whereFrom(e), a);
   });
 
   // task-list checkboxes write the change back to the source
@@ -4905,25 +5129,13 @@ async function boot(): Promise<void> {
     }
     // there again after a deletion (an Undo in File Explorer): read it anew
     if (docGone) onDocBack();
-    if (isOwnWrite(change.path)) return; // echo of our own save
-    // a document on its way replaces this one, or (a reload) reads it anew:
-    // a reload queued behind it would bring the old one back
-    if (opening || switching) return;
-    const doc = currentDoc;
-    void sameOnDisk(doc).then((same) => {
-      // read meanwhile: another document, a save, or one on its way
-      if (same || currentDoc !== doc || opening || switching) return;
-      if (editing && editorMod?.isDirty()) {
-        // never clobber a dirty buffer
-        showFileChangedNotice();
-        return;
-      }
-      if (editing) void reloadFromDisk();
-      else void openFile(doc.path, { preserveScroll: true });
-    });
+    if (isOwnWrite(change.path)) return; // echo of our own save (looked at again when the window ends)
+    onFrontChanged();
   });
   // files coming and going in the pane's folder; the document may be among them
   await ipc.onTreeChanged(() => {
+    // pictures found by name (![[x.png]]) may have moved: looked for again
+    forgetFoundFiles();
     void refreshTree().then((changed) => {
       // the search reads every file: again only when files came or went
       if (changed && treeSearch.value.trim()) void runFolderSearch();
@@ -4935,7 +5147,7 @@ async function boot(): Promise<void> {
   await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
     if (!focused) return;
     if (browseRoot) ipc.watchTree(browseRoot, true).catch(() => {});
-    refreshTree();
+    void refreshTree();
     void checkDocOnDisk();
   });
   await getCurrentWebview().onDragDropEvent((event) => {
@@ -4955,7 +5167,7 @@ async function boot(): Promise<void> {
         const onStrip = x >= r.left && x <= r.right && y >= r.top - 8 && y <= r.bottom + 8;
         const at = onStrip ? strip.indexAtClient(x) : undefined;
         mds.forEach((p, i) => openInTab(p, { background: i > 0, index: at === undefined ? undefined : at + i }));
-      } else if (img && editing) insertDroppedImage(img);
+      } else if (img && editing) void insertDroppedImage(img);
     }
   });
 
@@ -4988,4 +5200,16 @@ async function boot(): Promise<void> {
   windowShown = true;
 }
 
-boot();
+// The window is born hidden and only the end of boot() shows it: a step that throws
+// would leave Leggimi running out of sight, seemingly not starting (report B-11). It
+// shows anyway, with what could be drawn and the error in a notice.
+boot().catch((err: unknown) => {
+  console.error("boot failed", err);
+  void ipc.showWindow().catch(() => {});
+  windowShown = true;
+  try {
+    showNotice(String(err), { kind: "error" });
+  } catch {
+    /* the page itself is not there: the window at least shows */
+  }
+});

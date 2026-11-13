@@ -255,7 +255,7 @@ export default {
   "msg.revealFailed": "Could not open File Explorer: {err}",
   "msg.notFound": "Not found: {name}",
   "msg.fileChanged": "File changed on disk. Saving will overwrite it.",
-  "msg.reload": "Reload",
+  "msg.reload": "Reload from disk",
   "msg.minRead": "{n} min read",
   "msg.words": "{n} words",
   "msg.langReloadQ": "Changing the language reloads the window. Discard the unsaved changes?",
@@ -423,4 +423,14 @@ export default {
   // palette commands that have no string of their own elsewhere
   "cmd.keys": "Keyboard shortcuts",
   "cmd.kwReading": "font size spacing width theme language",
+  // 2.3.0
+  "msg.reloaded": "Reloaded from disk: your edits were replaced.",
+  "msg.leaveEditQ": "“{name}” has unsaved changes. Save them before going back to reading?",
+  "msg.openOtherQ": "“{name}” has unsaved changes. Save them before opening another file here?",
+  "msg.savedUtf8": "Saved in UTF-8: the file was in {enc} before.",
+  "toc.countOne": "1 heading",
+  "toc.count": "{n} headings",
+  "editor.label": "Editor: {name}",
+  "msg.pastedConverted": "“{name}” opened from the clipboard and turned into Markdown.",
+  "msg.pasteAsCopied": "Show as copied",
 } as const;

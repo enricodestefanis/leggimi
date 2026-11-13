@@ -23,13 +23,29 @@
           scrolls back there when you open it again.
         </p>
         <p>
-          <strong>Paste and read:</strong> Markdown copied from ChatGPT, Claude or a web page can be read
-          without saving it first. Press <kbd>Ctrl</kbd>+<kbd>V</kbd> anywhere outside the editor and the
+          Files that are not in UTF-8 open too: UTF-16, which Windows PowerShell 5.1 writes with
+          <code>&gt;</code> or <code>Out-File</code>, and the Windows ANSI code page, which <code>Set-Content</code>
+          and older programs write (accented letters in Windows-1252, for instance); the folder search reads
+          them as well. Leggimi always saves in UTF-8, and says so the first time it saves such a file.
+        </p>
+        <p>
+          <strong>Paste and read:</strong> text copied from a chat (ChatGPT, Claude), a web page, Word or
+          Teams can be read as Markdown without saving it first. Press <kbd>Ctrl</kbd>+<kbd>V</kbd> anywhere outside the editor and the
           text boxes (the find bar, the filters), or use <strong>Paste from clipboard</strong> on the start
           page or <strong>Paste Markdown as a new document</strong> in the command palette. The text opens in
           a tab of its own, named after its first heading (or else its first line): a start page in front
           becomes it; otherwise it opens in a new tab in front. Only text is pasted (a picture on the
           clipboard gets a notice), and inside the editor <kbd>Ctrl</kbd>+<kbd>V</kbd> pastes as always.
+        </p>
+        <p>
+          Markdown copied with a chat's <em>Copy</em> button is read as it is. Part of an answer selected with
+          the mouse, or a passage of a web page, Word or Teams, keeps its headings, lists, tables, code blocks,
+          links and formulas: Leggimi reads the formatted copy that comes on the clipboard beside the text and
+          turns it into Markdown. A table copied from a terminal (Claude Code, psql, MySQL), drawn with box
+          characters, becomes a Markdown table, and so do lines of cells separated by tabs (a table copied as text alone, or from Excel); an answer wrapped whole in a <code>```markdown</code> block is
+          read as the document it holds; formulas written <code>\( … \)</code> or <code>\[ … \]</code>, as
+          ChatGPT writes them, are read as formulas. When the text was turned into Markdown a notice says so,
+          and <strong>Show as copied</strong> shows it exactly as it came.
         </p>
         <p>
           The pasted text reads like any document: the outline, find, printing, PDF, Word and copying all
@@ -185,10 +201,14 @@
         </p>
         <p>
           An orange dot on the document's tab, in place of its ×, marks unsaved changes — save with <kbd>Ctrl</kbd>+<kbd>S</kbd>,
-          and the dot turns into a check for a moment (screen readers hear "Saved"). Leaving edit mode or
-          opening another document with unsaved changes asks for confirmation first. If the file
-          changes on disk while you have unsaved edits, a warning appears instead of overwriting your
-          work, and saving over a file that changed since you opened it asks before overwriting it.
+          and the dot turns into a check for a moment (screen readers hear "Saved"). Leaving edit mode, or
+          opening another document in the same tab, with unsaved changes asks first, as closing the tab does:
+          <strong>Save</strong>, <strong>Don't save</strong> or <strong>Cancel</strong>; Save comes first, so
+          <kbd>Enter</kbd> keeps your work. If the file changes on disk while you have unsaved edits, a notice
+          says so instead of overwriting your work, and saving over a file that changed since you opened it
+          asks before overwriting it. The notice's <strong>Reload from disk</strong> puts the disk's text in
+          the editor, and can be undone: <strong>Undo</strong> in the notice that follows, or
+          <kbd>Ctrl</kbd>+<kbd>Z</kbd> in the editor, brings your changes back, unsaved.
         </p>
         <p>
           While editing, a <strong>double-click on the preview</strong> puts the editor's cursor on that word,
@@ -240,7 +260,10 @@
         <p>
           <strong>Recovery:</strong> while you have unsaved changes, a copy of the text is kept aside. If
           the app is closed without saving (a crash, a forced shutdown), the next time you open that file
-          a notice offers to restore it. The file itself is never touched until you save.
+          a notice offers to restore it. The file itself is never touched until you save, and a save writes
+          the whole file or nothing: the text goes into a temporary file beside the document, which then takes
+          its place, so a power cut or a disconnected drive in the middle of a save never leaves an empty or
+          cut file.
         </p>
         <p>
           <strong>Images:</strong> paste a screenshot (<kbd>Ctrl</kbd>+<kbd>V</kbd>) or drop an image file
@@ -285,7 +308,8 @@
         <p>
           The right panel lists the document headings and highlights the one you are reading. Click
           any entry to jump to it. On long documents a filter box appears above the list: type to
-          narrow the headings, then <kbd>↑</kbd> / <kbd>↓</kbd> and <kbd>Enter</kbd> jump to one;
+          narrow the headings (<em>No matches</em> when none is left), then <kbd>↑</kbd> / <kbd>↓</kbd> and
+          <kbd>Enter</kbd> jump to one;
           <kbd>Esc</kbd> clears it.
         </p>
         <p>
@@ -303,7 +327,7 @@
         </p>
 
         <h3>Live reload</h3>
-        <p>Open files are watched on disk. When one changes, the view refreshes automatically and keeps your reading position — useful while a document is being regenerated; a tab in the background catches up when you return to it. In edit mode the refresh only happens while your buffer has no unsaved changes.</p>
+        <p>Open files are watched on disk. When one changes, the view refreshes automatically and keeps your reading position, even when the heading of the section you are reading changes (an agent marking a step done) — useful while a document is being regenerated. Mermaid diagrams already drawn come back at once, at their own height, so the text does not move. A tab in the background catches up when you return to it. In edit mode the refresh only happens while your buffer has no unsaved changes; otherwise a notice offers <strong>Reload from disk</strong> (see <em>Editing</em>).</p>
         <p><kbd>F5</kbd> or <kbd>Ctrl</kbd>+<kbd>R</kbd> reads the file again on request, keeping your place; with unsaved edits it does nothing.</p>
 
         <h3>Rendering</h3>
@@ -316,11 +340,13 @@
           <li>In a long table the header row stays at the top of the window while you read, until the table's last row goes by. A table too wide even for the whole window scrolls sideways: its scrollbar stays at the bottom of the window as long as the table is in sight, so there is no need to reach the end of the table to move it; <kbd>Shift</kbd>+wheel and the touchpad work anywhere on it too.</li>
           <li>Click a diagram or an image to open it full-window: <kbd>+</kbd> / <kbd>−</kbd> or the scroll wheel zoom, dragging pans and <kbd>Esc</kbd> closes. <strong>Fit</strong> (<kbd>0</kbd>) fits it to the window, <strong>Width</strong> (<kbd>W</kbd>) fits its width, starting from the top, and <strong>100%</strong> (<kbd>1</kbd>) shows it at its actual size. The copy button offers the image as PNG (normal or large), a diagram also as SVG, and both can be saved to a file.</li>
           <li>Math renders with KaTeX: <code>$…$</code> inline, <code>$$…$$</code> or a <code>math</code> code fence (a title after <code>math</code> is fine) for display blocks. Dollar signs are read as on GitHub: a <code>$$</code> block opens only when it is closed, so a price such as <code>$$ 100</code> does not turn the rest of the document into a formula; text after a closing <code>$$</code> stays; <code>$$…$$</code> inside a sentence shows the formula without splitting the paragraph; <code>$ x $</code> with spaces inside, and amounts such as <code>$5 and $10</code>, stay text.</li>
-          <li>GitHub-style callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>.</li>
+          <li>Callouts: a quote starting with <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> or <code>[!CAUTION]</code>, as on GitHub, or with the other types found in notes written with Obsidian and other note-taking apps (<code>[!info]</code>, <code>[!todo]</code>, <code>[!example]</code>, <code>[!danger]</code>…), drawn in the colour of the closest of GitHub's five. A title after the type (<code>&gt; [!tip] Before you start</code>) takes the place of the type's name, and a callout written folded (<code>[!note]-</code>) is shown open.</li>
+          <li><code>==highlighted text==</code> is highlighted, in every theme, in print and in Word.</li>
           <li>Footnotes: <code>[^1]</code> in the text and <code>[^1]: …</code> anywhere; the notes are collected at the end, with links there and back.</li>
           <li>Task lists are live: clicking a checkbox updates the <code>[ ]</code> / <code>[x]</code> in the file right away (with an <em>Undo</em> in the notice), or in the editor buffer while you are editing. Only the box ticks the task: clicking or double-clicking its text, to select a word, changes nothing.</li>
           <li>Tables have two buttons at the top right, shown on hover or when you reach them with the keyboard: <strong>Copy table (for Excel)</strong> puts the table on the clipboard as tab-separated text, ready for Excel or Google Sheets, and <strong>Open preview</strong> opens it full-window, to read it at ease (also from the right-click menu): it scrolls like the page, its header row stays at the top and, when the table scrolls sideways, its first column stays on the left; <kbd>+</kbd> / <kbd>−</kbd> or <kbd>Ctrl</kbd>+wheel change the text size, and <strong>Width</strong> (<kbd>W</kbd>) fits the table to the window. <strong>Filter rows</strong> (<kbd>Ctrl</kbd>+<kbd>F</kbd>) keeps only the rows that contain the words you type, and a click on a column's header sorts the rows by it: ascending, descending, back to the original order (numbers, amounts, percentages and dates are read as such). The document does not change, and <strong>Copy table (for Excel)</strong> in the preview copies the rows as you see them.</li>
           <li>Links to other documents work like a wiki: <code>[text](other)</code> finds <code>other.md</code>, <code>[text](folder/)</code> opens the folder's <code>index.md</code> or <code>README.md</code>, and <code>other.md#section</code> jumps to that heading. Headings get the same anchors as on GitHub (<code>## 1. Introduction</code> → <code>#1-introduction</code>), so tables of contents written for GitHub or by an AI assistant work here too; links written for earlier versions still land.</li>
+          <li>The links of notes written with Obsidian and other note-taking apps work too: <code>[[Note]]</code>, <code>[[Note|another name]]</code> and <code>[[Note#Heading]]</code> open <code>Note.md</code>, looked for next to the document, then by name in the file pane's folder. <code>![[picture.png]]</code> shows the picture, <code>![[picture.png|300]]</code> 300 pixels wide; it is looked for in the document's folder and the folders below it, so a picture in a sibling folder is not found.</li>
           <li>YAML front matter between <code>---</code> lines is folded into a <em>Front matter</em> block at the top: click it to see the fields as a table.</li>
           <li>A paragraph containing only <code>[TOC]</code> becomes a table of contents of the headings that follow, which also goes to print, HTML and DOCX.</li>
           <li>Images with relative paths resolve against the document's folder. Logos made for GitHub's light and dark themes (marked <code>#gh-dark-mode-only</code> / <code>#gh-light-mode-only</code>, or a <code>&lt;picture&gt;</code> with light and dark sources) show the one for Leggimi's theme; printing and exports use the light one.</li>

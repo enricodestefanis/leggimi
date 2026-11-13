@@ -26,6 +26,10 @@
   pending; answers queues the replies of plugin:dialog|message (an index, a role such as "save",
   "dontsave", "cancel", "discard", or a button's label).
 
+  2.3: paste(text, {html}) adds the clipboard's HTML flavour, clipboard.html answers it from
+  read_clipboard_text; encodings (path → "utf-16le"…) feeds read_markdown's `encoding`; find_in_folder
+  looks in files and assets (non-Markdown paths) and logs into found.
+
   Paste and read (2.2): paste(text, {image}) sends Ctrl+V's paste event where the focus is;
   clipboard / clipboardError answer read_clipboard_text (the start page's button, the palette);
   savePath answers the "Save as…" dialog (a function gets its options); documents is documentDir();
@@ -172,6 +176,12 @@
         leaks: [],
         /** resolve_path / resolve_doc asked for a file on another computer (Rust refuses it): should stay empty */
         offLimits: [],
+        /** 2.3: how files are written on disk (path → "utf-16le", "windows-1252"…); absent means UTF-8 */
+        encodings: new Map(),
+        /** 2.3: files that are not Markdown (pictures, PDFs) by full path, for find_in_folder */
+        assets: new Set(),
+        /** 2.3: every find_in_folder call: { dir, name, result } */
+        found: [],
         /**
          * Ctrl+V as the page sees it: a trusted-looking paste event with `text` (null: none) and, with
          * { image: true }, a picture beside it, sent where the focus is. True when the page took it.
@@ -179,6 +189,8 @@
         paste(text, opts = {}) {
           const data = new DataTransfer();
           if (text !== null && text !== undefined) data.setData("text/plain", text);
+          // { html }: the "HTML Format" flavour a page copies beside the plain text (2.3)
+          if (opts.html !== null && opts.html !== undefined) data.setData("text/html", opts.html);
           if (opts.image) data.items.add(new File([new Uint8Array([137, 80, 78, 71])], "image.png", { type: "image/png" }));
           const e = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
           (document.activeElement || document.body).dispatchEvent(e);
@@ -429,6 +441,9 @@
               dir: args.path.slice(0, args.path.lastIndexOf("\\")) || DIR,
               content: harness.files.get(args.path) ?? "",
               modified: harness.modified,
+              // how the file was written on disk (2.3): harness.encodings maps a path to "utf-16le",
+              // "windows-1252"…; the default is UTF-8. A write turns the file into UTF-8.
+              encoding: harness.encodings.get(args.path) ?? "utf-8",
             };
           case "write_markdown":
             // simulates the save guard: harness.conflict makes the next write refuse once
@@ -438,6 +453,7 @@
             }
             harness.modified += 1000;
             harness.files.set(args.path, args.content);
+            harness.encodings.delete(args.path);
             bus.postMessage({ kind: "file", path: args.path, content: args.content, modified: harness.modified });
             return harness.modified;
           case "existing_paths":
@@ -485,6 +501,28 @@
             }
             return null;
           }
+          case "find_in_folder": {
+            // like the Rust command (2.3): a file named args.name (ignoring case) in args.dir or
+            // below it, among harness.files and harness.assets (pictures and other non-Markdown
+            // files); the shortest path wins; null when none
+            if (!isAbsoluteDir(args.dir)) {
+              harness.leaks.push({ cmd, args: clone(args) });
+              throw "no-folder";
+            }
+            const under = args.dir.replace(/\\$/, "").toLowerCase() + "\\";
+            const name = String(args.name || "");
+            // like Rust: folders in the name (either slash) end the path; a full, UNC, drive-relative or
+            // rooted name, or any "..", finds nothing; the shallowest match wins, then the shortest path
+            const want = name.toLowerCase().split(/[\\/]+/).filter((s) => s && s !== ".");
+            const refused = !want.length || want.includes("..") || /^([\\/]|[a-z]:)/i.test(name);
+            const depth = (p) => p.split("\\").length;
+            const found = refused ? [] : [...harness.files.keys(), ...harness.assets]
+              .filter((p) => p.toLowerCase().startsWith(under))
+              .filter((p) => p.slice(under.length).toLowerCase().split("\\").slice(-want.length).join("\\") === want.join("\\"))
+              .sort((a, b) => depth(a) - depth(b) || a.length - b.length || a.localeCompare(b));
+            harness.found.push({ dir: args.dir, name: args.name, result: found[0] ?? null });
+            return found[0] ?? null;
+          }
           case "print_to_pdf":
             // what the printer would see at this moment
             harness.pdf = {
@@ -506,7 +544,7 @@
           case "read_clipboard_text":
             // what Rust reads off the clipboard: harness.clipboard, or harness.clipboardError ("clipboard-busy")
             if (harness.clipboardError) throw harness.clipboardError;
-            return { text: harness.clipboard.text ?? null, image: !!harness.clipboard.image };
+            return { text: harness.clipboard.text ?? null, image: !!harness.clipboard.image, html: harness.clipboard.html ?? null };
           case "plugin:path|resolve_directory":
             // documentDir() and its kin: Documents is where "Save as…" starts for pasted text in no folder
             return args?.directory === 6 ? harness.documents : `C:\\Users\\Harness\\Dir${args?.directory ?? ""}`;

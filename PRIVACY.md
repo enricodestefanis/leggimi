@@ -1,6 +1,6 @@
 # Leggimi privacy policy
 
-_Last updated: 6 November 2026_
+_Last updated: 13 November 2026_
 
 Leggimi is a Markdown viewer and editor for Windows, published by Enrico De Stefanis and
 released as open source under the MIT License. This policy describes what the app does with
@@ -20,8 +20,11 @@ data, and it never connects to the internet.**
 
 Leggimi only touches the files and folders you open, and it modifies a file only when you
 save it explicitly. It reads the clipboard only when you paste into it (Ctrl+V, the start
-page's **Paste from clipboard** button or the command palette's paste command), and what it
-reads stays on your computer: it is never sent anywhere. To work as a desktop app it keeps a
+page's **Paste from clipboard** button or the command palette's paste command): the text and,
+when the program you copied from put one beside it, the formatted (HTML) copy, which Leggimi
+turns into Markdown on your computer. That HTML is parsed in an inert document: nothing in it is
+loaded or run (no picture is fetched, no script runs). What it reads stays on your computer: it
+is never sent anywhere. To work as a desktop app it keeps a
 small amount of information locally, on your machine only:
 
 - **Preferences** such as text size, font, theme and panel layout, stored in the app's local

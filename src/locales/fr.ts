@@ -242,7 +242,7 @@ const fr: Dict = {
   "msg.revealFailed": "Impossible d'ouvrir l'Explorateur : {err}",
   "msg.notFound": "Introuvable : {name}",
   "msg.fileChanged": "Le fichier a changé sur le disque. L'enregistrer l'écrasera.",
-  "msg.reload": "Recharger",
+  "msg.reload": "Recharger depuis le disque",
   "msg.minRead": "{n} min de lecture",
   "msg.words": "{n} mots",
   "msg.langReloadQ": "Changer de langue recharge la fenêtre. Abandonner les modifications non enregistrées ?",
@@ -404,6 +404,16 @@ const fr: Dict = {
   // palette commands that have no string of their own elsewhere
   "cmd.keys": "Raccourcis clavier",
   "cmd.kwReading": "police taille texte interligne largeur thème langue",
+  // 2.3.0
+  "msg.reloaded": "Rechargé depuis le disque : vos modifications ont été remplacées.",
+  "msg.leaveEditQ": "« {name} » contient des modifications non enregistrées. Les enregistrer avant de revenir à la lecture ?",
+  "msg.openOtherQ": "« {name} » contient des modifications non enregistrées. Les enregistrer avant d'ouvrir un autre fichier ici ?",
+  "msg.savedUtf8": "Enregistré en UTF-8 : le fichier était auparavant en {enc}.",
+  "toc.countOne": "1 titre",
+  "toc.count": "{n} titres",
+  "editor.label": "Éditeur : {name}",
+  "msg.pastedConverted": "« {name} » ouvert depuis le presse-papiers et converti en Markdown.",
+  "msg.pasteAsCopied": "Afficher tel quel",
 };
 
 export default fr;

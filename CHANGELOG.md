@@ -7,6 +7,68 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [2.3.0] - 2026-11-13
+
+Paste anything and read it as Markdown, notes written with Obsidian read cleanly, and the fixes
+of an expert review of 2.2: unsaved work and the place being read are kept in more cases.
+
+### Added
+- **Paste and read takes formatted text too.** A part of an answer selected with the mouse in a
+  chat page (Claude, ChatGPT), a web page, Word or Teams arrives with its headings, lists,
+  tables, code blocks, links and formulas: Leggimi reads the HTML the page copies beside the
+  text and turns it into Markdown. A table copied from a terminal (Claude Code, psql, MySQL),
+  drawn with box characters, becomes a Markdown table, and so do lines of cells separated by
+  tabs (a table copied as plain text alone, or from Excel). An answer wrapped whole in a
+  ```` ```markdown ```` block is read as the document it holds, and formulas written `\( … \)` and
+  `\[ … \]` (as ChatGPT writes them) are read as formulas. A notice says when the text was turned
+  into Markdown, with **Show as copied** to read it exactly as it came. Markdown copied with a
+  chat's Copy button is read as it is, as before.
+- **Notes written with Obsidian and other note-taking apps read cleanly**: `[[Note]]`,
+  `[[Note|another name]]` and `[[Note#Heading]]` are links (the note is looked for next to the
+  document, then by name in the folder of the file pane); `![[picture.png]]`, also with a width
+  (`|300`), shows the picture, looked for in the document's folder and the folders below it;
+  callouts of any type (`> [!info]`, `> [!todo]`, `> [!example]`, `> [!danger]`…) are drawn with the
+  colour of the closest of the five GitHub callouts, with their own title, always open; and
+  `==highlighted text==` is highlighted, in the four themes, in print and in Word.
+
+### Changed
+- **Leaving the editor with unsaved changes asks Save / Don't save / Cancel**, as closing the tab
+  does, with Save first: Enter keeps the work (it used to offer only Discard, and Enter pressed
+  it). Opening another file in the same tab asks the same.
+- **Reload from disk can be undone.** When the file changes on disk while you edit it, the
+  notice's button is now *Reload from disk*; after it, a notice offers **Undo**, and Ctrl+Z in the
+  editor works too: your changes come back, unsaved.
+- **Find** shows *No matches* instead of "0/0" when the word is not there, and nothing while the
+  box is empty. The outline's filter says *No matches* when it leaves nothing.
+- Saving writes the whole file or nothing: the text goes into a temporary file beside the
+  document, which then takes its place, so a power cut or a disconnected drive in the middle of a
+  save no longer leaves an empty or cut file.
+
+### Fixed
+- **Files that are not in UTF-8 open**: UTF-16 (what Windows PowerShell 5.1 writes with `>` or
+  `Out-File`) and the Windows ANSI code page (what `Set-Content` writes, e.g. accented letters in
+  Windows-1252). A UTF-8 file with a few stray bytes (a line added with `echo è >>`) is read as
+  the UTF-8 it is, its own accents intact. The folder search reads them too. Leggimi saves in
+  UTF-8, says so the first time it saves such a file, and writes a BOM in front of it, so Windows
+  PowerShell 5.1 reads it back correctly. A file that had a UTF-8 BOM now keeps it (it was dropped).
+- The place being read is kept when the file is rewritten and **the heading of that section
+  changes** (an agent marking a step done): it used to jump to the top.
+- With **two or more Mermaid diagrams**, the text being read no longer slides up each time the
+  file changes on disk: diagrams already drawn come back at once, at their own height.
+- A change made by another program **within a second and a half of a save or a ticked task**
+  was ignored until the next change; it now shows (or, while editing, is reported) once that
+  moment is over.
+- **Accessibility**: screen readers hear how many results Find, the folder search and the
+  outline's filter found once typing pauses; the editor's text box has a name ("Editor: notes.md");
+  links, addresses and code-block languages in the editor have a 4.5:1 contrast in every theme,
+  on the line being edited too.
+- If something goes wrong while Leggimi starts, its window shows anyway, with the error, instead
+  of staying hidden.
+
+### Development
+- `npm run check` (types and a lint of the promises, the kind of bug that fails in silence) and a
+  GitHub Action that runs it at every push, with the build, `npm audit` and the Rust tests.
+
 ## [2.2.0] - 2026-11-12
 
 Paste and read (*Incolla e leggi*): Markdown copied from a chat or a web page read without saving

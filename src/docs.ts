@@ -79,10 +79,12 @@ export function pastedTitle(text: string): string {
   let para: string[] | null = null;
   // inside a list item, a quote or an HTML block: a line there is no paragraph of its own
   let nested = false;
+  // the paragraph going on opened with a terminal table's border (┌───┬───┐, +----+)
+  let boxed = false;
   // the first line with text, for a text with no heading (read once it is needed)
   let first = "";
   const candidate = (text: () => string): void => {
-    if (!first) first = text();
+    if (!first) first = drawn(text());
   };
   for (let i = frontMatterEnd(lines); i < lines.length; i++) {
     const line = head(lines[i]);
@@ -143,6 +145,8 @@ export function pastedTitle(text: string): string {
     }
     if (para) {
       para.push(line);
+      // a terminal table: its border opened the paragraph, its first row with text names it
+      if (boxed) candidate(() => clean(line));
       continue;
     }
     // an indented code block: its text as written
@@ -152,7 +156,10 @@ export function pastedTitle(text: string): string {
     }
     // a link's definition shows nothing
     if (/^ {0,3}\[[^\]]+\]:/.test(line)) continue;
-    if (!nested) para = [line];
+    if (!nested) {
+      para = [line];
+      boxed = !drawn(line.trim());
+    }
     candidate(() => clean(line));
   }
   return finish(first);
@@ -176,19 +183,28 @@ function closesFence(line: string, fence: { ch: string; len: number }): boolean 
   return !!m && m[1][0] === fence.ch && m[1].length >= fence.len;
 }
 
-// A line as its text reads: the markers that open it go (quotes, list items,
-// task boxes, a heading's #s, a table's outer pipes), then the inline Markdown.
+// A line as its text reads: the markers that open it go (Claude Code's ⏺
+// before a message, quotes, list items, task boxes, a heading's #s, a table's
+// outer pipes or a terminal table's outer lines), then the inline Markdown.
 function clean(line: string): string {
   const s = line
+    .replace(/^[ \t]*⏺[ \t]*/, "")
     .replace(/^(?:[ \t]*>)+/, "")
     .replace(/^[ \t]*(?:[-*+]|\d{1,9}[.)])(?:[ \t]+|$)/, "")
     .replace(/^[ \t]*\[[ xX]\](?:[ \t]+|$)/, "")
     .replace(/^[ \t]*#{1,6}(?:[ \t]+|$)/, "")
     .replace(/[ \t]+#+[ \t]*$/, "")
-    .replace(/^[ \t]*\|/, "")
-    .replace(/\|[ \t]*$/, "");
-  // a line of markup only (a table's ----|----, a lone "==="): no text
-  return /^[\s|:=\-*_#>+~`.]*$/.test(s) ? "" : inline(s);
+    .replace(/^[ \t]*[|│┃║]/, "")
+    .replace(/[|│┃║][ \t]*$/, "");
+  // a line of markup only (a table's ----|----, a lone "===", a terminal
+  // table's ┌───┬───┐): no text
+  return /^[\s|:=\-*_#>+~`.\u2500-\u257F]*$/.test(s) ? "" : inline(s);
+}
+
+// A line a terminal draws a table's border with (┌───┬───┐, +----+----+): no
+// title, even in code
+function drawn(text: string): string {
+  return /^[\s\u2500-\u257F]+$/.test(text) || /^\s*\+[-=+:]*[-=][-=+:]*\+\s*$/.test(text) ? "" : text;
 }
 
 const ENTITIES: Record<string, string> = {

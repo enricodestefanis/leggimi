@@ -242,7 +242,7 @@ const it: Dict = {
   "msg.revealFailed": "Impossibile aprire Esplora file: {err}",
   "msg.notFound": "Non trovato: {name}",
   "msg.fileChanged": "Il file è cambiato sul disco. Salvando lo sovrascriverai.",
-  "msg.reload": "Ricarica",
+  "msg.reload": "Ricarica dal disco",
   "msg.minRead": "{n} min di lettura",
   "msg.words": "{n} parole",
   "msg.langReloadQ": "Cambiare lingua ricarica la finestra. Vuoi scartare le modifiche non salvate?",
@@ -404,6 +404,16 @@ const it: Dict = {
   // palette commands that have no string of their own elsewhere
   "cmd.keys": "Scorciatoie da tastiera",
   "cmd.kwReading": "carattere dimensione testo interlinea larghezza tema lingua",
+  // 2.3.0
+  "msg.reloaded": "Ricaricato dal disco: le tue modifiche sono state sostituite.",
+  "msg.leaveEditQ": "«{name}» ha modifiche non salvate. Vuoi salvarle prima di tornare alla lettura?",
+  "msg.openOtherQ": "«{name}» ha modifiche non salvate. Vuoi salvarle prima di aprire qui un altro file?",
+  "msg.savedUtf8": "Salvato in UTF-8: prima il file era in {enc}.",
+  "toc.countOne": "1 titolo",
+  "toc.count": "{n} titoli",
+  "editor.label": "Editor: {name}",
+  "msg.pastedConverted": "«{name}» aperto dagli appunti e trasformato in Markdown.",
+  "msg.pasteAsCopied": "Mostra com'era",
 };
 
 export default it;

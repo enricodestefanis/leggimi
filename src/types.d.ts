@@ -1,5 +1,6 @@
 declare module "markdown-it-task-lists";
 declare module "markdown-it-footnote";
+declare module "markdown-it-mark";
 
 // Vite ?raw imports: the file as a string (the localized help fragments)
 declare module "*?raw" {

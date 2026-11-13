@@ -75,7 +75,10 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   editor on the left, live preview on the right, updated as you type; a double-click on the
   preview puts the editor's cursor on that word
 - Explicit save with `Ctrl+S` (the unsaved-changes dot on the tab turns into a check for a
-  moment) and confirmation guards; line endings (CRLF/LF) are preserved on save
+  moment) and confirmation guards: leaving the editor with unsaved changes asks **Save** /
+  **Don't save** / **Cancel**, Save first. A save writes the whole file or nothing (the text goes
+  to a temporary file beside the document, which then takes its place), so a power cut or a
+  pulled drive never leaves an empty or cut file; line endings (CRLF/LF) are preserved on save
 - If a preview render fails mid-edit, the last good preview stays on screen and a dismissable
   notice appears — the pane never goes blank
 - **Formatting help in edit mode**: a format bar (headings, bold, italic, strikethrough, code,
@@ -89,14 +92,22 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   **recovery draft** that offers your unsaved text back after a crash
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
-- **Paste and read**: Markdown copied from ChatGPT, Claude or a web page is read without saving
-  it first. `Ctrl+V` anywhere outside the editor and the text boxes, the start page's **Paste
-  from clipboard** or the command palette opens it in a tab of its own, named after its first
-  heading; it reads like any document (outline, find, print, PDF, Word), `Ctrl+E` edits it and
-  `Ctrl+S` saves it as a file (**Save as…**). Its tab closed unchanged asks nothing and
-  `Ctrl+Shift+T` brings it back; with changes it asks whether to save. Closing the window asks
-  in any case, since the text is in no file yet. If the app closes unexpectedly, the next start
-  brings the changes back
+- **Paste and read**: text copied from a chat (ChatGPT, Claude), a web page, Word or Teams is
+  read as Markdown without saving it first. `Ctrl+V` anywhere outside the editor and the text
+  boxes, the start page's **Paste from clipboard** or the command palette opens it in a tab of its
+  own, named after its first heading; it reads like any document (outline, find, print, PDF,
+  Word), `Ctrl+E` edits it and `Ctrl+S` saves it as a file (**Save as…**). Its tab closed
+  unchanged asks nothing and `Ctrl+Shift+T` brings it back; with changes it asks whether to save.
+  Closing the window asks in any case, since the text is in no file yet. If the app closes
+  unexpectedly, the next start brings the changes back
+- **Formatted text pastes as Markdown**: Markdown from a chat's Copy button is read as it is; a
+  part of an answer selected with the mouse, or a passage of a web page, Word or Teams, keeps its
+  headings, lists, tables, code blocks, links and formulas (the clipboard's HTML is turned into
+  Markdown); a table copied from a terminal (Claude Code, psql, MySQL), drawn with box
+  characters, becomes a Markdown table, and so do lines of cells separated by tabs (a table copied
+  as text alone, or from Excel); an answer wrapped whole in a ```` ```markdown ```` block
+  is unwrapped; `\( … \)` and `\[ … \]` formulas, as ChatGPT writes them, are read as math. A
+  notice says when the text was converted, with **Show as copied** to read it as it came
 - GitHub-flavored Markdown: tables, task lists, strikethrough, autolinks (`www.` addresses
   too), **footnotes**, and **heading anchors as on GitHub**, so tables of contents written for
   GitHub or by AI assistants work; task-list checkboxes are **live** (a click on the box
@@ -129,7 +140,16 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   closed, so a price such as `$$ 100` stays text; text after a closing `$$` is kept; `$$…$$`
   inside a sentence shows the formula without splitting the paragraph; `$ x $` with spaces
   inside and amounts such as `$5 and $10` stay text
-- **GitHub-style callouts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
+- **Callouts of any type**: GitHub's `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`,
+  `[!CAUTION]`, and the other types of note-taking apps (`[!info]`, `[!todo]`, `[!example]`,
+  `[!danger]`…), drawn in the colour of the closest of GitHub's five, with their own title,
+  always open
+- **Notes written with Obsidian and other note-taking apps read cleanly**: `[[Note]]`,
+  `[[Note|another name]]` and `[[Note#Heading]]` are links (the note is looked for next to the
+  document, then by name in the file pane's folder); `![[picture.png]]`, also with a width
+  (`|300`), shows the picture, looked for in the document's folder and the folders below it (not
+  in a sibling folder); `==highlighted text==` is highlighted, in every theme, in print and in
+  Word
 - Clickable **outline** with scroll-spy, and a **filter box** on long documents (type, then
   `↑` / `↓` and `Enter` to jump); after a jump, the heading you land on lights up briefly
 - **The section you are reading stays in sight**: with the outline closed, or a window too
@@ -191,9 +211,11 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   called, and below about 760 px edit mode shows the editor alone
 - **Search across the folder** (`Ctrl+Shift+F`): full-text and file-name matches with
   snippets; opening a result highlights the term in the document
-- **Live reload** when the file changes on disk, preserving your reading position; with unsaved
-  edits it warns instead of overwriting your buffer, and saving over a file that changed since
-  you opened it asks first
+- **Live reload** when the file changes on disk, preserving your reading position, even when the
+  heading of the section being read changes, and without Mermaid diagrams moving the text; with
+  unsaved edits it warns instead of overwriting your buffer, its **Reload from disk** can be
+  undone (**Undo**, or `Ctrl+Z` in the editor), and saving over a file that changed since you
+  opened it asks first
 - **Share menu** (`Ctrl+Shift+E`) collecting everything that leaves the app: **copy as rich
   text** (`Ctrl+Shift+C`) to paste with formatting into Outlook, Word or Teams; **print**
   (`Ctrl+P`) and **one-click Save as PDF**, both with a header (title, date) and page numbers
@@ -219,6 +241,9 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   create one with File Explorer's **New → Markdown document**
 - Drag and drop files onto the window (onto the tab strip: where you let go), or press `Ctrl+O`;
   several at once open a tab each
+- Files that are not in UTF-8 open too: UTF-16 (what Windows PowerShell 5.1 writes with `>` or
+  `Out-File`) and the Windows ANSI code page (`Set-Content`, older programs), also in the folder
+  search; Leggimi saves them back in UTF-8 and says so the first time
 - `F5` or `Ctrl+R` reads the open file again from disk, keeping your place
 - Built-in help (`F1`) showing the running version
 - **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the

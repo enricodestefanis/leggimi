@@ -1,6 +1,14 @@
 export interface ScrollAnchor {
+  /** the heading the place hangs from; "" when there is none above it */
   id: string;
+  /** with an id: how far above the pane's top that heading sat; without: the pane's scrollTop */
   offset: number;
+  /**
+   * the pane's scrollTop when the place was taken (2.3): where a reload of the same document
+   * goes back to when its heading is gone (renamed while being read). Absent in positions
+   * remembered by older versions.
+   */
+  top?: number;
 }
 
 const uriSafe = (fn: (s: string) => string, s: string): string => {
@@ -39,10 +47,10 @@ export function captureScrollAnchor(pane: HTMLElement, article: HTMLElement): Sc
   let best: ScrollAnchor | null = null;
   for (const h of article.querySelectorAll<HTMLElement>(":is(h1,h2,h3,h4,h5,h6)[id]")) {
     const delta = h.getBoundingClientRect().top - paneTop;
-    if (delta <= 8) best = { id: h.id, offset: -delta };
+    if (delta <= 8) best = { id: h.id, offset: -delta, top: pane.scrollTop };
     else break;
   }
-  return best ?? { id: "", offset: pane.scrollTop };
+  return best ?? { id: "", offset: pane.scrollTop, top: pane.scrollTop };
 }
 
 export function restoreScrollAnchor(pane: HTMLElement, article: HTMLElement, anchor: ScrollAnchor): void {
@@ -56,5 +64,7 @@ export function restoreScrollAnchor(pane: HTMLElement, article: HTMLElement, anc
       return;
     }
   }
-  pane.scrollTop = Math.min(anchor.offset, pane.scrollHeight - pane.clientHeight);
+  // with an id, offset is a distance from the heading, not a place: only `top` is one
+  const top = anchor.id ? anchor.top : anchor.offset;
+  if (top !== undefined) pane.scrollTop = Math.min(top, pane.scrollHeight - pane.clientHeight);
 }

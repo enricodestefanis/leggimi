@@ -26,6 +26,8 @@ const EXPORT_BASE_CSS = `
   --danger: #b42318;
   --code-chip-bg: #eae8df;
   --code-chip-border: #d5d1c5;
+  --mark-bg: #fde98a;
+  --mark-text: #1a1915;
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --serif: Georgia, Cambria, "Times New Roman", serif;
   --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
@@ -286,7 +288,7 @@ async function replaceMermaidWithPng(article: HTMLElement, clone: HTMLElement): 
 
 // GitHub's palette, baked into inline styles because Word's HTML filter
 // applies stylesheet classes unreliably. Symbols replace the SVG octicons
-// Word drops.
+// Word drops. Every callout type is one of these five families (callouts.ts).
 const WORD_ALERTS: Record<string, { color: string; symbol: string }> = {
   "markdown-alert-note": { color: "#0969da", symbol: "ℹ️" },
   "markdown-alert-tip": { color: "#1a7f37", symbol: "💡" },
@@ -319,6 +321,19 @@ function wordifyAlerts(root: HTMLElement): void {
       title.style.color = color;
       title.prepend(document.createTextNode(`${symbol} `));
     }
+  }
+}
+
+// ==highlighted== text: the light theme's marker (base.css --mark-bg) as an
+// inline background, which Word, Outlook and Google Docs keep as shading
+// (classes and stylesheets they drop); the ink too, for AA on it
+const MARK_BG = "#fde98a";
+const MARK_TEXT = "#1a1915";
+
+function wordifyMarks(root: HTMLElement): void {
+  for (const mark of root.querySelectorAll<HTMLElement>("mark")) {
+    if (!mark.style.backgroundColor) mark.style.backgroundColor = MARK_BG;
+    if (!mark.style.color) mark.style.color = MARK_TEXT;
   }
 }
 
@@ -560,6 +575,7 @@ async function writeRichText(
   unwrapTableScrolls(clone);
   applyInlineStyles(clone, COPY_STYLES);
   wordifyAlerts(clone);
+  wordifyMarks(clone);
   wordifyTaskLists(clone);
   flattenCodeBlocks(clone);
   stampBaseStyles(clone);
@@ -591,6 +607,7 @@ th, td { border: 1pt solid #cccccc; padding: 4pt 8pt; text-align: left; }
 th { background: #f0efe9; }
 blockquote { border-left: 3pt solid #c15f3c; padding-left: 8pt; margin-left: 0; color: #555555; }
 .markdown-alert-title { font-weight: bold; }
+mark { background: ${MARK_BG}; color: ${MARK_TEXT}; }
 img { max-width: 100%; }
 a { color: #a84b2b; }
 `;
@@ -602,6 +619,7 @@ export async function buildDocxBase64(
 ): Promise<string> {
   const clone = await preparePortableClone(article, docDir);
   wordifyAlerts(clone);
+  wordifyMarks(clone);
   wordifyTaskLists(clone);
   const html =
     `<!DOCTYPE html><html><head><meta charset="utf-8">` +

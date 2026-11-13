@@ -242,7 +242,7 @@ const de: Dict = {
   "msg.revealFailed": "Der Explorer konnte nicht geöffnet werden: {err}",
   "msg.notFound": "Nicht gefunden: {name}",
   "msg.fileChanged": "Die Datei wurde auf der Festplatte geändert. Speichern überschreibt sie.",
-  "msg.reload": "Neu laden",
+  "msg.reload": "Von der Festplatte neu laden",
   "msg.minRead": "{n} Min. Lesezeit",
   "msg.words": "{n} Wörter",
   "msg.langReloadQ": "Ein Sprachwechsel lädt das Fenster neu. Ungespeicherte Änderungen verwerfen?",
@@ -404,6 +404,16 @@ const de: Dict = {
   // palette commands that have no string of their own elsewhere
   "cmd.keys": "Tastenkombinationen",
   "cmd.kwReading": "schrift schriftart textgröße zeilenabstand breite design sprache",
+  // 2.3.0
+  "msg.reloaded": "Von der Festplatte neu geladen: Ihre Änderungen wurden ersetzt.",
+  "msg.leaveEditQ": "„{name}“ hat ungespeicherte Änderungen. Vor dem Zurückkehren zum Lesen speichern?",
+  "msg.openOtherQ": "„{name}“ hat ungespeicherte Änderungen. Vor dem Öffnen einer anderen Datei hier speichern?",
+  "msg.savedUtf8": "Als UTF-8 gespeichert: Die Datei war vorher in {enc}.",
+  "toc.countOne": "1 Überschrift",
+  "toc.count": "{n} Überschriften",
+  "editor.label": "Editor: {name}",
+  "msg.pastedConverted": "„{name}“ aus der Zwischenablage geöffnet und in Markdown umgewandelt.",
+  "msg.pasteAsCopied": "Wie kopiert zeigen",
 };
 
 export default de;
