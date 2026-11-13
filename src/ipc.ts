@@ -91,6 +91,10 @@ export const saveClipboardImage = (dir: string, data: string, ext: string) =>
 export const importImage = (dir: string, source: string) =>
   invoke<string>("import_image", { dir, source });
 export const listTree = (dir: string) => invoke<TreeNode>("list_tree", { dir });
+// the editor's link completion: pictures under a folder, and a note's text without
+// read_markdown's side effects (Windows' recent documents, the asset scope)
+export const listImages = (dir: string) => invoke<string[]>("list_images", { dir });
+export const peekMarkdown = (path: string) => invoke<string>("peek_markdown", { path });
 export const searchInTree = (dir: string, query: string) =>
   invoke<SearchHit[]>("search_in_tree", { dir, query });
 export const parentDir = (path: string) => invoke<string | null>("parent_dir", { path });

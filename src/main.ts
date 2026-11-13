@@ -18,7 +18,7 @@ import { ask, message, open as openDialog, save as saveDialog } from "@tauri-app
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import * as ipc from "./ipc";
-import { applyScheme, forgetFoundFiles, render, renderFragment } from "./renderer";
+import { applyScheme, forgetFoundFiles, headingAnchors, render, renderFragment } from "./renderer";
 import { placeDrawnDiagrams, renderMermaidIn, rerenderForTheme } from "./mermaid";
 import * as toc from "./toc";
 import * as tree from "./tree";
@@ -47,7 +47,7 @@ import { keyLabel, t } from "./i18n";
 import { whereFrom, type Where } from "./where";
 import { reachable } from "./reach";
 import { captureScrollAnchor, findHeading, restoreScrollAnchor, type ScrollAnchor } from "./state";
-import { isInside, samePath } from "./paths";
+import { isInside, relativePath, samePath } from "./paths";
 import {
   docKey,
   fileSafeName,
@@ -67,6 +67,7 @@ import * as strip from "./tabs/strip";
 import * as chrome from "./tabs/chrome";
 import type { TabAccepted, TabInfo, TabOffer, TabTransfer, TestHooks } from "./tabs/contract";
 import type { Snapshot } from "./editor";
+import type { Heading, LinkProvider } from "./linkComplete";
 import type { PaletteCommand, PaletteFile, PaletteHeading, PaletteHost, PaletteTab } from "./palette";
 import type { AppCommandHost } from "./appCommands";
 
@@ -2464,9 +2465,65 @@ async function ensureEditor(): Promise<boolean> {
     onImagePasted: (file) => {
       void insertPastedImage(file);
     },
+    links: linkProvider,
   });
   return true;
 }
+
+/* ---- what the editor's link completion proposes (2.4) ---- */
+
+// the Markdown files of the pane's listing, read once per listing
+let linkFilesOf = "";
+let linkFiles: string[] = [];
+
+function listedMarkdownFiles(): string[] {
+  if (treeJson !== linkFilesOf) {
+    linkFilesOf = treeJson;
+    linkFiles = [];
+    const walk = (node: ipc.TreeNode): void => {
+      if (node.isDir) node.children.forEach(walk);
+      else if (isMarkdownPath(node.path)) linkFiles.push(node.path);
+    };
+    try {
+      if (treeJson) walk(JSON.parse(treeJson) as ipc.TreeNode);
+    } catch {
+      linkFiles = [];
+    }
+  }
+  return linkFiles;
+}
+
+// the pictures under the document's folder, asked once until the folder changes on disk
+let linkImages: { dir: string; list: Promise<string[]> } | null = null;
+// a note's headings, kept while its text stays the same
+const linkHeadings = new Map<string, { text: string; heads: Heading[] }>();
+
+const linkProvider: LinkProvider = {
+  targets: () => ({
+    dir: currentDoc?.dir ?? null,
+    path: currentDoc?.path ?? null,
+    files: currentDoc?.dir ? listedMarkdownFiles() : [],
+  }),
+  images: () => {
+    const dir = currentDoc?.dir;
+    if (!dir) return Promise.resolve([]);
+    if (!linkImages || !samePath(linkImages.dir, dir)) {
+      linkImages = { dir, list: ipc.listImages(dir).catch(() => []) };
+    }
+    return linkImages.list;
+  },
+  headings: async (file, text) => {
+    if (file === null) return headingAnchors(text);
+    // only a note the pane lists: never a path made up by the text
+    if (!listedMarkdownFiles().some((f) => samePath(f, file))) return [];
+    const content = await ipc.peekMarkdown(file);
+    const known = linkHeadings.get(file);
+    if (known && known.text === content) return known.heads;
+    const heads = headingAnchors(content);
+    linkHeadings.set(file, { text: content, heads });
+    return heads;
+  },
+};
 
 // The split view of a tab coming back: its editor with its text, undo and
 // place (the preview already shows its text: the article came back too).
@@ -3673,16 +3730,6 @@ const isCloseWindowKey = (e: KeyboardEvent): boolean =>
 // an IME composing (Chinese, Japanese): its keys are the IME's, not commands
 const composing = (e: KeyboardEvent): boolean => e.isComposing || e.keyCode === 229;
 
-// `to` relative to `fromDir`, with forward slashes, for a Markdown link
-function relativePath(fromDir: string, to: string): string {
-  const a = fromDir.split(/[\\/]+/).filter(Boolean);
-  const b = to.split(/[\\/]+/).filter(Boolean);
-  let i = 0;
-  while (i < a.length && i < b.length && a[i].toLowerCase() === b[i].toLowerCase()) i++;
-  if (i === 0) return to.replace(/\\/g, "/"); // different drives: absolute
-  return [...Array(a.length - i).fill(".."), ...b.slice(i)].join("/");
-}
-
 /* ---- drag to scroll ---- */
 
 // The middle button drags anywhere, like a PDF reader; the left button only
@@ -3873,7 +3920,11 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       const row = document.createElement("button");
       row.type = "button";
       row.className = "search-hit";
-      row.title = t("pane.lineN", { n: hit.line });
+      // the excerpt starts near the words found (Rust make_preview); the
+      // tooltip and the name a screen reader hears give the line and its text
+      const label = t("pane.lineText", { n: hit.line, text: hit.preview });
+      row.title = label;
+      row.setAttribute("aria-label", label);
       row.append(...highlightMatch(hit.preview, q));
       row.addEventListener("click", (e) => void openHit(hit.path, q, e, hit.line));
       onMiddleClick(row, (e) => void openHit(hit.path, q, e, hit.line));
@@ -4583,7 +4634,10 @@ function wireUi(): void {
     } else if (e.key === "Escape") {
       e.preventDefault();
       clearTocFilter();
-      tocFilter.blur();
+      // the keyboard stays in the outline, on the section being read (A-18, 2.4)
+      const entry = tocList.querySelector<HTMLElement>(".active") ?? tocList.querySelector<HTMLElement>("a, button");
+      if (entry) entry.focus({ preventScroll: true });
+      else tocFilter.blur();
     }
   });
   tocFilterClear.addEventListener("click", () => {
@@ -4715,7 +4769,10 @@ function wireUi(): void {
     if (e.key === "Escape") {
       e.preventDefault();
       closeFolderSearch();
-      treeSearch.blur();
+      // the keyboard stays in the file pane, on its current row (A-18, 2.4)
+      const row = treeRoot.querySelector<HTMLElement>('.tree-row[tabindex="0"]') ?? treeRoot.querySelector<HTMLElement>(".tree-row");
+      if (row) row.focus({ preventScroll: true });
+      else treeSearch.blur();
     } else if (e.key === "Enter") {
       e.preventDefault();
       searchResults.querySelector<HTMLButtonElement>(".search-hit, .search-file")?.click();
@@ -5136,6 +5193,7 @@ async function boot(): Promise<void> {
   await ipc.onTreeChanged(() => {
     // pictures found by name (![[x.png]]) may have moved: looked for again
     forgetFoundFiles();
+    linkImages = null;
     void refreshTree().then((changed) => {
       // the search reads every file: again only when files came or went
       if (changed && treeSearch.value.trim()) void runFolderSearch();

@@ -228,6 +228,32 @@
           riga per scegliere un blocco per nome. Incollare un link su un testo selezionato lo trasforma in un
           link Markdown.
         </p>
+        <p>
+          <strong>Mentre scrivi:</strong> parentesi <code>( [ {</code>, virgolette <code>"</code> e backtick <code>`</code> si
+          chiudono da soli, con il cursore in mezzo; scrivendo la chiusura la si scavalca, e <kbd>Backspace</kbd> su
+          una coppia vuota la toglie tutta. L'apostrofo non si chiude mai. Con del testo selezionato,
+          <code>*</code>, <code>_</code>, <code>~</code> e <code>=</code> lo racchiudono: due volte danno
+          <code>**grassetto**</code>, <code>~~barrato~~</code>, <code>==evidenziato==</code>. Dopo <code>```</code> e il nome
+          di un linguaggio, <kbd>Invio</kbd> chiude il blocco di codice. Dentro un blocco di codice valgono le regole
+          del suo linguaggio. Il codice ha gli stessi colori dell'anteprima, e i segni del Markdown sono in grigio.
+        </p>
+        <p>
+          <strong>Più cursori:</strong> <kbd>Ctrl</kbd>+<kbd>D</kbd> seleziona la parola e poi, a ogni pressione,
+          la sua occorrenza successiva; <kbd>Ctrl</kbd>+clic aggiunge un cursore, <kbd>Alt</kbd>+trascina seleziona
+          una colonna. Quello che scrivi va in ogni cursore; <kbd>Esc</kbd> torna a uno solo.
+        </p>
+        <p>
+          <strong>Link:</strong> dopo <code>](</code> l'editor propone i file Markdown della cartella (dopo
+          <code>![](</code> le immagini), dopo <code>](#</code> i titoli del documento, dopo <code>](nota.md#</code> quelli
+          di un'altra nota, dopo <code>[[</code> i nomi delle note. <kbd>Invio</kbd> o <kbd>Tab</kbd> scrivono il
+          percorso, relativo al documento.
+        </p>
+        <p>
+          <strong>Tabelle:</strong> con il cursore in una tabella, <kbd>Tab</kbd> allinea le colonne e passa alla
+          cella successiva (nell'ultima aggiunge una riga), <kbd>Shift</kbd>+<kbd>Tab</kbd> torna indietro,
+          <kbd>Invio</kbd> alla fine dell'ultima riga aggiunge una riga e, su una riga vuota, esce dalla tabella.
+          <strong>Formatta la tabella</strong>, nel menu Strumenti, allinea senza spostare il cursore.
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Grassetto / corsivo</td></tr>
@@ -238,12 +264,20 @@
             <tr><td><kbd>/</kbd></td><td>Menu dei blocchi, a inizio riga</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Trova / trova e sostituisci nel testo</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Risultato successivo / precedente</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Sposta la riga in su / in giù</td></tr>
-            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplica la riga</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (o <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>)</td><td>Sposta la riga in su / in giù</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> o <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>Duplica la riga</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Elimina la riga</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Seleziona la riga</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> o <kbd>Alt</kbd>+<kbd>L</kbd></td><td>Seleziona la riga (di nuovo: anche la successiva)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Aggiungi alla selezione l'occorrenza successiva</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Aggiungi un cursore sopra / sotto</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / <kbd>Alt</kbd>+trascina</td><td>Aggiungi un cursore / seleziona una colonna</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>Seleziona tutte le occorrenze</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Dividi la selezione in righe, una per riga</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>J</kbd></td><td>Unisci la riga con la successiva</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Invio</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Invio</kbd></td><td>Nuova riga sotto / sopra</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>Vai alla parentesi corrispondente</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>Ordina le righe selezionate, o l'elenco sotto il cursore</td></tr>
+            <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> in una tabella</td><td>Cella successiva / precedente, con le colonne allineate</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Commenta / decommenta la riga (su tastiera italiana <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>7</kbd>)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Vai alla riga</td></tr>
             <tr><td><kbd>Esc</kbd>, poi <kbd>Tab</kbd></td><td>Esci dall'editor con la tastiera</td></tr>

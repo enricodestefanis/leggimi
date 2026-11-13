@@ -3,10 +3,19 @@
 // disk stays plain Markdown, there is no hidden rich-text model.
 import { Compartment, EditorSelection, EditorState, Line, type ChangeSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
-import { copyLineDown, deleteLine, moveLineDown, moveLineUp, toggleComment } from "@codemirror/commands";
-import { openSearchPanel } from "@codemirror/search";
+import { matchBrackets, syntaxTree } from "@codemirror/language";
+import {
+  copyLineDown,
+  cursorMatchingBracket,
+  deleteLine,
+  moveLineDown,
+  moveLineUp,
+  toggleComment,
+} from "@codemirror/commands";
+import { openSearchPanel, selectSelectionMatches } from "@codemirror/search";
+import * as i18n from "./i18n";
 import { t, type Dict } from "./i18n";
+import { formatTable } from "./tableEdit";
 
 // the "/" menu matches English words and the localized ones
 const kw = (id: string, english: string): string => `${english} ${t(`kw.${id}` as keyof Dict)}`;
@@ -301,6 +310,149 @@ export function insertBlock(template: string): EditCommand {
   };
 }
 
+// ------------------------------------------------- lines, as Sublime Text
+
+/** Ctrl+L: select the whole line; again, the next one too (CodeMirror's own stops at one). */
+export const selectLines: EditCommand = (view) => {
+  const { state } = view;
+  const doc = state.doc;
+  const ranges = state.selection.ranges.map((r) =>
+    EditorSelection.range(doc.lineAt(r.from).from, Math.min(doc.lineAt(r.to).to + 1, doc.length)),
+  );
+  view.dispatch({ selection: EditorSelection.create(ranges, state.selection.mainIndex), userEvent: "select", scrollIntoView: true });
+  return true;
+};
+
+/**
+ * Ctrl+M: to the bracket matching the one at the caret; with none beside it,
+ * to the closing bracket of the pair the caret is in (as Sublime Text).
+ */
+export const goToBracket: EditCommand = (view) => {
+  if (cursorMatchingBracket(view)) return true;
+  const { state } = view;
+  let moved = false;
+  const ranges = state.selection.ranges.map((r) => {
+    const from = Math.max(0, r.head - 10000);
+    const before = state.sliceDoc(from, r.head);
+    let depth = 0;
+    for (let i = before.length - 1; i >= 0; i--) {
+      const c = before[i];
+      if (c === ")" || c === "]" || c === "}") depth++;
+      else if (c === "(" || c === "[" || c === "{") {
+        if (depth-- > 0) continue;
+        // an opening bracket is matched looking forward from it
+        const match = matchBrackets(state, from + i, 1);
+        if (!match?.matched || !match.end) return r;
+        moved = true;
+        return EditorSelection.cursor(match.end.from);
+      }
+    }
+    return r;
+  });
+  if (!moved) return false;
+  view.dispatch({ selection: EditorSelection.create(ranges, state.selection.mainIndex), scrollIntoView: true, userEvent: "select" });
+  return true;
+};
+
+/** Ctrl+Shift+L: a selection on every line the selection covers (its part of each line). */
+export const splitSelectionIntoLines: EditCommand = (view) => {
+  const { state } = view;
+  const ranges = [];
+  for (const r of state.selection.ranges) {
+    if (r.empty) {
+      ranges.push(r);
+      continue;
+    }
+    const first = state.doc.lineAt(r.from).number;
+    const last = state.doc.lineAt(r.to).number;
+    for (let n = first; n <= last; n++) {
+      const line = state.doc.line(n);
+      // a selection ending at a line's start does not take that line
+      if (n === last && n > first && r.to === line.from) break;
+      ranges.push(EditorSelection.range(Math.max(r.from, line.from), Math.min(r.to, line.to)));
+    }
+  }
+  if (ranges.length === state.selection.ranges.length) return false;
+  view.dispatch({ selection: EditorSelection.create(ranges, ranges.length - 1), userEvent: "select", scrollIntoView: true });
+  return true;
+};
+
+/** Ctrl+J: join the line with the next one (or every line of the selection), one space between. */
+export const joinLines: EditCommand = (view) => {
+  const { state } = view;
+  const changes: ChangeSpec[] = [];
+  const done = new Set<number>();
+  for (const r of state.selection.ranges) {
+    const first = state.doc.lineAt(r.from).number;
+    let last = state.doc.lineAt(r.to).number;
+    if (last === first) last = first + 1;
+    for (let n = first; n < last && n < state.doc.lines; n++) {
+      if (done.has(n)) continue;
+      done.add(n);
+      const a = state.doc.line(n);
+      const b = state.doc.line(n + 1);
+      const trail = a.text.length - a.text.trimEnd().length;
+      const lead = b.text.length - b.text.trimStart().length;
+      changes.push({ from: a.to - trail, to: b.from + lead, insert: a.text.trim() && b.text.trim() ? " " : "" });
+    }
+  }
+  if (!changes.length) return false;
+  view.dispatch({ changes, userEvent: "input", scrollIntoView: true });
+  return true;
+};
+
+/** Ctrl+Shift+Enter: a new line above, with the line's indentation, the caret on it. */
+export const insertLineAbove: EditCommand = (view) => {
+  const { state } = view;
+  view.dispatch(
+    state.changeByRange((r) => {
+      const line = state.doc.lineAt(r.head);
+      const indent = /^[ \t]*/.exec(line.text)![0];
+      return { changes: { from: line.from, insert: indent + "\n" }, range: EditorSelection.cursor(line.from + indent.length) };
+    }),
+    { userEvent: "input", scrollIntoView: true },
+  );
+  return true;
+};
+
+// a list item's marker and box stay out of the comparison: "- [x] b" sorts by "b"
+const SORT_KEY = /^[ \t]*(?:>[ \t]?)*(?:(?:[-*+]|\d+[.)])[ \t]+)?(?:\[[ xX]\][ \t]+)?/;
+
+/**
+ * F9: sort the selected lines, or, with nothing selected, the block around
+ * the caret (the lines up to the blank ones: a list), in the order of the
+ * app's language, numbers by value.
+ */
+export const sortLines: EditCommand = (view) => {
+  const { state } = view;
+  const doc = state.doc;
+  const main = state.selection.main;
+  let first = doc.lineAt(main.from).number;
+  let last = doc.lineAt(main.to).number;
+  if (main.empty || first === last) {
+    if (!doc.line(first).text.trim()) return false;
+    while (first > 1 && doc.line(first - 1).text.trim()) first--;
+    while (last < doc.lines && doc.line(last + 1).text.trim()) last++;
+  } else if (main.to === doc.line(last).from) {
+    last--;
+  }
+  if (last <= first) return false;
+  const lines: string[] = [];
+  for (let n = first; n <= last; n++) lines.push(doc.line(n).text);
+  const collator = new Intl.Collator(i18n.current(), { numeric: true, sensitivity: "base" });
+  const sorted = [...lines].sort((a, b) => collator.compare(a.replace(SORT_KEY, ""), b.replace(SORT_KEY, "")));
+  if (sorted.every((l, i) => l === lines[i])) return true;
+  const from = doc.line(first).from;
+  const text = sorted.join("\n");
+  view.dispatch({
+    changes: { from, to: doc.line(last).to, insert: text },
+    selection: EditorSelection.range(from, from + text.length),
+    userEvent: "input",
+    scrollIntoView: true,
+  });
+  return true;
+};
+
 // --------------------------------------------------------- active state
 
 /** Formats present at the main caret, for highlighting format-bar buttons. */
@@ -391,6 +543,14 @@ const I = {
   duplicate: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 15V5a1 1 0 0 1 1-1h10"/>',
   deleteLine: '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="14" y2="17"/><line x1="17" y1="14" x2="22" y2="19"/><line x1="22" y1="14" x2="17" y2="19"/>',
   comment: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="13" y2="12"/>',
+  selectLine: '<rect x="3" y="9" width="18" height="6" rx="1.5"/><line x1="3" y1="4" x2="14" y2="4"/><line x1="3" y1="20" x2="12" y2="20"/>',
+  splitLines: '<line x1="4" y1="5" x2="16" y2="5"/><line x1="4" y1="12" x2="13" y2="12"/><line x1="4" y1="19" x2="15" y2="19"/><line x1="19" y1="3" x2="19" y2="7"/><line x1="16" y1="10" x2="16" y2="14"/><line x1="18" y1="17" x2="18" y2="21"/>',
+  joinLines: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/><polyline points="9 10 12 13 15 10"/>',
+  sortLines: '<path d="M4 7h9"/><path d="M4 12h6"/><path d="M4 17h3"/><path d="M17 5v14"/><polyline points="14 16 17 19 20 16"/>',
+  formatTable: '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="10" y1="4" x2="10" y2="20"/><line x1="14" y1="14" x2="18" y2="14"/>',
+  bracket: '<path d="M8 4H6v16h2"/><path d="M16 4h2v16h-2"/>',
+  lineAbove: '<line x1="4" y1="18" x2="20" y2="18"/><line x1="12" y1="4" x2="12" y2="12"/><line x1="8" y1="8" x2="16" y2="8"/>',
+  matches: '<rect x="3" y="5" width="7" height="5" rx="1"/><rect x="14" y="5" width="7" height="5" rx="1"/><rect x="8" y="14" width="8" height="5" rx="1"/>',
   spell: '<path d="M4 15 8 5l4 10"/><path d="M5.5 11h5"/><path d="M14 11h3a2 2 0 0 1 0 4h-3V7h2.5a2 2 0 0 1 0 4"/><polyline points="4 20 8 23 13 18"/>',
 };
 
@@ -435,6 +595,15 @@ export const COMMANDS: CommandInfo[] = [
   // (inside a fenced code block, that language's own comment). The key
   // matches the typed character: Ctrl+Shift+7 on an Italian or German layout.
   { id: "comment", label: t("cmd.comment"), icon: I.comment, run: toggleComment, shortcut: "Ctrl+/" },
+  // 2.4, as Sublime Text (Ctrl+D, Ctrl+Alt+↑/↓ come from CodeMirror's own keymaps)
+  { id: "selectLine", label: t("cmd.selectLine"), icon: I.selectLine, run: selectLines, shortcut: "Ctrl+L" },
+  { id: "splitLines", label: t("cmd.splitLines"), icon: I.splitLines, run: splitSelectionIntoLines, shortcut: "Ctrl+Shift+L" },
+  { id: "selectMatches", label: t("cmd.selectMatches"), icon: I.matches, run: selectSelectionMatches, shortcut: "Alt+F3", key: "Alt-F3" },
+  { id: "joinLines", label: t("cmd.joinLines"), icon: I.joinLines, run: joinLines, shortcut: "Ctrl+J" },
+  { id: "lineAbove", label: t("cmd.lineAbove"), icon: I.lineAbove, run: insertLineAbove, shortcut: "Ctrl+Shift+Enter", key: "Mod-Shift-Enter" },
+  { id: "matchBracket", label: t("cmd.matchBracket"), icon: I.bracket, run: goToBracket, shortcut: "Ctrl+M" },
+  { id: "sortLines", label: t("cmd.sortLines"), icon: I.sortLines, run: sortLines, shortcut: "F9", key: "F9" },
+  { id: "formatTable", label: t("cmd.formatTable"), icon: I.formatTable, run: formatTable },
   { id: "spell", label: t("cmd.spell"), icon: I.spell, run: toggleSpellcheck, checked: spellcheckEnabled },
 ];
 

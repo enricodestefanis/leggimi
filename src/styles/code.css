@@ -56,57 +56,67 @@
   line-height: 1.55;
 }
 
-/* hljs — GitHub Light palette, scoped so themes can switch. The comment grey
-   is one step darker than GitHub's #6e7781, which is 4.1:1 on --code-bg. */
+/* Code colours, one set per theme, shared by the preview (hljs below) and
+   the editor (editor.ts). GitHub Light; the comment grey is one step darker
+   than GitHub's #6e7781, which is 4.1:1 on --code-bg. Defined here and not in
+   base.css so that the HTML export, which carries this file, has them too. */
+:root {
+  --syn-keyword: #cf222e;
+  --syn-title: #8250df;
+  --syn-constant: #0550ae;
+  --syn-string: #0a3069;
+  --syn-builtin: #953800;
+  --syn-comment: #656d77;
+  --syn-tag: #116329;
+  --syn-subst: #24292f;
+  --syn-section: #0550ae;
+  --syn-bullet: #953800;
+  --syn-add: #116329;
+  --syn-add-bg: #dafbe1;
+  --syn-del: #82071e;
+  --syn-del-bg: #ffebe9;
+}
+
+/* sepia: the light palette on a darker, warmer --code-bg, where the red,
+   purple and grey fall under AA (4.2, 4.0 and 3.6:1); deeper shades of the
+   same hues. The other colours clear 5.8:1 as they are. */
+:root[data-theme="sepia"] {
+  --syn-keyword: #bf1f2a;
+  --syn-title: #7447c8;
+  --syn-comment: #59636e;
+}
+
+/* GitHub Dark, for the dark and black themes */
+:root[data-scheme="dark"] {
+  --syn-keyword: #ff7b72;
+  --syn-title: #d2a8ff;
+  --syn-constant: #79c0ff;
+  --syn-string: #a5d6ff;
+  --syn-builtin: #ffa657;
+  --syn-comment: #8b949e;
+  --syn-tag: #7ee787;
+  --syn-subst: #c9d1d9;
+  --syn-section: #58a6ff;
+  --syn-bullet: #f2cc60;
+  --syn-add: #aff5b4;
+  --syn-add-bg: #033a16;
+  --syn-del: #ffdcd7;
+  --syn-del-bg: #67060c;
+}
+
 .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
-.hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #cf222e; }
-.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #8250df; }
+.hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: var(--syn-keyword); }
+.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: var(--syn-title); }
 .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator,
-.hljs-selector-attr, .hljs-selector-class, .hljs-selector-id, .hljs-variable { color: #0550ae; }
-.hljs-string, .hljs-regexp, .hljs-meta .hljs-string { color: #0a3069; }
-.hljs-built_in, .hljs-symbol { color: #953800; }
-.hljs-comment, .hljs-code, .hljs-formula { color: #656d77; }
-.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #116329; }
-.hljs-subst { color: #24292f; }
-.hljs-section { color: #0550ae; font-weight: 600; }
-.hljs-bullet { color: #953800; }
+.hljs-selector-attr, .hljs-selector-class, .hljs-selector-id, .hljs-variable { color: var(--syn-constant); }
+.hljs-string, .hljs-regexp, .hljs-meta .hljs-string { color: var(--syn-string); }
+.hljs-built_in, .hljs-symbol { color: var(--syn-builtin); }
+.hljs-comment, .hljs-code, .hljs-formula { color: var(--syn-comment); }
+.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: var(--syn-tag); }
+.hljs-subst { color: var(--syn-subst); }
+.hljs-section { color: var(--syn-section); font-weight: 600; }
+.hljs-bullet { color: var(--syn-bullet); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 600; }
-.hljs-addition { color: #116329; background-color: #dafbe1; }
-.hljs-deletion { color: #82071e; background-color: #ffebe9; }
-
-/* hljs — sepia: the light palette on a darker, warmer --code-bg, where the
-   red, purple and grey fall under AA (4.2, 4.0 and 3.6:1); deeper shades of
-   the same hues. The other colours clear 5.8:1 as they are. */
-[data-theme="sepia"] .hljs-doctag, [data-theme="sepia"] .hljs-keyword,
-[data-theme="sepia"] .hljs-meta .hljs-keyword, [data-theme="sepia"] .hljs-template-tag,
-[data-theme="sepia"] .hljs-template-variable, [data-theme="sepia"] .hljs-type,
-[data-theme="sepia"] .hljs-variable.language_ { color: #bf1f2a; }
-[data-theme="sepia"] .hljs-title, [data-theme="sepia"] .hljs-title.class_,
-[data-theme="sepia"] .hljs-title.class_.inherited__, [data-theme="sepia"] .hljs-title.function_ { color: #7447c8; }
-[data-theme="sepia"] .hljs-comment, [data-theme="sepia"] .hljs-code,
-[data-theme="sepia"] .hljs-formula { color: #59636e; }
-
-/* hljs — GitHub Dark palette */
-[data-scheme="dark"] .hljs-doctag, [data-scheme="dark"] .hljs-keyword,
-[data-scheme="dark"] .hljs-meta .hljs-keyword, [data-scheme="dark"] .hljs-template-tag,
-[data-scheme="dark"] .hljs-template-variable, [data-scheme="dark"] .hljs-type,
-[data-scheme="dark"] .hljs-variable.language_ { color: #ff7b72; }
-[data-scheme="dark"] .hljs-title, [data-scheme="dark"] .hljs-title.class_,
-[data-scheme="dark"] .hljs-title.class_.inherited__, [data-scheme="dark"] .hljs-title.function_ { color: #d2a8ff; }
-[data-scheme="dark"] .hljs-attr, [data-scheme="dark"] .hljs-attribute, [data-scheme="dark"] .hljs-literal,
-[data-scheme="dark"] .hljs-meta, [data-scheme="dark"] .hljs-number, [data-scheme="dark"] .hljs-operator,
-[data-scheme="dark"] .hljs-selector-attr, [data-scheme="dark"] .hljs-selector-class,
-[data-scheme="dark"] .hljs-selector-id, [data-scheme="dark"] .hljs-variable { color: #79c0ff; }
-[data-scheme="dark"] .hljs-string, [data-scheme="dark"] .hljs-regexp,
-[data-scheme="dark"] .hljs-meta .hljs-string { color: #a5d6ff; }
-[data-scheme="dark"] .hljs-built_in, [data-scheme="dark"] .hljs-symbol { color: #ffa657; }
-[data-scheme="dark"] .hljs-comment, [data-scheme="dark"] .hljs-code,
-[data-scheme="dark"] .hljs-formula { color: #8b949e; }
-[data-scheme="dark"] .hljs-name, [data-scheme="dark"] .hljs-quote,
-[data-scheme="dark"] .hljs-selector-tag, [data-scheme="dark"] .hljs-selector-pseudo { color: #7ee787; }
-[data-scheme="dark"] .hljs-subst { color: #c9d1d9; }
-[data-scheme="dark"] .hljs-section { color: #58a6ff; }
-[data-scheme="dark"] .hljs-bullet { color: #f2cc60; }
-[data-scheme="dark"] .hljs-addition { color: #aff5b4; background-color: #033a16; }
-[data-scheme="dark"] .hljs-deletion { color: #ffdcd7; background-color: #67060c; }
+.hljs-addition { color: var(--syn-add); background-color: var(--syn-add-bg); }
+.hljs-deletion { color: var(--syn-del); background-color: var(--syn-del-bg); }

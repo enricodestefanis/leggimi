@@ -1,4 +1,4 @@
-import { Compartment, EditorSelection, EditorState, type Extension, type Line } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, Prec, type Extension, type Line } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -6,15 +6,21 @@ import {
   drawSelection,
   highlightActiveLine,
   highlightActiveLineGutter,
+  rectangularSelection,
   scrollPastEnd,
+  type Command,
 } from "@codemirror/view";
 import {
+  copyLineDown,
   defaultKeymap,
   history,
   historyField,
   historyKeymap,
   indentWithTab,
   isolateHistory,
+  moveLineDown,
+  moveLineUp,
+  simplifySelection,
   toggleTabFocusMode,
   undo as undoCmd,
 } from "@codemirror/commands";
@@ -25,20 +31,29 @@ import {
   findNext,
   findPrevious,
   getSearchQuery,
+  highlightSelectionMatches,
   setSearchQuery,
   SearchQuery,
 } from "@codemirror/search";
-import { syntaxHighlighting, syntaxTree, HighlightStyle } from "@codemirror/language";
+import { bracketMatching, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import {
+  acceptCompletion,
   autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
   type Completion,
   type CompletionContext,
   type CompletionResult,
 } from "@codemirror/autocomplete";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
-import { tags } from "@lezer/highlight";
 import { t } from "./i18n";
+import { highlightStyle, mdExtensions } from "./editorSyntax";
+import { structure } from "./editorDecor";
+import { markdownBrackets, markdownPairInput, pairKeys } from "./editorPairs";
+import { nextCell, previousCell, tableEnter } from "./tableEdit";
+import { linkSource, setLinkProvider, wikiSource, type LinkProvider } from "./linkComplete";
+import "./styles/editor.css";
 import {
   COMMANDS,
   commandById,
@@ -69,6 +84,8 @@ export interface EditorCallbacks {
   requestSave(): void;
   /** an image was pasted into the editor */
   onImagePasted(file: File): void;
+  /** the files, pictures and headings link completion proposes (2.4) */
+  links?: LinkProvider;
 }
 
 let view: EditorView | null = null;
@@ -98,6 +115,9 @@ const appTheme = EditorView.theme({
     fontFamily: "var(--mono)",
     lineHeight: "1.6",
     padding: "12px 0 48px",
+    // Cascadia Code's ligatures draw a table's |---| as one line and "- [" as
+    // a box corner: in the source every character shows as itself
+    fontVariantLigatures: "none",
   },
   ".cm-content": { caretColor: "var(--accent)", padding: "0 12px 0 6px" },
   ".cm-cursor": { borderLeftColor: "var(--accent)" },
@@ -109,7 +129,20 @@ const appTheme = EditorView.theme({
   "&.cm-focused .cm-selectionBackground, &.cm-focused ::selection": {
     backgroundColor: "color-mix(in srgb, var(--accent) 28%, transparent) !important",
   },
-  ".cm-activeLine": { backgroundColor: "var(--active-line)" },
+  // an image, not a colour, so it lies over a line's band (a code block's,
+  // styles/editor.css) instead of replacing it
+  ".cm-activeLine": {
+    backgroundColor: "transparent",
+    backgroundImage: "linear-gradient(var(--active-line), var(--active-line))",
+  },
+  // the bracket matching the one at the caret, and the other occurrences of the selected word
+  ".cm-matchingBracket, &.cm-focused .cm-matchingBracket": {
+    backgroundColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
+    outline: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
+    borderRadius: "2px",
+  },
+  ".cm-nonmatchingBracket, &.cm-focused .cm-nonmatchingBracket": { color: "var(--danger)" },
+  ".cm-selectionMatch": { backgroundColor: "color-mix(in srgb, var(--accent) 12%, transparent)" },
   ".cm-gutters": {
     backgroundColor: "var(--bg)",
     color: "var(--text-muted)",
@@ -124,13 +157,41 @@ const appTheme = EditorView.theme({
     backgroundColor: "var(--surface)",
     boxShadow: "var(--shadow)",
     padding: "4px",
-    overflow: "hidden",
   },
+  // the list clips its rows, not the tooltip: the info panel of a link
+  // completion sits outside it, at left: 100%
   ".cm-tooltip.cm-tooltip-autocomplete > ul": {
     fontFamily: "var(--sans)",
     fontSize: "13px",
     maxHeight: "min(340px, 50vh)",
     minWidth: "240px",
+    maxWidth: "min(520px, 70vw)",
+    overflowX: "hidden",
+  },
+  ".cm-tooltip.cm-completionInfo": {
+    border: "1px solid var(--border)",
+    borderRadius: "8px",
+    backgroundColor: "var(--surface)",
+    color: "var(--text)",
+    boxShadow: "var(--shadow)",
+    fontFamily: "var(--sans)",
+    fontSize: "12.5px",
+    padding: "6px 10px",
+    maxWidth: "280px",
+  },
+  // a link completion's kind: md, img, # (a heading)
+  ".cm-link-badge": {
+    flex: "none",
+    minWidth: "28px",
+    padding: "2px 4px",
+    borderRadius: "5px",
+    border: "1px solid var(--border)",
+    backgroundColor: "var(--bg)",
+    color: "var(--text-muted)",
+    fontFamily: "var(--mono)",
+    fontSize: "10px",
+    fontWeight: "600",
+    textAlign: "center",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul > li": {
     display: "flex",
@@ -316,15 +377,25 @@ function slashSource(ctx: CompletionContext): CompletionResult | null {
   return { from: line.from + m[1].length, options, filter: false };
 }
 
+const LINK_BADGES: Record<string, string> = { "link-md": "md", "link-img": "img", "link-heading": "#" };
+
+// one completion for the editor: the "/" menu and, from 2.4, links (a
+// second autocompletion() would clash with this one)
 const slashMenu = autocompletion({
-  override: [slashSource],
+  override: [slashSource, linkSource, wikiSource],
   icons: false,
   addToOptions: [
     {
       render: (completion) => {
         const span = document.createElement("span");
-        span.className = "cm-slash-icon";
-        span.innerHTML = iconHtml(commandById.get(completion.type ?? "")?.icon ?? "", 15);
+        const badge = LINK_BADGES[completion.type ?? ""];
+        if (badge) {
+          span.className = "cm-link-badge";
+          span.textContent = badge;
+        } else {
+          span.className = "cm-slash-icon";
+          span.innerHTML = iconHtml(commandById.get(completion.type ?? "")?.icon ?? "", 15);
+        }
         return span;
       },
       position: 20,
@@ -332,20 +403,20 @@ const slashMenu = autocompletion({
   ],
 });
 
-const mdHighlight = HighlightStyle.define([
-  { tag: tags.heading, fontWeight: "700", color: "var(--text)" },
-  { tag: tags.strong, fontWeight: "600" },
-  { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.strikethrough, textDecoration: "line-through" },
-  // the accent as text ink: --accent itself reaches only 4.0:1 on the page (WCAG 1.4.3)
-  { tag: tags.link, color: "var(--accent-text)" },
-  { tag: tags.url, color: "var(--accent-text)" },
-  { tag: tags.monospace, color: "var(--text-muted)" },
-  { tag: tags.quote, color: "var(--text-muted)", fontStyle: "italic" },
-  { tag: tags.meta, color: "var(--text-muted)" },
-  { tag: tags.processingInstruction, color: "var(--text-muted)" },
-  { tag: tags.labelName, color: "var(--accent-text)" },
-]);
+// Esc reduces several cursors (or a selected cell) to one, and then, as an
+// Esc with nothing to undo does, lets the next Tab leave the editor: CodeMirror
+// arms that only when no key binding used the Esc
+const escapeSelection: Command = (view) => {
+  if (!simplifySelection(view)) return false;
+  view.setTabFocusMode(2000);
+  return true;
+};
+
+// AltGr is Ctrl+Alt on Windows: AltGr+arrows must not add cursors (Ctrl+Alt+↑/↓)
+const altGrArrows = {
+  any: (_view: EditorView, e: KeyboardEvent): boolean =>
+    e.ctrlKey && e.altKey && e.getModifierState("AltGraph") && (e.key === "ArrowUp" || e.key === "ArrowDown"),
+};
 
 function computeDirty(): void {
   if (!view || !callbacks) return;
@@ -359,6 +430,7 @@ function computeDirty(): void {
 export function mount(host: HTMLElement, cb: EditorCallbacks): void {
   if (view) return;
   callbacks = cb;
+  setLinkProvider(cb.links ?? null);
   const bar = document.createElement("div");
   bar.id = "format-bar";
   const editorHost = document.createElement("div");
@@ -413,14 +485,38 @@ function extensions(): Extension[] {
     history(),
     EditorView.lineWrapping,
     scrollPastEnd(),
-    markdown({ base: markdownLanguage, codeLanguages: languages }),
+    // several cursors (2.4): Ctrl+D, Ctrl+click, Ctrl+Alt+↑/↓, Alt+drag for a
+    // column (not AltGr, which is Ctrl+Alt on Windows)
+    EditorState.allowMultipleSelections.of(true),
+    rectangularSelection({ eventFilter: (e) => e.altKey && !e.ctrlKey }),
+    highlightSelectionMatches(),
+    bracketMatching(),
+    // pairs that close themselves: ( [ { " by closeBrackets with Markdown's
+    // own list, ` and the * _ ~ = wrapping by editorPairs
+    closeBrackets(),
+    markdownBrackets,
+    markdownPairInput,
+    // a completion's Tab first, then the table's Tab and Enter and the
+    // fence's Enter, before Markdown's own Enter (also Prec.high, placed later)
+    Prec.highest(keymap.of([{ key: "Tab", run: acceptCompletion }])),
+    Prec.high(
+      keymap.of([
+        ...pairKeys,
+        { key: "Tab", run: nextCell },
+        { key: "Shift-Tab", run: previousCell },
+        { key: "Enter", run: tableEnter },
+      ]),
+    ),
+    markdown({ base: markdownLanguage, codeLanguages: languages, extensions: mdExtensions }),
     slashMenu,
     search({ top: true }),
     spellCompartment.of(spellAttrs(spellcheckEnabled())),
     labelCompartment.of(labelAttrs()),
-    syntaxHighlighting(mdHighlight),
+    syntaxHighlighting(highlightStyle),
+    structure,
     appTheme,
     keymap.of([
+      altGrArrows,
       {
         key: "Mod-s",
         run: () => {
@@ -432,9 +528,15 @@ function extensions(): Extension[] {
       { key: "Mod-f", run: openFindCmd, scope: "editor search-panel", preventDefault: true },
       { key: "Mod-h", run: openReplaceCmd, scope: "editor search-panel", preventDefault: true },
       ...formatKeymap,
+      // second keys, as Sublime Text: duplicate and move lines
+      { key: "Mod-Shift-d", run: copyLineDown, preventDefault: true },
+      { key: "Mod-Shift-ArrowUp", run: moveLineUp, preventDefault: true },
+      { key: "Mod-Shift-ArrowDown", run: moveLineDown, preventDefault: true },
       indentWithTab,
+      ...closeBracketsKeymap,
       ...historyKeymap,
       ...searchKeymap,
+      { key: "Escape", run: escapeSelection },
       ...baseKeymap,
     ]),
     EditorView.updateListener.of((update) => {
@@ -533,7 +635,12 @@ export function snapshotSaved(s: Snapshot): Snapshot {
 
 /** An image inserted into a tab's editor while it was not in front. */
 export function snapshotInsert(s: Snapshot, text: string): Snapshot {
-  const state = s.state.update(s.state.replaceSelection(text)).state;
+  const main = s.state.selection.main;
+  // at the main cursor only: with several cursors, one picture, not one per cursor
+  const state = s.state.update({
+    changes: { from: main.from, to: main.to, insert: text },
+    selection: EditorSelection.cursor(main.from + text.length),
+  }).state;
   return { ...s, state, dirty: state.doc.toString() !== s.lastSaved };
 }
 
@@ -683,7 +790,14 @@ export function replaceLine(line: number, text: string): void {
 
 export function insertAtCursor(text: string): void {
   if (!view) return;
-  view.dispatch(view.state.replaceSelection(text));
+  // at the main cursor only (a pasted picture): one, not one per cursor
+  const main = view.state.selection.main;
+  view.dispatch({
+    changes: { from: main.from, to: main.to, insert: text },
+    selection: EditorSelection.cursor(main.from + text.length),
+    scrollIntoView: true,
+    userEvent: "input",
+  });
   view.focus();
 }
 

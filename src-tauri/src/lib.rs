@@ -537,6 +537,8 @@ pub fn run() {
             commands::save_clipboard_image,
             commands::import_image,
             commands::list_tree,
+            commands::list_images,
+            commands::peek_markdown,
             commands::search_in_tree,
             commands::parent_dir,
             commands::set_tabs,

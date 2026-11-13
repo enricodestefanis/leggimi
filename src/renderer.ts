@@ -1142,3 +1142,28 @@ function wrapTables(root: HTMLElement): void {
     block.append(scroll, actions);
   }
 }
+
+/**
+ * The headings of a Markdown text with the ids the preview gives them
+ * (markdown-it-anchor with headingSlug: "a", "a-1" for a repeat), for the
+ * editor's link completion. A heading renamed to user-content-<id> later,
+ * in the page, is still linked by its id (data-anchor).
+ */
+export function headingAnchors(source: string): { level: number; text: string; id: string }[] {
+  const tokens = md.parse(source, {});
+  // the front matter's callback belongs to renders, not to this
+  pendingFrontMatter = null;
+  const out: { level: number; text: string; id: string }[] = [];
+  tokens.forEach((token, i) => {
+    if (token.type !== "heading_open") return;
+    const id = token.attrGet("id");
+    if (!id) return;
+    const text = (tokens[i + 1].children ?? [])
+      .filter((c) => c.type === "text" || c.type === "code_inline")
+      .map((c) => c.content)
+      .join("")
+      .trim();
+    out.push({ level: Number(token.tag.slice(1)), text, id });
+  });
+  return out;
+}

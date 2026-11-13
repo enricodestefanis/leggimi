@@ -113,6 +113,27 @@
   background: var(--accent-soft);
 }
 
+/* the pin itself says "on": filled, not only tinted (A-13, 2.4; WCAG 1.4.1) */
+#btn-pin[aria-pressed="true"] svg path:last-child {
+  fill: currentColor;
+}
+
+/* Windows contrast themes drop the tint: a pressed button keeps an outline */
+@media (forced-colors: active) {
+  #app.editing #btn-edit,
+  #btn-pin[aria-pressed="true"],
+  .rs-opt[aria-pressed="true"],
+  .fb-btn[aria-pressed="true"],
+  .zoom-text-btn[aria-pressed="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  #btn-pin[aria-pressed="true"] svg path:last-child {
+    fill: Highlight;
+  }
+}
+
 /* drag-to-scroll on the margins (and with the middle button anywhere) */
 #content-pane.dragging,
 #content-pane.dragging * {

@@ -231,6 +231,33 @@
           línea para elegir un bloque por su nombre. Pegar un enlace sobre un texto seleccionado lo convierte en
           un enlace Markdown.
         </p>
+        <p>
+          <strong>Mientras escribes:</strong> los paréntesis y corchetes <code>( [ {</code>, las comillas <code>"</code>
+          y los acentos graves <code>`</code> se cierran solos, con el cursor en medio; al escribir el de cierre se
+          salta, y <kbd>Retroceso</kbd> en un par vacío quita los dos. El apóstrofo nunca se cierra. Con texto
+          seleccionado, <code>*</code>, <code>_</code>, <code>~</code> y <code>=</code> lo rodean: dos veces dan
+          <code>**negrita**</code>, <code>~~tachado~~</code>, <code>==resaltado==</code>. Después de <code>```</code> y
+          el nombre de un lenguaje, <kbd>Intro</kbd> cierra el bloque de código. Dentro de un bloque de código
+          valen las reglas de su lenguaje. El código tiene los colores de la vista previa, y las marcas del
+          Markdown van en gris.
+        </p>
+        <p>
+          <strong>Varios cursores:</strong> <kbd>Ctrl</kbd>+<kbd>D</kbd> selecciona la palabra y luego, con cada
+          pulsación, su siguiente coincidencia; <kbd>Ctrl</kbd>+clic añade un cursor, <kbd>Alt</kbd>+arrastrar
+          selecciona una columna. Lo que escribes va a cada cursor; <kbd>Esc</kbd> vuelve a uno solo.
+        </p>
+        <p>
+          <strong>Enlaces:</strong> después de <code>](</code> el editor propone los archivos Markdown de la carpeta
+          (después de <code>![](</code> sus imágenes), después de <code>](#</code> los títulos del documento, después de
+          <code>](nota.md#</code> los de otra nota, después de <code>[[</code> los nombres de las notas.
+          <kbd>Intro</kbd> o <kbd>Tab</kbd> escribe la ruta, relativa al documento.
+        </p>
+        <p>
+          <strong>Tablas:</strong> con el cursor en una tabla, <kbd>Tab</kbd> alinea las columnas y pasa a la celda
+          siguiente (en la última añade una fila), <kbd>Mayús</kbd>+<kbd>Tab</kbd> vuelve atrás, <kbd>Intro</kbd> al
+          final de la última fila añade una fila y, en una fila vacía, sale de la tabla. <strong>Dar formato a la
+          tabla</strong>, en el menú Herramientas, alinea sin mover el cursor.
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Negrita / cursiva</td></tr>
@@ -241,12 +268,20 @@
             <tr><td><kbd>/</kbd></td><td>Menú de bloques, al inicio de línea</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Buscar / buscar y reemplazar en el texto</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Mayús</kbd>+<kbd>F3</kbd></td><td>Resultado siguiente / anterior</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Subir / bajar la línea</td></tr>
-            <tr><td><kbd>Mayús</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplicar la línea</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (o <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>)</td><td>Subir / bajar la línea</td></tr>
+            <tr><td><kbd>Mayús</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> o <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>D</kbd></td><td>Duplicar la línea</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>K</kbd></td><td>Eliminar la línea</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Seleccionar la línea</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> o <kbd>Alt</kbd>+<kbd>L</kbd></td><td>Seleccionar la línea (otra vez: también la siguiente)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Añadir la siguiente coincidencia a la selección</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Añadir un cursor encima / debajo</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / <kbd>Alt</kbd>+arrastrar</td><td>Añadir un cursor / seleccionar una columna</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>Seleccionar todas las coincidencias</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>L</kbd></td><td>Dividir la selección en líneas, una por línea</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>J</kbd></td><td>Unir la línea con la siguiente</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Intro</kbd> / <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>Intro</kbd></td><td>Línea nueva debajo / encima</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>Ir al paréntesis correspondiente</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>Ordenar las líneas seleccionadas, o la lista bajo el cursor</td></tr>
+            <tr><td><kbd>Tab</kbd> / <kbd>Mayús</kbd>+<kbd>Tab</kbd> en una tabla</td><td>Celda siguiente / anterior, con las columnas alineadas</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Comentar / descomentar la línea</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Ir a la línea</td></tr>
             <tr><td><kbd>Esc</kbd>, luego <kbd>Tab</kbd></td><td>Salir del editor con el teclado</td></tr>

@@ -28,6 +28,12 @@ const TOOLS: [id: string, hint: string][] = [
   ["copyLineDown", ""],
   ["deleteLine", ""],
   ["comment", t("tool.comment")],
+  // 2.4, after Comment line (h_1151 checks it follows Delete line)
+  ["selectLine", ""],
+  ["splitLines", ""],
+  ["joinLines", ""],
+  ["sortLines", ""],
+  ["formatTable", ""],
   ["spell", t("tool.spell")],
 ];
 const SLIDERS =

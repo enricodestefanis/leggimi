@@ -194,6 +194,11 @@
   white-space: nowrap;
 }
 
+/* the folder after the name of two tabs that share it (strip.ts hintsFor) */
+.tab-dir {
+  color: var(--text-muted);
+}
+
 /* a name too long for its tab fades out, rather than breaking off with an
    ellipsis (strip.ts marks the ones that do not fit) */
 .tab-title.clipped {
