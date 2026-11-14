@@ -23,6 +23,7 @@ import { placeDrawnDiagrams, renderMermaidIn, rerenderForTheme } from "./mermaid
 import * as toc from "./toc";
 import * as tree from "./tree";
 import * as search from "./search";
+import * as helpNav from "./helpNav";
 import * as lightbox from "./lightbox";
 import * as panes from "./panes";
 import * as wide from "./wide";
@@ -4193,8 +4194,13 @@ function rateOnStore(): void {
 // the help on demand: its page (in the UI language) loads the first time
 async function openHelp(): Promise<void> {
   await i18n.loadHelp($("#help-text"));
+  // its headings become the list of sections beside it (2.4)
+  helpNav.prepare();
   // a preview opened meanwhile keeps the screen: the help must not stack on it
-  if (!helpDialog.open && !lightbox.isOpen()) helpDialog.showModal();
+  if (!helpDialog.open && !lightbox.isOpen()) {
+    helpDialog.showModal();
+    helpNav.focusSearch();
+  }
 }
 
 /* ---- the home: recent files on the empty screen ---- */
@@ -4761,6 +4767,26 @@ function wireUi(): void {
   theme.onChange(() => syncReadingMenu());
   $("#btn-help").addEventListener("click", () => void openHelp());
   $("#help-close").addEventListener("click", () => helpDialog.close());
+  // the help's sections and search (2.4)
+  helpNav.init({
+    dialog: helpDialog,
+    text: $("#help-text"),
+    body: $("#help-body"),
+    toc: $("#help-toc"),
+    search: $<HTMLInputElement>("#help-search"),
+    count: $("#help-count"),
+    prev: $<HTMLButtonElement>("#help-prev"),
+    next: $<HTMLButtonElement>("#help-next"),
+    none: $("#help-none"),
+    about: $(".help-about"),
+    say: (text) => notices.announce(text),
+  });
+  helpDialog.addEventListener("close", () => helpNav.closed());
+  $("#help-keys").addEventListener("click", () => {
+    helpDialog.close();
+    toggleKeysDialog();
+  });
+  $("#help-license").addEventListener("click", () => helpNav.showAbout());
   // rating from the help counts: the card does not ask again
   $("#help-rate").addEventListener("click", rateOnStore);
   btnUp.addEventListener("click", () => void goUp());
@@ -5093,7 +5119,7 @@ async function showVersion(): Promise<void> {
 // the rating prompt only makes sense for the Microsoft Store build
 async function showStoreRating(): Promise<void> {
   storeInstall = await ipc.isStoreInstall().catch(() => false);
-  if (storeInstall) $("#help-rate-card").hidden = false;
+  if (storeInstall) $("#help-rate").hidden = false;
 }
 
 async function boot(): Promise<void> {

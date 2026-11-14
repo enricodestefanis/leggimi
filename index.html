@@ -322,25 +322,47 @@
     <dialog id="help-dialog" aria-label="Help" data-i18n-aria-label="help.title">
       <div class="help-head">
         <h2><img class="help-logo" src="/src/assets/leggimi-icon.png" alt="" width="28" height="28" draggable="false" />Leggimi <span id="help-version" class="version-badge"></span></h2>
-        <button id="help-close" class="icon-btn" title="Close (Esc)" data-i18n-title="help.close">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="help-body">
-        <div id="help-text"></div>
-        <div id="help-rate-card" class="help-rate" hidden>
-          <svg class="help-rate-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.5 15 8.6 21.7 9.6 16.8 14.3 18 21 12 17.8 6 21 7.2 14.3 2.3 9.6 9 8.6 12 2.5"/></svg>
-          <div class="help-rate-text">
-            <strong data-i18n="rate.title">Enjoying Leggimi?</strong>
-            <span data-i18n="rate.text">A rating on the Microsoft Store helps other people find it.</span>
-          </div>
-          <button id="help-rate" class="help-rate-btn" type="button" data-i18n="rate.store">Rate on the Store</button>
+        <div class="help-actions">
+          <!-- the Store build only (main.ts): in sight as the help opens, not at the end of it -->
+          <button id="help-rate" class="help-rate-btn help-rate-pill" type="button" hidden title="A rating on the Microsoft Store helps other people find it." data-i18n-title="rate.text">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><polygon points="12 2.5 15 8.6 21.7 9.6 16.8 14.3 18 21 12 17.8 6 21 7.2 14.3 2.3 9.6 9 8.6 12 2.5"/></svg>
+            <span data-i18n="rate.store">Rate on the Store</span>
+          </button>
+          <button id="help-close" class="icon-btn" title="Close (Esc)" data-i18n-title="help.close">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-        <p class="help-about">
-          Leggimi is free and open source software, released under the
-          <a href="https://github.com/enricodestefanis/leggimi/blob/main/LICENSE">MIT License</a>.
-          Source code and releases: <a href="https://github.com/enricodestefanis/leggimi">github.com/enricodestefanis/leggimi</a>
-        </p>
+      </div>
+      <div class="help-main">
+        <!-- the sections and the search, built from the help's own headings (helpNav.ts) -->
+        <nav id="help-nav" class="help-nav" aria-label="Help sections" data-i18n-aria-label="help.sections">
+          <div class="help-search">
+            <svg class="help-search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="help-search" type="text" placeholder="Search the help" data-i18n-placeholder="help.search" aria-label="Search the help" data-i18n-aria-label="help.search" spellcheck="false" autocomplete="off" />
+            <span id="help-count" class="help-count" aria-hidden="true"></span>
+            <button id="help-prev" class="icon-btn help-step" type="button" title="Previous result (Shift+Enter)" data-i18n-title="help.prev" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button id="help-next" class="icon-btn help-step" type="button" title="Next result (Enter)" data-i18n-title="help.next" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <div class="help-nav-label" data-i18n="help.sectionsLabel">Sections</div>
+          <div id="help-toc" class="help-toc"></div>
+          <div class="help-nav-foot">
+            <button id="help-keys" class="help-foot-btn" type="button"><span data-i18n="help.allKeys">All keyboard shortcuts</span> <kbd>?</kbd></button>
+            <button id="help-license" class="help-foot-btn" type="button" data-i18n="help.license">Licence and source code</button>
+          </div>
+        </nav>
+        <div id="help-body" class="help-body">
+          <div id="help-text"></div>
+          <p id="help-none" class="help-none" hidden></p>
+          <p class="help-about">
+            Leggimi is free and open source software, released under the
+            <a href="https://github.com/enricodestefanis/leggimi/blob/main/LICENSE">MIT License</a>.
+            Source code and releases: <a href="https://github.com/enricodestefanis/leggimi">github.com/enricodestefanis/leggimi</a>
+          </p>
+        </div>
       </div>
     </dialog>
 
