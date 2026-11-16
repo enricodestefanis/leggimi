@@ -342,11 +342,15 @@ window. The installer puts a `leggimi` command in
 ## File browser
 
 The left panel is rooted at the folder of the document you opened and lists Markdown files up to
-four levels of subfolders (capped at 2000 files). Opening a file from the panel keeps the same
-root, so navigating into a subfolder does not hide the rest of the tree; the up arrow moves the
-root to the parent folder. Opening a document outside the current root re-roots the panel there.
-Folders you collapse stay collapsed while you navigate and across restarts; the folders on the
-path of a newly selected file auto-expand to reveal it. Folders with no Markdown files are
+three levels of subfolders (capped at 2000 files). Opening a file from the panel keeps the same
+root, so navigating into a subfolder does not hide the rest of the tree; the up arrow (or Alt+↑ in
+the list) moves the root to the parent folder, and its tooltip names that folder. Opening a
+document outside the current root, or one the panel no longer lists, re-roots the panel there,
+and the panel scrolls to the open file. *Collapse folders* closes every folder but the open
+file's, and *Back to the open file* takes the panel back to the file's folder (its icon takes the
+accent colour while the open file is not in the list); a folder with nothing to list says so, with
+the same way back. Folders you collapse stay collapsed while you navigate and across restarts; the
+folders on the path of a newly selected file auto-expand to reveal it. Folders with no Markdown files are
 hidden, as are hidden folders and build directories such as `node_modules`, `target` and `dist`.
 
 The panel follows the disk: files added, renamed or deleted in the folder (in File Explorer, by

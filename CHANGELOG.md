@@ -49,6 +49,10 @@ review of 2.2.
   that narrows the text to the sections holding the words, marks them, counts them per section and
   steps through them (Enter, Shift+Enter, F3, the arrows by the field). *Rate on the Store* (Store
   version) is at the top, in sight.
+- **The file pane** has two buttons beside the up arrow: *Collapse folders* closes every folder but
+  the open file's, and *Back to the open file* takes the pane back to the file's folder, undoing
+  every Up, and lights its row up; it takes the accent colour while the open file is not in the
+  list. Both are in the command palette too, and Alt+↑ in the list goes up a folder.
 
 ### Changed
 - The scrollbars' thumb stands out from the page and the panes (3:1 in every theme) and is
@@ -60,6 +64,8 @@ review of 2.2.
 - A folder search result shows the words found near its start, a few words of context before
   them, and its tooltip gives the line and its text.
 - The keys window (`?`) lists Ctrl+D, Ctrl+L, Ctrl+Shift+L, Ctrl+J, F9 and Tab in tables.
+- The file pane scrolls to the open file when the document changes, and the up arrow's tooltip
+  names the folder it goes to.
 
 ### Fixed
 - Ctrl+D and Ctrl+Alt+↑/↓, which the help described, now add cursors: the editor kept a single
@@ -71,6 +77,11 @@ review of 2.2.
   text in the preview, are no longer coloured as sub- and superscript or emoji; Cascadia Code's
   ligatures no longer draw a table's `|---|` as one line.
 - A picture pasted while several cursors are on goes in once.
+- The file pane could get stuck: taken up to `C:\` with its up arrow, it listed nothing (it lists
+  three subfolders below the folder at the top) and no file opened from C: brought it back, since
+  the pane moved only for a file outside it. A file the pane does not list now brings it back to
+  the file's folder, and a folder with nothing to list says so, with a way back. The help said four
+  levels of subfolders: the pane lists three.
 - Edit could open with the editor scrolled to the end of its text, almost empty, while the preview
   showed the top: it kept the place of the text it held before. It now opens at the section being
   read, the top included. A tab left while editing also comes back to the exact place of its

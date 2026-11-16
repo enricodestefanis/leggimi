@@ -321,12 +321,14 @@
 
         <h3>Parcourir les fichiers</h3>
         <p>
-          Le panneau de gauche liste les fichiers Markdown du dossier ouvert, jusqu'à quatre niveaux de
+          Le panneau de gauche liste les fichiers Markdown du dossier ouvert, jusqu'à trois niveaux de
           sous-dossiers. Ouvrir un fichier depuis le panneau garde le même dossier racine, pour ne jamais perdre
           le fil ; la <strong>flèche vers le haut</strong> à côté de <em>Fichiers</em> déplace la racine au dossier
-          parent. Ouvrir un document hors du dossier courant y déplace le panneau. Les dossiers que vous repliez
-          restent repliés pendant la navigation — et après un redémarrage.
+          parent (avec le focus dans la liste, <kbd>Alt</kbd>+<kbd>↑</kbd> aussi). Ouvrir un document hors du
+          dossier courant, ou que le panneau ne montre plus, y déplace le panneau, qui défile jusqu'au fichier
+          ouvert. Les dossiers que vous repliez restent repliés pendant la navigation — et après un redémarrage.
         </p>
+        <p>À côté de la flèche, <strong>Replier les dossiers</strong> ferme tous les dossiers sauf ceux du fichier ouvert, et <strong>Revenir au fichier ouvert</strong> (la cible) ramène le panneau au dossier du fichier et le met en évidence ; la cible prend la couleur d'accent quand le fichier ouvert n'est pas dans la liste. Les deux sont aussi dans la palette de commandes.</p>
         <p>Les dossiers sans fichier Markdown sont masqués, comme les dossiers cachés et de build tels que <code>node_modules</code>.</p>
         <p>Le panneau se met à jour tout seul quand des fichiers sont ajoutés, renommés ou supprimés dans le dossier. Renommez le document ouvert et la fenêtre le suit ; supprimez-le ou déplacez-le et son texte reste à l'écran, avec un avis qui propose <strong>Enregistrer à nouveau</strong>.</p>
         <p>

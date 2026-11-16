@@ -21,6 +21,13 @@ let lastActivePath = "";
 let groupSeq = 0;
 // containers whose focus and keys are already wired (render runs many times)
 const wired = new WeakSet<HTMLElement>();
+// told when the rows or the open folders change (main.ts: the pane's buttons follow)
+let notify: () => void = () => {};
+
+/** `fn` runs after every render, highlight move, folder opened or closed. */
+export function onChange(fn: () => void): void {
+  notify = fn;
+}
 
 function loadCollapsed(): Set<string> {
   try {
@@ -70,6 +77,7 @@ export function render(
   // back on the row it was on) takes it over through focusin.
   const active = container.querySelector<HTMLElement>(".tree-row.active");
   setRoving(container, active ? shownRow(active, container) : container.querySelector<HTMLElement>(".tree-row"));
+  notify();
 }
 
 // Moves the highlight in an already-rendered tree without a rebuild. Returns
@@ -102,6 +110,54 @@ export function setActive(container: HTMLElement, path: string): boolean {
   // Tab into the tree lands on the open document, unless the keys are in the
   // tree right now: then the row they are on keeps its place
   if (!container.contains(document.activeElement)) setRoving(container, target);
+  notify();
+  return true;
+}
+
+/**
+ * Closes every folder but those leading to `keep` (the open file), so its highlighted row
+ * stays in sight. A row with the focus that goes out of sight hands it to its folder.
+ */
+export function collapseAll(container: HTMLElement, keep: string | null): void {
+  for (const dir of container.querySelectorAll<HTMLElement>(".tree-dir")) {
+    const path = dir.dataset.path ?? "";
+    if (keep && isInside(path, keep)) continue;
+    dir.classList.add("collapsed");
+    dir.querySelector(":scope > .tree-row")?.setAttribute("aria-expanded", "false");
+    collapsed.add(norm(path));
+  }
+  persist();
+  const roving = container.querySelector<HTMLElement>('.tree-row[tabindex="0"]');
+  if (roving) {
+    const shown = shownRow(roving, container);
+    if (shown !== roving) {
+      setRoving(container, shown);
+      if (document.activeElement === roving) shown.focus({ preventScroll: true });
+    }
+  }
+  notify();
+}
+
+/**
+ * Brings the open file's row into sight in the pane that scrolls the tree (the nearest
+ * edge, no jump when it is already in sight). `flash`: a ring says "here" once; `focus`:
+ * the keys go to the row (a button pressed from the keyboard). False when there is no row.
+ */
+export function reveal(container: HTMLElement, opts: { flash?: boolean; focus?: boolean } = {}): boolean {
+  const row = container.querySelector<HTMLElement>(".tree-row.active");
+  if (!row) return false;
+  row.scrollIntoView({ block: "nearest" });
+  // folders opened on the way to it grow for 0.18 s (ui.css): their final height moves it
+  setTimeout(() => {
+    if (row.isConnected && row.classList.contains("active")) row.scrollIntoView({ block: "nearest" });
+  }, 250);
+  if (opts.focus) row.focus({ preventScroll: true });
+  if (opts.flash) {
+    row.classList.remove("landed");
+    // a second press restarts the ring: the class comes back on the next frame
+    requestAnimationFrame(() => row.classList.add("landed"));
+    row.addEventListener("animationend", () => row.classList.remove("landed"), { once: true });
+  }
   return true;
 }
 
@@ -191,6 +247,7 @@ function setExpanded(dir: HTMLElement, open: boolean): void {
   const container = dir.closest<HTMLElement>('[role="tree"]');
   const roving = container?.querySelector<HTMLElement>('.tree-row[tabindex="0"]');
   if (!open && container && row && roving && roving !== row && dir.contains(roving)) setRoving(container, row);
+  notify();
 }
 
 /* ---- keyboard: the tree pattern of the ARIA Authoring Practices ---- */

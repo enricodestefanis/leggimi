@@ -311,6 +311,61 @@
   display: none;
 }
 
+/* the pane's buttons, right of its title: Collapse folders, Back to the open file, Up (2.4) */
+.pane-tools {
+  display: flex;
+  gap: 2px;
+}
+
+/* the open file is not in the list (the pane went up past it): the way back takes the accent */
+#btn-locate.off-list:not(:disabled) {
+  color: var(--accent);
+}
+
+/* a folder with no Markdown file within the depth the pane lists: said, with the way back */
+.tree-empty {
+  padding: 2px 8px 10px;
+  font-size: 0.96em;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.tree-empty button {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* in the folder search the list and its empty note give way to the results */
+#tree-root[hidden] + .tree-empty {
+  display: none;
+}
+
+/* Back to the open file: its row says "here" once, with a ring that fades */
+@keyframes tree-landed {
+  from {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  to {
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+
+.tree-row.landed {
+  animation: tree-landed 1.2s var(--ease) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-row.landed {
+    animation: none;
+  }
+}
+
 /* file tree */
 .tree-row {
   display: flex;

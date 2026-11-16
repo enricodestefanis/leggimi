@@ -87,6 +87,10 @@ const treeSearch = $<HTMLInputElement>("#tree-search");
 const treeSearchClear = $<HTMLButtonElement>("#tree-search-clear");
 const searchResults = $("#search-results");
 const btnUp = $<HTMLButtonElement>("#btn-up");
+const btnCollapse = $<HTMLButtonElement>("#btn-collapse");
+const btnLocate = $<HTMLButtonElement>("#btn-locate");
+const treeEmpty = $("#tree-empty");
+const treeEmptyLocate = $<HTMLButtonElement>("#tree-empty-locate");
 const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
 const docMeta = $("#doc-meta");
@@ -339,7 +343,10 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     // Same-root selection just moves the highlight: a rebuild would discard the
     // user's collapsed folders and flicker. Same-document reopens (watcher
     // reloads) still rebuild so files added or removed on disk get picked up.
-    if (rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path)) void refreshTree();
+    // Another document is then kept in the list and brought into sight (2.4);
+    // a reload leaves the pane where the reader took it.
+    const listing = rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path) ? refreshTree() : null;
+    if (!sameDoc) showInTree(doc, listing);
     reportTabs();
     if (!sameDoc) {
       recents.push(doc);
@@ -2367,11 +2374,14 @@ async function resumeView(tab: session.Tab): Promise<void> {
   // the file pane shows the tab's folder (pasted text's: the one it was pasted
   // over, if any; with none, the pane stays as it was)
   const root = v?.treeRoot ?? (doc.path !== null ? doc.dir : doc.paste.home);
+  let listing: Promise<boolean> | null = null;
   if (root !== null && (!browseRoot || !samePath(root, browseRoot))) {
     browseRoot = root;
-    void refreshTree();
+    listing = refreshTree();
   } else if (doc.path === null) clearTreeActive();
-  else if (!tree.setActive(treeRoot, doc.path)) void refreshTree();
+  else if (!tree.setActive(treeRoot, doc.path)) listing = refreshTree();
+  // its file kept in the list (the tab may have taken the pane up past it) and in sight
+  if (doc.path !== null) showInTree(doc, listing);
   updateTitles();
   updateProgress();
   if (!v && tab.src.kind === "pasted") await firstShowPasted(tab);
@@ -2571,6 +2581,7 @@ function showStartPage(): void {
 // no file of the pane is the one on screen (a start page, pasted text)
 function clearTreeActive(): void {
   treeRoot.querySelector(".tree-row.active")?.classList.remove("active");
+  syncTreeTools();
 }
 
 // the tab in front follows its document (a link followed, a file renamed)
@@ -3822,11 +3833,14 @@ function refreshTree(): Promise<boolean> {
       const json = JSON.stringify(node);
       if (json === treeJson) {
         if (currentDoc?.path) tree.setActive(treeRoot, currentDoc.path);
+        syncTreeTools();
         return false;
       }
       treeJson = json;
       treeRootName.textContent = node.name;
       treeRootName.title = root;
+      // nothing within the depth the pane lists: said, with the way back to the open file
+      treeEmpty.hidden = node.children.length > 0;
       const focused = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("#tree-root [data-path]");
       tree.render(treeRoot, node, currentDoc?.path ?? "", (p, e) => {
         // a file picked in a pane shown over the text: the pane goes
@@ -3840,6 +3854,7 @@ function refreshTree(): Promise<boolean> {
           preventScroll: true,
         });
       }
+      syncTreeTools();
       return true;
     })
     .catch(() => {
@@ -3848,8 +3863,77 @@ function refreshTree(): Promise<boolean> {
       treeJson = "";
       treeRootName.textContent = "";
       treeRoot.replaceChildren();
+      treeEmpty.hidden = true;
+      syncTreeTools();
       return had;
     });
+}
+
+// The name of the folder above `dir` ("C:\" for a drive's root); null above a drive's root or a share.
+function parentName(dir: string): string | null {
+  const d = dir.replace(/[\\/]+$/, "");
+  if (isDriveRoot(dir) || /^[\\/]{2}[^\\/]+[\\/][^\\/]+$/.test(d)) return null;
+  const cut = Math.max(d.lastIndexOf("\\"), d.lastIndexOf("/"));
+  if (cut < 0) return null;
+  const up = d.slice(0, cut);
+  return /^[a-z]:$/i.test(up) ? `${up}\\` : up.slice(Math.max(up.lastIndexOf("\\"), up.lastIndexOf("/")) + 1);
+}
+
+// The pane's buttons follow its state (2.4): Collapse folders while a folder is open; Back to
+// the open file while a file is on screen, in the accent when the list leaves it out; Up named
+// after the folder it goes to.
+function syncTreeTools(): void {
+  const file = currentDoc?.path ?? null;
+  const listed = file !== null && treeRoot.querySelector(".tree-row.file.active") !== null;
+  btnLocate.disabled = file === null;
+  btnLocate.classList.toggle("off-list", file !== null && !listed);
+  treeEmptyLocate.hidden = file === null;
+  btnCollapse.disabled = treeRoot.querySelector(".tree-dir:not(.collapsed)") === null;
+  const up = browseRoot ? parentName(browseRoot) : null;
+  btnUp.title = up ? t("pane.upTo", { name: up }) : t("pane.up");
+  btnUp.disabled = !browseRoot || isDriveRoot(browseRoot);
+}
+
+// The open file stays in the pane's list (2.4, the file pane's review): a document opened, or
+// its tab come forward, that the listing leaves out (the pane was taken up past the depth it
+// lists) brings the pane back to the file's folder. Then its row comes into sight, unless the
+// reader is in the pane (the pointer over it, or the keys in it). `listing`: the pane's listing
+// on its way, if any.
+function showInTree(doc: Doc, listing: Promise<unknown> | null): void {
+  const path = doc.path;
+  if (path === null) return;
+  void (async () => {
+    await listing;
+    if (currentDoc !== doc) return;
+    if (!tree.setActive(treeRoot, path) && browseRoot && !samePath(browseRoot, doc.dir)) {
+      browseRoot = doc.dir;
+      await refreshTree();
+      if (currentDoc !== doc) return;
+    }
+    if (!treePane.matches(":hover") && !treePane.contains(document.activeElement)) tree.reveal(treeRoot);
+  })();
+}
+
+// Back to the open file (2.4): the pane's root becomes the file's folder, undoing every Up, the
+// folders on the way open, and its row comes into sight with a ring. `focus`: pressed from the
+// keys, they go to the row.
+async function revealOpenFile(focus: boolean): Promise<void> {
+  const doc = currentDoc;
+  if (!doc || doc.path === null) return;
+  if (!searchResults.hidden) closeFolderSearch();
+  if (!browseRoot || !samePath(browseRoot, doc.dir)) {
+    browseRoot = doc.dir;
+    await refreshTree();
+  } else if (!tree.setActive(treeRoot, doc.path)) await refreshTree();
+  if (currentDoc !== doc) return;
+  tree.setActive(treeRoot, doc.path);
+  tree.reveal(treeRoot, { flash: true, focus });
+}
+
+// Collapse folders (2.4): all but the ones leading to the open file, whose row stays in sight.
+function collapseFolders(): void {
+  tree.collapseAll(treeRoot, currentDoc?.path ?? null);
+  tree.reveal(treeRoot);
 }
 
 /* ---- folder-wide search ---- */
@@ -3985,7 +4069,7 @@ async function goUp(): Promise<void> {
   const parent = await ipc.parentDir(browseRoot).catch(() => null);
   if (parent) {
     browseRoot = parent;
-    void refreshTree();
+    await refreshTree();
   }
 }
 
@@ -4462,6 +4546,7 @@ const appCommandHost: AppCommandHost = {
   hasOutline: () => toc.headings().length > 0 && !app.classList.contains("no-headings"),
   hasFolder: () => browseRoot !== null,
   canGoUp: () => browseRoot !== null && !isDriveRoot(browseRoot),
+  canCollapseFolders: () => treeRoot.querySelector(".tree-dir:not(.collapsed)") !== null,
   tabCount: () => session.live().length,
   canReopenTab: () => session.closed.length > 0,
   canGoBack: () => navHistory.canBack(),
@@ -4492,6 +4577,15 @@ const appCommandHost: AppCommandHost = {
   findInDocument: () => findInDocument(),
   searchFolder: () => openFolderSearch(selectionQuery()),
   goUp: () => void goUp(),
+  // from the palette the pane comes into sight too
+  collapseFolders: () => {
+    panes.show("tree");
+    collapseFolders();
+  },
+  revealOpenFile: () => {
+    panes.show("tree");
+    void revealOpenFile(false);
+  },
   goBack: () => void goBack(),
   goForward: () => void goForward(),
   togglePane: (pane) => panes.toggle(pane, { focus: true }),
@@ -4792,6 +4886,21 @@ function wireUi(): void {
   // rating from the help counts: the card does not ask again
   $("#help-rate").addEventListener("click", rateOnStore);
   btnUp.addEventListener("click", () => void goUp());
+  // the pane's other buttons (2.4); from the keys (no pointer: detail 0) the focus goes to the row
+  btnCollapse.addEventListener("click", () => collapseFolders());
+  btnLocate.addEventListener("click", (e) => void revealOpenFile(e.detail === 0));
+  treeEmptyLocate.addEventListener("click", (e) => void revealOpenFile(e.detail === 0));
+  tree.onChange(syncTreeTools);
+  syncTreeTools();
+  // Alt+Up in the list: the folder above, as in File Explorer (tree.ts leaves Alt to the app);
+  // the keys stay in the list
+  treeRoot.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp" || !e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
+    e.preventDefault();
+    void goUp().then(() => {
+      if (!treeRoot.contains(document.activeElement)) treeRoot.querySelector<HTMLElement>('.tree-row[tabindex="0"]')?.focus({ preventScroll: true });
+    });
+  });
   treeSearch.addEventListener("input", scheduleFolderSearch);
   treeSearch.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {

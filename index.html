@@ -50,9 +50,18 @@
         <aside id="tree-pane" aria-label="Files" data-i18n-aria-label="pane.files">
           <div class="pane-head">
             <span class="pane-title" data-i18n="pane.files">Files</span>
-            <button id="btn-up" class="icon-btn small" title="Go to parent folder" data-i18n-title="pane.up">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/></svg>
-            </button>
+            <div class="pane-tools">
+              <button id="btn-collapse" class="icon-btn small" title="Collapse folders" data-i18n-title="pane.collapse">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg>
+              </button>
+              <button id="btn-locate" class="icon-btn small" title="Back to the open file" data-i18n-title="pane.locate" disabled>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              </button>
+              <!-- its title names the folder it goes to (refreshTree) -->
+              <button id="btn-up" class="icon-btn small" title="Go to parent folder">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/></svg>
+              </button>
+            </div>
           </div>
           <div id="tree-search-wrap">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -63,6 +72,10 @@
           </div>
           <div id="tree-rootname" class="tree-rootname"></div>
           <div id="tree-root" role="tree" aria-label="Files" data-i18n-aria-label="pane.files"></div>
+          <div id="tree-empty" class="tree-empty" hidden>
+            <span data-i18n="pane.empty">No Markdown files here, up to 3 subfolders deep.</span>
+            <button id="tree-empty-locate" type="button" data-i18n="pane.locate">Back to the open file</button>
+          </div>
           <div id="search-results" hidden></div>
         </aside>
         <div id="tree-resizer" class="pane-resizer" role="separator" tabindex="0"

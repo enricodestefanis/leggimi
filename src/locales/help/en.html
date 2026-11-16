@@ -307,12 +307,14 @@
 
         <h3>Browsing files</h3>
         <p>
-          The left panel lists the Markdown files in the folder you opened, up to four levels of
+          The left panel lists the Markdown files in the folder you opened, up to three levels of
           subfolders. Opening a file from the panel keeps the same root folder, so you never lose your
           place; use the <strong>up arrow</strong> next to <em>Files</em> to move the root to the parent
-          folder. Opening a document from outside the current folder re-roots the panel there.
-          Folders you collapse stay collapsed while you navigate — and across restarts.
+          folder (with the focus in the list, <kbd>Alt</kbd>+<kbd>↑</kbd> too). Opening a document from outside
+          the current folder, or one the panel no longer shows, re-roots the panel there, and it scrolls to
+          the open file. Folders you collapse stay collapsed while you navigate — and across restarts.
         </p>
+        <p>Next to the arrow, <strong>Collapse folders</strong> closes every folder but the open file's, and <strong>Back to the open file</strong> (the target) takes the panel back to the file's folder and highlights it; the target takes the accent colour when the open file is not in the list. Both are in the command palette too.</p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
         <p>The pane updates by itself when files are added, renamed or deleted in the folder. Rename the open document and the window follows it; delete or move it and its text stays on screen, with a notice offering <strong>Save again</strong>.</p>
         <p>

@@ -36,6 +36,10 @@ export default {
   // side panels
   "pane.files": "Files",
   "pane.up": "Go to parent folder",
+  "pane.upTo": "Go to parent folder: {name}",
+  "pane.collapse": "Collapse folders",
+  "pane.locate": "Back to the open file",
+  "pane.empty": "No Markdown files here, up to 3 subfolders deep.",
   "pane.searchPlaceholder": "Search in folder… (Ctrl+Shift+F)",
   "pane.clear": "Clear (Esc)",
   "pane.outline": "Outline",

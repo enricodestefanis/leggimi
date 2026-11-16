@@ -319,12 +319,14 @@
 
         <h3>Explorar archivos</h3>
         <p>
-          El panel izquierdo muestra los archivos Markdown de la carpeta que abriste, hasta cuatro niveles de
+          El panel izquierdo muestra los archivos Markdown de la carpeta que abriste, hasta tres niveles de
           subcarpetas. Abrir un archivo desde el panel mantiene la misma carpeta raíz, así nunca pierdes el hilo;
-          usa la <strong>flecha arriba</strong> junto a <em>Archivos</em> para mover la raíz a la carpeta superior.
-          Abrir un documento fuera de la carpeta actual mueve el panel allí. Las carpetas que contraes siguen
-          contraídas mientras navegas, y también tras reiniciar.
+          usa la <strong>flecha arriba</strong> junto a <em>Archivos</em> para mover la raíz a la carpeta superior
+          (con el foco en la lista, también <kbd>Alt</kbd>+<kbd>↑</kbd>). Abrir un documento fuera de la carpeta
+          actual, o uno que el panel ya no muestra, mueve el panel allí, y este se desplaza hasta el archivo
+          abierto. Las carpetas que contraes siguen contraídas mientras navegas, y también tras reiniciar.
         </p>
+        <p>Junto a la flecha, <strong>Contraer carpetas</strong> cierra todas las carpetas menos las del archivo abierto, y <strong>Volver al archivo abierto</strong> (la diana) devuelve el panel a la carpeta del archivo y lo resalta; la diana toma el color de acento cuando el archivo abierto no está en la lista. Ambas están también en la paleta de comandos.</p>
         <p>Las carpetas sin archivos Markdown se ocultan, igual que las carpetas ocultas y de compilación como <code>node_modules</code>.</p>
         <p>El panel se actualiza solo cuando se añaden, renombran o eliminan archivos en la carpeta. Si renombras el documento abierto, la ventana lo sigue; si lo eliminas o lo mueves, su texto queda en pantalla y un aviso ofrece <strong>Guardar de nuevo</strong>.</p>
         <p>

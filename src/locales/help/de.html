@@ -331,12 +331,15 @@
 
         <h3>Dateien durchsuchen</h3>
         <p>
-          Der linke Bereich listet die Markdown-Dateien des geöffneten Ordners, bis zu vier Ebenen tief. Das
+          Der linke Bereich listet die Markdown-Dateien des geöffneten Ordners, bis zu drei Unterordner tief. Das
           Öffnen einer Datei aus dem Bereich behält denselben Stammordner, sodass Sie nie den Überblick
           verlieren; der <strong>Pfeil nach oben</strong> neben <em>Dateien</em> verschiebt den Stamm in den
-          übergeordneten Ordner. Ein Dokument außerhalb des aktuellen Ordners verlegt den Bereich dorthin.
-          Eingeklappte Ordner bleiben eingeklappt – beim Navigieren und über Neustarts hinweg.
+          übergeordneten Ordner (mit dem Fokus in der Liste auch <kbd>Alt</kbd>+<kbd>↑</kbd>). Ein Dokument
+          außerhalb des aktuellen Ordners, oder eines, das der Bereich nicht mehr zeigt, verlegt den Bereich
+          dorthin, und er scrollt zur geöffneten Datei. Eingeklappte Ordner bleiben eingeklappt – beim
+          Navigieren und über Neustarts hinweg.
         </p>
+        <p>Neben dem Pfeil klappt <strong>Ordner zuklappen</strong> alle Ordner außer denen der geöffneten Datei zu, und <strong>Zur geöffneten Datei</strong> (das Fadenkreuz) bringt den Bereich zum Ordner der Datei zurück und hebt sie hervor; das Fadenkreuz nimmt die Akzentfarbe an, wenn die geöffnete Datei nicht in der Liste steht. Beides gibt es auch in der Befehlspalette.</p>
         <p>Ordner ohne Markdown-Dateien werden ausgeblendet, ebenso versteckte und Build-Ordner wie <code>node_modules</code>.</p>
         <p>Die Liste aktualisiert sich von selbst, wenn im Ordner Dateien hinzugefügt, umbenannt oder gelöscht werden. Benennen Sie das geöffnete Dokument um, folgt ihm das Fenster; löschen oder verschieben Sie es, bleibt sein Text auf dem Bildschirm, und ein Hinweis bietet <strong>Erneut speichern</strong> an.</p>
         <p>
