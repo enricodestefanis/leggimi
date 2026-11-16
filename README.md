@@ -85,11 +85,21 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   links, lists, task lists, quotes), the usual shortcuts, and a **`/` menu** at the start of a
   line that inserts tables, Mermaid diagrams, KaTeX formulas, code blocks and callouts. The file
   stays plain Markdown — every command just edits the text
+- **An editor that writes like a code editor** (after Sublime Text): code in fenced blocks in the
+  preview's colours, the Markdown structure at a glance (headings, a band behind code blocks, a
+  callout-coloured bar along quotes, inline code on a chip, Markdown's marks in grey), every line
+  the same height; **pairs that close themselves** (`( [ { "` and the backtick; `* _ ~ =` wrap a
+  selection; never the apostrophe; ```` ```js ```` + `Enter` closes the block); **several cursors**
+  (`Ctrl+D`, `Ctrl+click`, `Ctrl+Alt+↑` / `↓`, `Alt`+drag for a column); Sublime's keys (`Ctrl+L`,
+  `Ctrl+Shift+L`, `Alt+F3`, `Ctrl+J`, `Ctrl+M`, `Ctrl+Shift+Enter`, `F9` to sort lines)
+- **A table editor**: in a table, `Tab` lines the columns up and moves to the next cell,
+  `Shift+Tab` back, and a new row comes with `Tab` in the last cell or `Enter` at its end
+- **Link completion**: after `](` the folder's Markdown files, after `![](` its pictures, after
+  `](#` the document's headings, after `](note.md#` another note's, after `[[` the notes' names
 - **Find & replace** (`Ctrl+F` / `Ctrl+H`), **spellcheck** with the dictionary of the interface language, line
-  commands (`Alt+↑` / `Alt+↓` move, `Shift+Alt+↓` duplicate, `Ctrl+Shift+K` delete, `Alt+L`
-  select), **Comment line** (`Ctrl+/`) to hide lines from the reader, more cursors (`Ctrl+D`
-  for the next occurrence, `Ctrl+Alt+↑` / `↓`), **go to line** (`Ctrl+Alt+G`), and a
-  **recovery draft** that offers your unsaved text back after a crash
+  commands (`Alt+↑` / `Alt+↓` move, `Shift+Alt+↓` duplicate, `Ctrl+Shift+K` delete, `Ctrl+L`
+  select), **Comment line** (`Ctrl+/`) to hide lines from the reader, **go to line**
+  (`Ctrl+Alt+G`), and a **recovery draft** that offers your unsaved text back after a crash
 - **Paste or drop images in edit mode**: they are saved to an `assets/` folder next to the
   document and linked with a relative path, Typora-style
 - **Paste and read**: text copied from a chat (ChatGPT, Claude), a web page, Word or Teams is
@@ -245,7 +255,8 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
   `Out-File`) and the Windows ANSI code page (`Set-Content`, older programs), also in the folder
   search; Leggimi saves them back in UTF-8 and says so the first time
 - `F5` or `Ctrl+R` reads the open file again from disk, keeping your place
-- Built-in help (`F1`) showing the running version
+- Built-in help (`F1`) showing the running version, with its sections listed beside the text and a
+  search that steps through what it finds (`Enter`, `Shift+Enter`, `F3`)
 - **Six languages**: English, Italian, German, French, Spanish and Simplified Chinese — the
   interface and the help follow the first supported language in your Windows preferred
   languages, with an override in the reading settings
@@ -287,8 +298,14 @@ anything. It is published only on GitHub Releases (the Store distributes the MSI
 | `Alt+↑` / `Alt+↓` | Move the line (editing) |
 | `Shift+Alt+↓` / `Ctrl+Shift+K` | Duplicate / delete the line (editing) |
 | `Ctrl+/` | Comment / uncomment the line (editing; `Ctrl+Shift+7` on Italian and German keyboards) |
-| `Ctrl+D` / `Alt+L` | Add the next occurrence to the selection / select the line (editing) |
-| `Ctrl+Alt+↑` / `Ctrl+Alt+↓` | Add a cursor above / below (editing) |
+| `Ctrl+D` / `Alt+F3` | Select the next occurrence too / every occurrence, a cursor each (editing) |
+| `Ctrl+L` / `Ctrl+Shift+L` | Select the line (again: the next one too) / split a selection into lines (editing) |
+| `Ctrl+Alt+↑` / `Ctrl+Alt+↓` | Add a cursor above / below (editing; `Ctrl+click` adds one, `Alt`+drag selects a column) |
+| `Ctrl+J` / `Ctrl+M` | Join with the next line / go to the matching bracket (editing) |
+| `Ctrl+Enter` / `Ctrl+Shift+Enter` | New line below / above (editing) |
+| `Ctrl+Shift+D` / `Ctrl+Shift+↑` / `↓` | Duplicate / move the line, as `Shift+Alt+↓` / `Alt+↑` / `↓` (editing) |
+| `F9` | Sort the selected lines, or the list under the cursor (editing) |
+| `Tab` / `Shift+Tab` | Next / previous table cell, the columns lined up (editing, in a table) |
 | `Ctrl+Alt+G` | Go to line (editing) |
 | `Esc`, then `Tab` | Leave the editor with the keyboard (editing) |
 | `/` | Block menu at the start of a line (editing) |
