@@ -76,7 +76,6 @@
       const params = new URLSearchParams(location.search);
       const LABEL = params.get("label") || "main";
       // ?root=Northwind names the folder the files live in (C:\Northwind)
-      const NESTED = params.has("root");
       const DIR = "C:\\" + (params.get("root") || "harness");
       const PATH = DIR + "\\test.md";
       // ?lang=it forces the UI language (what the Aa popover stores)
@@ -461,15 +460,9 @@
           case "existing_paths":
             return args.paths.filter((p) => harness.files.has(p));
           case "parent_dir":
-            return DIR;
+            return parentOf(args.path);
           case "list_tree":
-            if (NESTED) return treeOf(DIR);
-            return {
-              name: DIR.split("\\").pop(),
-              path: DIR,
-              isDir: true,
-              children: [...harness.files.keys()].map((p) => ({ name: p.slice(DIR.length + 1), path: p, isDir: false, children: [] })),
-            };
+            return treeOf(args.dir || DIR);
           case "search_in_tree":
             return searchFiles(args.dir || DIR, args.query || "");
           case "resolve_path":
@@ -757,16 +750,44 @@
         return typeof dir === "string" && /^(?:[a-z]:[\\/]|[\\/]{2}[^\\/])/i.test(dir);
       }
 
-      // the in-memory files under `dir` as the Rust list_tree returns them:
-      // nested folders, folders first, then by name
+      // A folder as Rust names it: "C:\" for a drive's root, no backslash at the end otherwise;
+      // a name inside it
+      const trimDir = (dir) => (/^[a-z]:[\\/]?$/i.test(dir) ? dir.slice(0, 2) + "\\" : dir.replace(/[\\/]+$/, ""));
+      const joinDir = (dir, name) => (dir.endsWith("\\") ? dir + name : `${dir}\\${name}`);
+
+      // parent_dir (2.4: it answered the harness folder, so Up never went anywhere): the folder
+      // above, none above a drive's root or a share (Rust's Path::parent)
+      function parentOf(path) {
+        const p = trimDir(String(path || ""));
+        if (/^[a-z]:\\$/i.test(p) || /^\\\\[^\\]+\\[^\\]+$/.test(p) || !p.includes("\\")) return null;
+        const up = p.slice(0, p.lastIndexOf("\\"));
+        return /^[a-z]:$/i.test(up) ? up + "\\" : up;
+      }
+
+      // The in-memory files under `dir` as the Rust list_tree returns them (commands.rs
+      // build_node; 2.4: the folder asked for, not always the harness folder as one flat list):
+      // Markdown files only, four levels at most (so three subfolders), hidden and skipped
+      // folders left out, a folder with nothing listed left out, folders first, then by name,
+      // 2000 files at most. The root comes back even when empty.
+      const MD_FILE = /\.(md|markdown|mdown|mkd|mkdn|mdwn|markdn|mdtxt)$/i;
+      const SKIP_DIRS = new Set([
+        "node_modules", "target", "dist", "__pycache__", "venv", "windows", "program files",
+        "program files (x86)", "programdata", "appdata", "$recycle.bin", "system volume information",
+      ]);
+      const skippedDir = (name) => name.startsWith(".") || SKIP_DIRS.has(name.toLowerCase());
       function treeOf(dir) {
-        const root = { name: dir.split("\\").pop(), path: dir, isDir: true, children: [] };
+        const base = trimDir(dir);
+        const root = { name: base.endsWith("\\") ? base : base.split("\\").pop(), path: base, isDir: true, children: [] };
+        const under = joinDir(base, "").toLowerCase();
+        let count = 0;
         for (const p of harness.files.keys()) {
-          if (!p.startsWith(dir + "\\")) continue;
+          if (!p.toLowerCase().startsWith(under) || !MD_FILE.test(p) || count >= 2000) continue;
+          const parts = p.slice(under.length).split("\\");
+          if (parts.length > 4 || parts.slice(0, -1).some(skippedDir)) continue;
+          count += 1;
           let node = root;
-          const parts = p.slice(dir.length + 1).split("\\");
           parts.forEach((part, i) => {
-            const path = `${node.path}\\${part}`;
+            const path = joinDir(node.path, part);
             if (i === parts.length - 1) {
               node.children.push({ name: part, path, isDir: false, children: [] });
               return;
@@ -799,13 +820,17 @@
         return (start > 0 ? "…" : "") + chars.slice(start, end).join("") + (end < chars.length ? "…" : "");
       }
 
-      // search_in_tree: the file name (line 0), then each line holding the words, as Rust answers
+      // search_in_tree: the file name (line 0), then each line holding the words, as Rust answers;
+      // the file pane's walk (2.4): Markdown files four levels deep at most, skipped folders left out
       function searchFiles(dir, query) {
         const q = query.trim().toLowerCase();
         if (!q) return [];
         const hits = [];
+        const under = joinDir(trimDir(dir), "").toLowerCase();
         for (const [path, text] of harness.files) {
-          if (!path.toLowerCase().startsWith(dir.toLowerCase() + "\\") || !/\.(md|markdown|txt)$/i.test(path)) continue;
+          if (!path.toLowerCase().startsWith(under) || !MD_FILE.test(path)) continue;
+          const parts = path.slice(under.length).split("\\");
+          if (parts.length > 4 || parts.slice(0, -1).some(skippedDir)) continue;
           const name = path.split("\\").pop();
           if (name.toLowerCase().includes(q)) hits.push({ name, path, line: 0, preview: "" });
           text.split("\n").forEach((line, i) => {
