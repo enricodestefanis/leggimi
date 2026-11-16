@@ -20,7 +20,7 @@ Italian, German, French, Spanish and Simplified Chinese.
 
 <p align="center">
   <img alt="Leggimi — four documents in tabs in the title bar, a tab's card with its folder and reading time, the file browser and the outline" src="docs/screenshot-viewer.png" width="49%" />
-  <img alt="Leggimi — edit mode with find &amp; replace, the format bar and the live preview" src="docs/screenshot-editor.png" width="49%" />
+  <img alt="Leggimi — the editor with its colours, a date selected three times with Ctrl+D, the format bar and the live preview" src="docs/screenshot-editor.png" width="49%" />
 </p>
 
 <p align="center">
