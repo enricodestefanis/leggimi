@@ -550,9 +550,11 @@ async function enterEditMode(line?: number): Promise<void> {
   hideRateToast();
   editorMod.focus();
 
-  // the editor opens at the line asked for, else at the section being read
-  if (line !== undefined) editorMod.scrollToLine(line);
-  else if (readLine > 0) editorMod.scrollToLine(readLine);
+  // the editor opens at the line asked for, else at the section being read,
+  // the top included: hidden while reading, its pane kept the place of the
+  // text it held before (the browser restores it when the pane shows again),
+  // which for a shorter text is its very end
+  editorMod.scrollToLine(line ?? readLine);
 }
 
 // "Edit from here": the editor at that source line, entering edit mode first

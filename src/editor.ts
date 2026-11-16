@@ -1,4 +1,4 @@
-import { Compartment, EditorSelection, EditorState, Prec, type Extension, type Line } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, Prec, type Extension, type Line, type StateEffect } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -575,14 +575,19 @@ export interface Snapshot {
   lastSaved: string;
   eol: "\n" | "\r\n";
   dirty: boolean;
-  scrollTop: number;
+  /**
+   * the place, as CodeMirror takes it (the line at the top and how far above it the
+   * view stood); null: the top. A pixel offset put back by hand was moved again by
+   * CodeMirror's own anchoring, measured on the text the editor held before
+   */
+  scroll: StateEffect<unknown> | null;
   /** the search panel showed its replace row */
   replaceRow: boolean;
 }
 
 export function snapshot(): Snapshot | null {
   if (!view) return null;
-  return { state: view.state, lastSaved, eol, dirty, scrollTop: view.scrollDOM.scrollTop, replaceRow: searchFace() };
+  return { state: view.state, lastSaved, eol, dirty, scroll: view.scrollSnapshot(), replaceRow: searchFace() };
 }
 
 /** Another tab's editor comes back: its text, its undo, its place. */
@@ -593,14 +598,16 @@ export function restore(s: Snapshot): void {
   dirty = s.dirty;
   setSearchFace(s.replaceRow);
   view.setState(s.state);
-  // the spelling setting may have changed while the tab was away, and the name is this tab's
+  // the spelling setting may have changed while the tab was away, and the name is this tab's;
+  // the place is put back once the restored text is laid out
   view.dispatch({
-    effects: [spellCompartment.reconfigure(spellAttrs(spellcheckEnabled())), labelCompartment.reconfigure(labelAttrs())],
+    effects: [
+      spellCompartment.reconfigure(spellAttrs(spellcheckEnabled())),
+      labelCompartment.reconfigure(labelAttrs()),
+      s.scroll ?? EditorView.scrollIntoView(0, { y: "start", yMargin: 100 }),
+    ],
   });
   syncSearchPanel(view);
-  // the place once the restored text is laid out
-  const top = s.scrollTop;
-  view.requestMeasure({ read: () => null, write: () => (view!.scrollDOM.scrollTop = top) });
   callbacks?.onDirtyChanged(dirty);
   formatsListener?.(activeFormats(view.state));
 }
@@ -617,7 +624,7 @@ export function snapshotFromJSON(json: { state: unknown; lastSaved: string; eol:
     lastSaved: json.lastSaved,
     eol: json.eol,
     dirty: state.doc.toString() !== json.lastSaved,
-    scrollTop: 0,
+    scroll: null,
     replaceRow: false,
   };
 }
@@ -637,11 +644,14 @@ export function snapshotSaved(s: Snapshot): Snapshot {
 export function snapshotInsert(s: Snapshot, text: string): Snapshot {
   const main = s.state.selection.main;
   // at the main cursor only: with several cursors, one picture, not one per cursor
-  const state = s.state.update({
+  const tr = s.state.update({
     changes: { from: main.from, to: main.to, insert: text },
     selection: EditorSelection.cursor(main.from + text.length),
-  }).state;
-  return { ...s, state, dirty: state.doc.toString() !== s.lastSaved };
+  });
+  const state = tr.state;
+  // the place follows the text: the line at the top stays the same line
+  const scroll = s.scroll ? (s.scroll.map(tr.changes) ?? null) : null;
+  return { ...s, state, scroll, dirty: state.doc.toString() !== s.lastSaved };
 }
 
 /**
@@ -839,7 +849,9 @@ export function scrollToLine(line: number): void {
   const pos = view.state.doc.line(n).from;
   view.dispatch({
     selection: { anchor: pos },
-    effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: 12 }),
+    // the first line: the very top, the scroller's padding above it too (isAtTop()
+    // then holds); the caret's box sits a few pixels below the line's top
+    effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: n === 1 ? 100 : 12 }),
   });
 }
 

@@ -71,6 +71,10 @@ review of 2.2.
   text in the preview, are no longer coloured as sub- and superscript or emoji; Cascadia Code's
   ligatures no longer draw a table's `|---|` as one line.
 - A picture pasted while several cursors are on goes in once.
+- Edit could open with the editor scrolled to the end of its text, almost empty, while the preview
+  showed the top: it kept the place of the text it held before. It now opens at the section being
+  read, the top included. A tab left while editing also comes back to the exact place of its
+  editor (it landed lower down).
 
 ## [2.3.0] - 2026-11-13
 
