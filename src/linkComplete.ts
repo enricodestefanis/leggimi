@@ -115,6 +115,42 @@ function targetFile(typed: string, dir: string, path: string | null, files: stri
   return undefined; // not a note the pane lists: no headings
 }
 
+// ---- what is typed narrows the list (the editor's own filter matches a single letter only at
+// a label's start: "f" never found "img/foto.png"; this one looks in the file's name and words)
+
+const fold = (s: string): string => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** How well `typed` fits `label` (null: not at all): the name's start, a word's start, inside, letters in order. */
+function fit(label: string, typed: string): number | null {
+  const q = fold(typed);
+  if (!q) return 0;
+  const l = fold(label);
+  const name = l.slice(l.lastIndexOf("/") + 1);
+  if (name.startsWith(q)) return 100;
+  if (l.startsWith(q)) return 90;
+  if (l.split(/[\s/._#-]+/).some((w) => w.startsWith(q))) return 70;
+  if (name.includes(q)) return 50;
+  if (l.includes(q)) return 40;
+  let i = 0;
+  for (const c of l) if (c === q[i]) i++;
+  return i === q.length ? 10 : null;
+}
+
+/**
+ * The options that fit `typed`, best first (then by their own boost: nearer files, document
+ * order), for a result with `filter: false`: CodeMirror then asks again at every key.
+ */
+function narrow(options: Completion[], typed: string, also?: (o: Completion) => string): Completion[] {
+  const scored: { o: Completion; s: number }[] = [];
+  for (const o of options) {
+    const a = fit(o.label, typed);
+    const b = also ? fit(also(o), typed) : null;
+    const s = Math.max(a ?? -1, b ?? -1);
+    if (s >= 0) scored.push({ o, s });
+  }
+  return scored.sort((x, y) => y.s - x.s || (y.o.boost ?? 0) - (x.o.boost ?? 0)).map((x) => x.o);
+}
+
 // [text](path… or ![alt](path…, before any "#"
 const LINK = /(!?)\[[^\]\n]*\]\(([^()\s#]*)$/;
 // [text](path#anchor…
@@ -140,7 +176,8 @@ export async function linkSource(ctx: CompletionContext): Promise<CompletionResu
     }
     const heads = await provider.headings(file, file === null ? ctx.state.doc.toString() : "").catch(() => []);
     if (!heads.length) return null;
-    return { from: ctx.pos - typed.length, options: headingOptions(heads, ")"), validFor: /^[^\s()#]*$/ };
+    const options = narrow(headingOptions(heads, ")"), typed, (o) => o.displayLabel ?? "");
+    return options.length ? { from: ctx.pos - typed.length, options, filter: false } : null;
   }
 
   if (!dir) return null;
@@ -148,11 +185,8 @@ export async function linkSource(ctx: CompletionContext): Promise<CompletionResu
   const image = link![1] === "!";
   const list = image ? await provider.images().catch(() => []) : files.filter((f) => !path || !samePath(f, path));
   if (!list.length) return null;
-  return {
-    from: ctx.pos - typed.length,
-    options: fileOptions(dir, list, image ? "img" : "md", ")"),
-    validFor: /^[^\s()#\]]*$/,
-  };
+  const options = narrow(fileOptions(dir, list, image ? "img" : "md", ")"), typed);
+  return options.length ? { from: ctx.pos - typed.length, options, filter: false } : null;
 }
 
 // [[name… and [[name#heading… (also ![[ for pictures)
@@ -197,7 +231,8 @@ export async function wikiSource(ctx: CompletionContext): Promise<CompletionResu
       boost: -Math.min(99, i) / 10,
       apply: applyWith(h.text, "]]"),
     }));
-    return { from: ctx.pos - anchor[2].length, options, validFor: /^[^[\]|#\n]*$/ };
+    const fitting = narrow(options, anchor[2]);
+    return fitting.length ? { from: ctx.pos - anchor[2].length, options: fitting, filter: false } : null;
   }
 
   const typed = wiki![2];
@@ -205,7 +240,8 @@ export async function wikiSource(ctx: CompletionContext): Promise<CompletionResu
     const pictures = await provider.images().catch(() => []);
     if (!pictures.length) return null;
     const options = pictures.map((p) => ({ label: fileName(p), type: "link-img", apply: applyWith(fileName(p), "]]") }));
-    return { from: ctx.pos - typed.length, options, validFor: /^[^[\]|#\n]*$/ };
+    const fitting = narrow(options, typed);
+    return fitting.length ? { from: ctx.pos - typed.length, options: fitting, filter: false } : null;
   }
 
   const notes = files.filter((f) => !path || !samePath(f, path));
@@ -217,6 +253,6 @@ export async function wikiSource(ctx: CompletionContext): Promise<CompletionResu
     const label = (count.get(name.toLowerCase()) ?? 0) > 1 ? relativePath(dir, f).replace(MD_EXT, "") : name;
     return { label, type: "link-md", boost: -Math.min(40, depth(relativePath(dir, f))), apply: applyWith(label, "]]"), info: infoOf(f) };
   });
-  if (!options.length) return null;
-  return { from: ctx.pos - typed.length, options, validFor: /^[^[\]|#\n]*$/ };
+  const fitting = narrow(options, typed);
+  return fitting.length ? { from: ctx.pos - typed.length, options: fitting, filter: false } : null;
 }
