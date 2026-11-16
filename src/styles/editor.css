@@ -42,6 +42,29 @@
   --editor-band: rgba(255, 255, 255, 0.05);
 }
 
+/* On the line being edited a code block's band and the line's tint add up: in the light and
+   sepia themes the preview's red, purple and grey (code.css) fall just under 4.5:1 there
+   (4.2-4.4:1). The editor's own shades are 2.5-6 % darker, the same hues, 4.6:1 on that line;
+   the preview keeps GitHub's. Measured by the kit's h_240_contrast.py. */
+:root:not([data-scheme="dark"]) .cm-editor {
+  --syn-keyword: #ca212d;
+  --syn-title: #7a4bd2;
+  --syn-comment: #616972;
+}
+
+:root[data-theme="sepia"] .cm-editor {
+  --syn-keyword: #b91e29;
+  --syn-title: #7045c1;
+  --syn-comment: #57616b;
+}
+
+/* the bracket matching the one at the caret is lit with the accent: its ink is the text's, as a
+   token's colour (a ticked task's green) on that tint falls under 4.5:1 */
+.cm-editor .cm-matchingBracket,
+.cm-editor .cm-matchingBracket * {
+  color: var(--text);
+}
+
 /* above the theme's .cm-activeLine (which clears the colour for its own tint) */
 .cm-editor .cm-line.cm-md-fence {
   background-color: var(--editor-band);

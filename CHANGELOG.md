@@ -16,7 +16,8 @@ way back to the open file, and five fixes from the expert review of 2.2.
 
 ### Added
 - **The editor shows the structure.** Code in fenced blocks has the preview's colours, for every
-  language the preview knows; headings are in the app's colour, with a thin line under the first
+  language the preview knows (in the light and sepia themes three of them a shade deeper, so they
+  keep 4.5:1 on the line being edited); headings are in the app's colour, with a thin line under the first
   two levels; code blocks and front matter sit on a band; quotes have a bar on the left, in the
   colour of their callout (`> [!WARNING]` orange, `> [!TIP]` green); inline code is on a chip;
   `==highlight==` is yellow; math, `[[links]]` and the YAML of the front matter are coloured; a
