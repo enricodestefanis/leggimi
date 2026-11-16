@@ -7,12 +7,12 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
-## [2.4.0] - Unreleased
+## [2.4.0] - 2026-11-16
 
 The editor writes Markdown the way a code editor does, after Sublime Text: colours that show the
 structure, pairs that close themselves, several cursors, a table editor and link completion. The
-help is a window with its sections beside the text and a search, and five fixes from the expert
-review of 2.2.
+help is a window with its sections beside the text and a search, the file pane always finds its
+way back to the open file, and five fixes from the expert review of 2.2.
 
 ### Added
 - **The editor shows the structure.** Code in fenced blocks has the preview's colours, for every
