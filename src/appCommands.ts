@@ -46,6 +46,8 @@ export interface AppCommandHost {
   hasFolder(): boolean;
   /** that folder has one above it (it is no drive root) */
   canGoUp(): boolean;
+  /** a folder of the file pane is open (Collapse folders has work to do) */
+  canCollapseFolders(): boolean;
   /** the tabs of this window, start pages included */
   tabCount(): number;
   /** a closed tab to bring back */
@@ -80,6 +82,10 @@ export interface AppCommandHost {
   /** Ctrl+Shift+F */
   searchFolder(): void;
   goUp(): void;
+  /** the file pane: every folder closed but the open file's */
+  collapseFolders(): void;
+  /** the file pane back at the open file's folder, its row in sight */
+  revealOpenFile(): void;
   goBack(): void;
   goForward(): void;
   /** Ctrl+B / Ctrl+I, the keys going into a pane that opens over the text */
@@ -137,6 +143,8 @@ const ICON = {
   folderFind:
     '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><circle cx="12" cy="13.5" r="2.5"/><line x1="16" y1="17.5" x2="14" y2="15.5"/>',
   up: '<path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/>',
+  collapseFolders: '<path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/>',
+  locate: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   back: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
   forward: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
   tree: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>',
@@ -233,6 +241,8 @@ export function buildCommands(h: AppCommandHost): PaletteCommand[] {
   add(doc && command("find", "keys.find", ICON.find, h.findInDocument, "Ctrl+F"));
   add(folder && command("searchFolder", "keys.searchFolder", ICON.folderFind, h.searchFolder, "Ctrl+Shift+F"));
   add(folder && h.canGoUp() && command("up", "pane.up", ICON.up, h.goUp));
+  add(folder && h.canCollapseFolders() && command("collapseFolders", "pane.collapse", ICON.collapseFolders, h.collapseFolders));
+  add(file && command("revealOpenFile", "pane.locate", ICON.locate, h.revealOpenFile));
   add(h.canGoBack() && command("back", "ctx.back", ICON.back, h.goBack, "Alt+←"));
   add(h.canGoForward() && command("forward", "ctx.forward", ICON.forward, h.goForward, "Alt+→"));
   add(command("tree", "toolbar.tree", ICON.tree, () => h.togglePane("tree"), editing ? undefined : "Ctrl+B"));

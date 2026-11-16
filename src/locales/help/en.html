@@ -220,6 +220,32 @@
           <kbd>/</kbd> at the start of a line to pick a block by name. Pasting a link over selected
           text turns it into a Markdown link.
         </p>
+        <p>
+          <strong>While you type:</strong> brackets <code>( [ {</code>, quotes <code>"</code> and backticks <code>`</code>
+          close themselves, with the cursor in between; typing the closing one steps over it, and
+          <kbd>Backspace</kbd> on an empty pair removes both. The apostrophe never closes itself. With text selected,
+          <code>*</code>, <code>_</code>, <code>~</code> and <code>=</code> wrap it: twice makes <code>**bold**</code>,
+          <code>~~strikethrough~~</code>, <code>==highlight==</code>. After <code>```</code> and a language name,
+          <kbd>Enter</kbd> closes the code block. Inside a code block its language's rules apply. Code has the
+          preview's colours, and Markdown's marks are grey.
+        </p>
+        <p>
+          <strong>Several cursors:</strong> <kbd>Ctrl</kbd>+<kbd>D</kbd> selects the word and then, at each press,
+          its next occurrence; <kbd>Ctrl</kbd>+click adds a cursor, <kbd>Alt</kbd>+drag selects a column. What you
+          type goes to every cursor; <kbd>Esc</kbd> goes back to one.
+        </p>
+        <p>
+          <strong>Links:</strong> after <code>](</code> the editor offers the folder's Markdown files (after
+          <code>![](</code> its pictures), after <code>](#</code> the document's headings, after <code>](note.md#</code>
+          another note's, after <code>[[</code> the notes' names. <kbd>Enter</kbd> or <kbd>Tab</kbd> writes the path,
+          relative to the document.
+        </p>
+        <p>
+          <strong>Tables:</strong> with the cursor in a table, <kbd>Tab</kbd> lines the columns up and moves to the next
+          cell (in the last one it adds a row), <kbd>Shift</kbd>+<kbd>Tab</kbd> goes back, <kbd>Enter</kbd> at the end
+          of the last row adds a row and, on an empty row, leaves the table. <strong>Format table</strong>, in the
+          Tools menu, lines it up without moving the cursor.
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Bold / italic</td></tr>
@@ -230,12 +256,20 @@
             <tr><td><kbd>/</kbd></td><td>Block menu, at the start of a line</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Find / find and replace in the text</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Next / previous match</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Move the line up / down</td></tr>
-            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplicate the line</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>)</td><td>Move the line up / down</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>Duplicate the line</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Delete the line</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Select the line</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> or <kbd>Alt</kbd>+<kbd>L</kbd></td><td>Select the line (again: the next one too)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Add the next occurrence to the selection</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Add a cursor above / below</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+click / <kbd>Alt</kbd>+drag</td><td>Add a cursor / select a column</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>Select all occurrences</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Split the selection into lines, one per line</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>J</kbd></td><td>Join the line with the next one</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>New line below / above</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>Go to the matching bracket</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>Sort the selected lines, or the list under the cursor</td></tr>
+            <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> in a table</td><td>Next / previous cell, with the columns lined up</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Comment / uncomment the line</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Go to line</td></tr>
             <tr><td><kbd>Esc</kbd>, then <kbd>Tab</kbd></td><td>Leave the editor with the keyboard</td></tr>
@@ -273,12 +307,14 @@
 
         <h3>Browsing files</h3>
         <p>
-          The left panel lists the Markdown files in the folder you opened, up to four levels of
+          The left panel lists the Markdown files in the folder you opened, up to three levels of
           subfolders. Opening a file from the panel keeps the same root folder, so you never lose your
           place; use the <strong>up arrow</strong> next to <em>Files</em> to move the root to the parent
-          folder. Opening a document from outside the current folder re-roots the panel there.
-          Folders you collapse stay collapsed while you navigate — and across restarts.
+          folder (with the focus in the list, <kbd>Alt</kbd>+<kbd>↑</kbd> too). Opening a document from outside
+          the current folder, or one the panel no longer shows, re-roots the panel there, and it scrolls to
+          the open file. Folders you collapse stay collapsed while you navigate — and across restarts.
         </p>
+        <p>Next to the arrow, <strong>Collapse folders</strong> closes every folder but the open file's, and <strong>Back to the open file</strong> (the target) takes the panel back to the file's folder and highlights it; the target takes the accent colour when the open file is not in the list. Both are in the command palette too.</p>
         <p>Folders without Markdown files are hidden, as are hidden and build folders such as <code>node_modules</code>.</p>
         <p>The pane updates by itself when files are added, renamed or deleted in the folder. Rename the open document and the window follows it; delete or move it and its text stays on screen, with a notice offering <strong>Save again</strong>.</p>
         <p>
@@ -400,7 +436,7 @@
           Leggimi?</em>: <strong>Rate</strong> opens the Store's rating dialog over Leggimi (or the Store
           page, if the dialog cannot open), <strong>Later</strong> asks again in a month and <strong>No
           thanks</strong> never again. The card shows in one window at a time and, left unanswered, waits a
-          week before coming back; <strong>Rate on the Store</strong>, at the bottom of this help, does the
+          week before coming back; <strong>Rate on the Store</strong>, at the top right of this help, does the
           same as Rate.
         </p>
         <p>

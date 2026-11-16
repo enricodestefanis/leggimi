@@ -1,0 +1,103 @@
+/* The editor's structure (editorDecor.ts) and the tints it paints with (2.4).
+   Every tint is translucent: CodeMirror draws the selection in a layer behind
+   the lines, and an opaque band would hide it. None changes a line's height. */
+
+:root {
+  /* behind code blocks and front matter: about --code-bg over --bg */
+  --editor-band: color-mix(in srgb, var(--text) 3%, transparent);
+  /* inline code: the text's own ink, a step stronger than the band */
+  --editor-chip: color-mix(in srgb, var(--text) 9%, transparent);
+  /* ==highlight==: the marker's yellow, see-through enough for a selection */
+  --editor-mark: color-mix(in srgb, var(--mark-bg) 82%, transparent);
+  /* a quote's bar; a callout's takes its family's colour, as in markdown.css */
+  --editor-quote: color-mix(in srgb, var(--text-muted) 55%, transparent);
+  --editor-note: #0969da;
+  --editor-tip: #197c35;
+  --editor-important: #7e4ed8;
+  --editor-warning: #926200;
+  --editor-caution: #cf222e;
+}
+
+:root[data-theme="sepia"] {
+  --editor-band: color-mix(in srgb, var(--text) 4%, transparent);
+  --editor-note: #085fc5;
+  --editor-tip: #177131;
+  --editor-important: #7447c8;
+  --editor-warning: #865a00;
+  --editor-caution: #bf1f2a;
+}
+
+/* the dark page's code blocks are darker than the page, as in the preview */
+:root[data-scheme="dark"] {
+  --editor-band: rgba(0, 0, 0, 0.22);
+  --editor-note: #4493f8;
+  --editor-tip: #3fb950;
+  --editor-important: #ab7df8;
+  --editor-warning: #d29922;
+  --editor-caution: #f9645d;
+}
+
+/* on black nothing is darker: a faint light band instead */
+:root[data-theme="black"] {
+  --editor-band: rgba(255, 255, 255, 0.05);
+}
+
+/* On the line being edited a code block's band and the line's tint add up: in the light and
+   sepia themes the preview's red, purple and grey (code.css) fall just under 4.5:1 there
+   (4.2-4.4:1). The editor's own shades are 2.5-6 % darker, the same hues, 4.6:1 on that line;
+   the preview keeps GitHub's. Measured by the kit's h_240_contrast.py. */
+:root:not([data-scheme="dark"]) .cm-editor {
+  --syn-keyword: #ca212d;
+  --syn-title: #7a4bd2;
+  --syn-comment: #616972;
+}
+
+:root[data-theme="sepia"] .cm-editor {
+  --syn-keyword: #b91e29;
+  --syn-title: #7045c1;
+  --syn-comment: #57616b;
+}
+
+/* the bracket matching the one at the caret is lit with the accent: its ink is the text's, as a
+   token's colour (a ticked task's green) on that tint falls under 4.5:1 */
+.cm-editor .cm-matchingBracket,
+.cm-editor .cm-matchingBracket * {
+  color: var(--text);
+}
+
+/* above the theme's .cm-activeLine (which clears the colour for its own tint) */
+.cm-editor .cm-line.cm-md-fence {
+  background-color: var(--editor-band);
+}
+
+.cm-line.cm-md-quote {
+  box-shadow: inset 3px 0 0 var(--editor-bar, var(--editor-quote));
+}
+
+.cm-md-callout-note { --editor-bar: var(--editor-note); }
+.cm-md-callout-tip { --editor-bar: var(--editor-tip); }
+.cm-md-callout-important { --editor-bar: var(--editor-important); }
+.cm-md-callout-warning { --editor-bar: var(--editor-warning); }
+.cm-md-callout-caution { --editor-bar: var(--editor-caution); }
+
+.cm-md-callout-title,
+.cm-md-callout-title * {
+  color: var(--editor-bar);
+  text-decoration: none;
+}
+
+.cm-line.cm-md-h1,
+.cm-line.cm-md-h2 {
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+.cm-md-task-done,
+.cm-md-task-done * {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.cm-md-done,
+.cm-md-done * {
+  color: var(--text-muted);
+}

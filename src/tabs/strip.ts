@@ -138,7 +138,35 @@ export function rect(): DOMRect {
   return strip.getBoundingClientRect();
 }
 
+// Two tabs with one name (alpha\README.md, beta\README.md) show the folder
+// that tells them apart, in grey after the name and in the name a screen
+// reader hears (A-09, 2.4): the nearest folder that differs.
+let folderHints = new Map<number, string>();
+
+function hintsFor(tabs: Tab[]): Map<number, string> {
+  const hints = new Map<number, string>();
+  const groups = new Map<string, { id: number; dirs: string[] }[]>();
+  for (const tab of tabs) {
+    if (tab.src.kind !== "file") continue;
+    const key = baseName(tab.src.path).toLowerCase();
+    const dirs = folderOf(tab.src.path).split(/[\\/]+/).filter(Boolean).reverse();
+    groups.set(key, [...(groups.get(key) ?? []), { id: tab.id, dirs }]);
+  }
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    for (const me of group) {
+      const others = group.filter((g) => g !== me);
+      // the first folder, from the file up, where every other path differs
+      const i = me.dirs.findIndex((d, k) => others.every((o) => (o.dirs[k] ?? "").toLowerCase() !== d.toLowerCase()));
+      const hint = i >= 0 ? me.dirs[i] : me.dirs[0];
+      if (hint) hints.set(me.id, hint);
+    }
+  }
+  return hints;
+}
+
 export function render(added?: Tab): void {
+  folderHints = hintsFor(session.live());
   // the ghost of an incoming tab steps out while the tabs take their order
   const g = ghost;
   g?.remove();
@@ -190,9 +218,21 @@ function paint(tab: Tab, el: HTMLElement): void {
   el.setAttribute("aria-selected", String(isActive));
   el.tabIndex = isActive ? 0 : -1;
   const title = labelOf(tab);
+  const hint = folderHints.get(tab.id) ?? "";
   const titleEl = el.querySelector<HTMLElement>(".tab-title")!;
-  if (titleEl.textContent !== title) titleEl.textContent = title;
-  el.setAttribute("aria-label", nameOf(tab));
+  if (titleEl.dataset.title !== title || titleEl.dataset.hint !== hint) {
+    titleEl.dataset.title = title;
+    titleEl.dataset.hint = hint;
+    if (hint) {
+      const dir = document.createElement("span");
+      dir.className = "tab-dir";
+      dir.textContent = ` · ${hint}`;
+      titleEl.replaceChildren(title, dir);
+    } else {
+      titleEl.textContent = title;
+    }
+  }
+  el.setAttribute("aria-label", hint ? `${nameOf(tab)}, ${hint}` : nameOf(tab));
   const icon = iconOf(tab);
   const iconEl = el.querySelector<HTMLElement>(".tab-icon")!;
   if (iconEl.dataset.icon !== icon) {

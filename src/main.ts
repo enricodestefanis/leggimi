@@ -18,11 +18,12 @@ import { ask, message, open as openDialog, save as saveDialog } from "@tauri-app
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import * as ipc from "./ipc";
-import { applyScheme, forgetFoundFiles, render, renderFragment } from "./renderer";
+import { applyScheme, forgetFoundFiles, headingAnchors, render, renderFragment } from "./renderer";
 import { placeDrawnDiagrams, renderMermaidIn, rerenderForTheme } from "./mermaid";
 import * as toc from "./toc";
 import * as tree from "./tree";
 import * as search from "./search";
+import * as helpNav from "./helpNav";
 import * as lightbox from "./lightbox";
 import * as panes from "./panes";
 import * as wide from "./wide";
@@ -47,7 +48,7 @@ import { keyLabel, t } from "./i18n";
 import { whereFrom, type Where } from "./where";
 import { reachable } from "./reach";
 import { captureScrollAnchor, findHeading, restoreScrollAnchor, type ScrollAnchor } from "./state";
-import { isInside, samePath } from "./paths";
+import { isInside, relativePath, samePath } from "./paths";
 import {
   docKey,
   fileSafeName,
@@ -67,6 +68,7 @@ import * as strip from "./tabs/strip";
 import * as chrome from "./tabs/chrome";
 import type { TabAccepted, TabInfo, TabOffer, TabTransfer, TestHooks } from "./tabs/contract";
 import type { Snapshot } from "./editor";
+import type { Heading, LinkProvider } from "./linkComplete";
 import type { PaletteCommand, PaletteFile, PaletteHeading, PaletteHost, PaletteTab } from "./palette";
 import type { AppCommandHost } from "./appCommands";
 
@@ -85,6 +87,10 @@ const treeSearch = $<HTMLInputElement>("#tree-search");
 const treeSearchClear = $<HTMLButtonElement>("#tree-search-clear");
 const searchResults = $("#search-results");
 const btnUp = $<HTMLButtonElement>("#btn-up");
+const btnCollapse = $<HTMLButtonElement>("#btn-collapse");
+const btnLocate = $<HTMLButtonElement>("#btn-locate");
+const treeEmpty = $("#tree-empty");
+const treeEmptyLocate = $<HTMLButtonElement>("#tree-empty-locate");
 const tocList = $("#toc-list");
 const docTitle = $("#doc-title");
 const docMeta = $("#doc-meta");
@@ -337,7 +343,10 @@ async function loadDoc(path: string, opts: OpenOptions): Promise<OpenResult> {
     // Same-root selection just moves the highlight: a rebuild would discard the
     // user's collapsed folders and flicker. Same-document reopens (watcher
     // reloads) still rebuild so files added or removed on disk get picked up.
-    if (rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path)) void refreshTree();
+    // Another document is then kept in the list and brought into sight (2.4);
+    // a reload leaves the pane where the reader took it.
+    const listing = rootChanged || sameDoc || !tree.setActive(treeRoot, doc.path) ? refreshTree() : null;
+    if (!sameDoc) showInTree(doc, listing);
     reportTabs();
     if (!sameDoc) {
       recents.push(doc);
@@ -548,9 +557,11 @@ async function enterEditMode(line?: number): Promise<void> {
   hideRateToast();
   editorMod.focus();
 
-  // the editor opens at the line asked for, else at the section being read
-  if (line !== undefined) editorMod.scrollToLine(line);
-  else if (readLine > 0) editorMod.scrollToLine(readLine);
+  // the editor opens at the line asked for, else at the section being read,
+  // the top included: hidden while reading, its pane kept the place of the
+  // text it held before (the browser restores it when the pane shows again),
+  // which for a shorter text is its very end
+  editorMod.scrollToLine(line ?? readLine);
 }
 
 // "Edit from here": the editor at that source line, entering edit mode first
@@ -2363,11 +2374,14 @@ async function resumeView(tab: session.Tab): Promise<void> {
   // the file pane shows the tab's folder (pasted text's: the one it was pasted
   // over, if any; with none, the pane stays as it was)
   const root = v?.treeRoot ?? (doc.path !== null ? doc.dir : doc.paste.home);
+  let listing: Promise<boolean> | null = null;
   if (root !== null && (!browseRoot || !samePath(root, browseRoot))) {
     browseRoot = root;
-    void refreshTree();
+    listing = refreshTree();
   } else if (doc.path === null) clearTreeActive();
-  else if (!tree.setActive(treeRoot, doc.path)) void refreshTree();
+  else if (!tree.setActive(treeRoot, doc.path)) listing = refreshTree();
+  // its file kept in the list (the tab may have taken the pane up past it) and in sight
+  if (doc.path !== null) showInTree(doc, listing);
   updateTitles();
   updateProgress();
   if (!v && tab.src.kind === "pasted") await firstShowPasted(tab);
@@ -2464,9 +2478,65 @@ async function ensureEditor(): Promise<boolean> {
     onImagePasted: (file) => {
       void insertPastedImage(file);
     },
+    links: linkProvider,
   });
   return true;
 }
+
+/* ---- what the editor's link completion proposes (2.4) ---- */
+
+// the Markdown files of the pane's listing, read once per listing
+let linkFilesOf = "";
+let linkFiles: string[] = [];
+
+function listedMarkdownFiles(): string[] {
+  if (treeJson !== linkFilesOf) {
+    linkFilesOf = treeJson;
+    linkFiles = [];
+    const walk = (node: ipc.TreeNode): void => {
+      if (node.isDir) node.children.forEach(walk);
+      else if (isMarkdownPath(node.path)) linkFiles.push(node.path);
+    };
+    try {
+      if (treeJson) walk(JSON.parse(treeJson) as ipc.TreeNode);
+    } catch {
+      linkFiles = [];
+    }
+  }
+  return linkFiles;
+}
+
+// the pictures under the document's folder, asked once until the folder changes on disk
+let linkImages: { dir: string; list: Promise<string[]> } | null = null;
+// a note's headings, kept while its text stays the same
+const linkHeadings = new Map<string, { text: string; heads: Heading[] }>();
+
+const linkProvider: LinkProvider = {
+  targets: () => ({
+    dir: currentDoc?.dir ?? null,
+    path: currentDoc?.path ?? null,
+    files: currentDoc?.dir ? listedMarkdownFiles() : [],
+  }),
+  images: () => {
+    const dir = currentDoc?.dir;
+    if (!dir) return Promise.resolve([]);
+    if (!linkImages || !samePath(linkImages.dir, dir)) {
+      linkImages = { dir, list: ipc.listImages(dir).catch(() => []) };
+    }
+    return linkImages.list;
+  },
+  headings: async (file, text) => {
+    if (file === null) return headingAnchors(text);
+    // only a note the pane lists: never a path made up by the text
+    if (!listedMarkdownFiles().some((f) => samePath(f, file))) return [];
+    const content = await ipc.peekMarkdown(file);
+    const known = linkHeadings.get(file);
+    if (known && known.text === content) return known.heads;
+    const heads = headingAnchors(content);
+    linkHeadings.set(file, { text: content, heads });
+    return heads;
+  },
+};
 
 // The split view of a tab coming back: its editor with its text, undo and
 // place (the preview already shows its text: the article came back too).
@@ -2511,6 +2581,7 @@ function showStartPage(): void {
 // no file of the pane is the one on screen (a start page, pasted text)
 function clearTreeActive(): void {
   treeRoot.querySelector(".tree-row.active")?.classList.remove("active");
+  syncTreeTools();
 }
 
 // the tab in front follows its document (a link followed, a file renamed)
@@ -3673,16 +3744,6 @@ const isCloseWindowKey = (e: KeyboardEvent): boolean =>
 // an IME composing (Chinese, Japanese): its keys are the IME's, not commands
 const composing = (e: KeyboardEvent): boolean => e.isComposing || e.keyCode === 229;
 
-// `to` relative to `fromDir`, with forward slashes, for a Markdown link
-function relativePath(fromDir: string, to: string): string {
-  const a = fromDir.split(/[\\/]+/).filter(Boolean);
-  const b = to.split(/[\\/]+/).filter(Boolean);
-  let i = 0;
-  while (i < a.length && i < b.length && a[i].toLowerCase() === b[i].toLowerCase()) i++;
-  if (i === 0) return to.replace(/\\/g, "/"); // different drives: absolute
-  return [...Array(a.length - i).fill(".."), ...b.slice(i)].join("/");
-}
-
 /* ---- drag to scroll ---- */
 
 // The middle button drags anywhere, like a PDF reader; the left button only
@@ -3772,11 +3833,14 @@ function refreshTree(): Promise<boolean> {
       const json = JSON.stringify(node);
       if (json === treeJson) {
         if (currentDoc?.path) tree.setActive(treeRoot, currentDoc.path);
+        syncTreeTools();
         return false;
       }
       treeJson = json;
       treeRootName.textContent = node.name;
       treeRootName.title = root;
+      // nothing within the depth the pane lists: said, with the way back to the open file
+      treeEmpty.hidden = node.children.length > 0;
       const focused = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("#tree-root [data-path]");
       tree.render(treeRoot, node, currentDoc?.path ?? "", (p, e) => {
         // a file picked in a pane shown over the text: the pane goes
@@ -3790,6 +3854,7 @@ function refreshTree(): Promise<boolean> {
           preventScroll: true,
         });
       }
+      syncTreeTools();
       return true;
     })
     .catch(() => {
@@ -3798,8 +3863,77 @@ function refreshTree(): Promise<boolean> {
       treeJson = "";
       treeRootName.textContent = "";
       treeRoot.replaceChildren();
+      treeEmpty.hidden = true;
+      syncTreeTools();
       return had;
     });
+}
+
+// The name of the folder above `dir` ("C:\" for a drive's root); null above a drive's root or a share.
+function parentName(dir: string): string | null {
+  const d = dir.replace(/[\\/]+$/, "");
+  if (isDriveRoot(dir) || /^[\\/]{2}[^\\/]+[\\/][^\\/]+$/.test(d)) return null;
+  const cut = Math.max(d.lastIndexOf("\\"), d.lastIndexOf("/"));
+  if (cut < 0) return null;
+  const up = d.slice(0, cut);
+  return /^[a-z]:$/i.test(up) ? `${up}\\` : up.slice(Math.max(up.lastIndexOf("\\"), up.lastIndexOf("/")) + 1);
+}
+
+// The pane's buttons follow its state (2.4): Collapse folders while a folder is open; Back to
+// the open file while a file is on screen, in the accent when the list leaves it out; Up named
+// after the folder it goes to.
+function syncTreeTools(): void {
+  const file = currentDoc?.path ?? null;
+  const listed = file !== null && treeRoot.querySelector(".tree-row.file.active") !== null;
+  btnLocate.disabled = file === null;
+  btnLocate.classList.toggle("off-list", file !== null && !listed);
+  treeEmptyLocate.hidden = file === null;
+  btnCollapse.disabled = treeRoot.querySelector(".tree-dir:not(.collapsed)") === null;
+  const up = browseRoot ? parentName(browseRoot) : null;
+  btnUp.title = up ? t("pane.upTo", { name: up }) : t("pane.up");
+  btnUp.disabled = !browseRoot || isDriveRoot(browseRoot);
+}
+
+// The open file stays in the pane's list (2.4, the file pane's review): a document opened, or
+// its tab come forward, that the listing leaves out (the pane was taken up past the depth it
+// lists) brings the pane back to the file's folder. Then its row comes into sight, unless the
+// reader is in the pane (the pointer over it, or the keys in it). `listing`: the pane's listing
+// on its way, if any.
+function showInTree(doc: Doc, listing: Promise<unknown> | null): void {
+  const path = doc.path;
+  if (path === null) return;
+  void (async () => {
+    await listing;
+    if (currentDoc !== doc) return;
+    if (!tree.setActive(treeRoot, path) && browseRoot && !samePath(browseRoot, doc.dir)) {
+      browseRoot = doc.dir;
+      await refreshTree();
+      if (currentDoc !== doc) return;
+    }
+    if (!treePane.matches(":hover") && !treePane.contains(document.activeElement)) tree.reveal(treeRoot);
+  })();
+}
+
+// Back to the open file (2.4): the pane's root becomes the file's folder, undoing every Up, the
+// folders on the way open, and its row comes into sight with a ring. `focus`: pressed from the
+// keys, they go to the row.
+async function revealOpenFile(focus: boolean): Promise<void> {
+  const doc = currentDoc;
+  if (!doc || doc.path === null) return;
+  if (!searchResults.hidden) closeFolderSearch();
+  if (!browseRoot || !samePath(browseRoot, doc.dir)) {
+    browseRoot = doc.dir;
+    await refreshTree();
+  } else if (!tree.setActive(treeRoot, doc.path)) await refreshTree();
+  if (currentDoc !== doc) return;
+  tree.setActive(treeRoot, doc.path);
+  tree.reveal(treeRoot, { flash: true, focus });
+}
+
+// Collapse folders (2.4): all but the ones leading to the open file, whose row stays in sight.
+function collapseFolders(): void {
+  tree.collapseAll(treeRoot, currentDoc?.path ?? null);
+  tree.reveal(treeRoot);
 }
 
 /* ---- folder-wide search ---- */
@@ -3873,7 +4007,11 @@ function renderFolderSearch(hits: ipc.SearchHit[], q: string): void {
       const row = document.createElement("button");
       row.type = "button";
       row.className = "search-hit";
-      row.title = t("pane.lineN", { n: hit.line });
+      // the excerpt starts near the words found (Rust make_preview); the
+      // tooltip and the name a screen reader hears give the line and its text
+      const label = t("pane.lineText", { n: hit.line, text: hit.preview });
+      row.title = label;
+      row.setAttribute("aria-label", label);
       row.append(...highlightMatch(hit.preview, q));
       row.addEventListener("click", (e) => void openHit(hit.path, q, e, hit.line));
       onMiddleClick(row, (e) => void openHit(hit.path, q, e, hit.line));
@@ -3931,7 +4069,7 @@ async function goUp(): Promise<void> {
   const parent = await ipc.parentDir(browseRoot).catch(() => null);
   if (parent) {
     browseRoot = parent;
-    void refreshTree();
+    await refreshTree();
   }
 }
 
@@ -4142,8 +4280,13 @@ function rateOnStore(): void {
 // the help on demand: its page (in the UI language) loads the first time
 async function openHelp(): Promise<void> {
   await i18n.loadHelp($("#help-text"));
+  // its headings become the list of sections beside it (2.4)
+  helpNav.prepare();
   // a preview opened meanwhile keeps the screen: the help must not stack on it
-  if (!helpDialog.open && !lightbox.isOpen()) helpDialog.showModal();
+  if (!helpDialog.open && !lightbox.isOpen()) {
+    helpDialog.showModal();
+    helpNav.focusSearch();
+  }
 }
 
 /* ---- the home: recent files on the empty screen ---- */
@@ -4403,6 +4546,7 @@ const appCommandHost: AppCommandHost = {
   hasOutline: () => toc.headings().length > 0 && !app.classList.contains("no-headings"),
   hasFolder: () => browseRoot !== null,
   canGoUp: () => browseRoot !== null && !isDriveRoot(browseRoot),
+  canCollapseFolders: () => treeRoot.querySelector(".tree-dir:not(.collapsed)") !== null,
   tabCount: () => session.live().length,
   canReopenTab: () => session.closed.length > 0,
   canGoBack: () => navHistory.canBack(),
@@ -4433,6 +4577,15 @@ const appCommandHost: AppCommandHost = {
   findInDocument: () => findInDocument(),
   searchFolder: () => openFolderSearch(selectionQuery()),
   goUp: () => void goUp(),
+  // from the palette the pane comes into sight too
+  collapseFolders: () => {
+    panes.show("tree");
+    collapseFolders();
+  },
+  revealOpenFile: () => {
+    panes.show("tree");
+    void revealOpenFile(false);
+  },
   goBack: () => void goBack(),
   goForward: () => void goForward(),
   togglePane: (pane) => panes.toggle(pane, { focus: true }),
@@ -4583,7 +4736,10 @@ function wireUi(): void {
     } else if (e.key === "Escape") {
       e.preventDefault();
       clearTocFilter();
-      tocFilter.blur();
+      // the keyboard stays in the outline, on the section being read (A-18, 2.4)
+      const entry = tocList.querySelector<HTMLElement>(".active") ?? tocList.querySelector<HTMLElement>("a, button");
+      if (entry) entry.focus({ preventScroll: true });
+      else tocFilter.blur();
     }
   });
   tocFilterClear.addEventListener("click", () => {
@@ -4707,15 +4863,53 @@ function wireUi(): void {
   theme.onChange(() => syncReadingMenu());
   $("#btn-help").addEventListener("click", () => void openHelp());
   $("#help-close").addEventListener("click", () => helpDialog.close());
+  // the help's sections and search (2.4)
+  helpNav.init({
+    dialog: helpDialog,
+    text: $("#help-text"),
+    body: $("#help-body"),
+    toc: $("#help-toc"),
+    search: $<HTMLInputElement>("#help-search"),
+    count: $("#help-count"),
+    prev: $<HTMLButtonElement>("#help-prev"),
+    next: $<HTMLButtonElement>("#help-next"),
+    none: $("#help-none"),
+    about: $(".help-about"),
+    say: (text) => notices.announce(text),
+  });
+  helpDialog.addEventListener("close", () => helpNav.closed());
+  $("#help-keys").addEventListener("click", () => {
+    helpDialog.close();
+    toggleKeysDialog();
+  });
+  $("#help-license").addEventListener("click", () => helpNav.showAbout());
   // rating from the help counts: the card does not ask again
   $("#help-rate").addEventListener("click", rateOnStore);
   btnUp.addEventListener("click", () => void goUp());
+  // the pane's other buttons (2.4); from the keys (no pointer: detail 0) the focus goes to the row
+  btnCollapse.addEventListener("click", () => collapseFolders());
+  btnLocate.addEventListener("click", (e) => void revealOpenFile(e.detail === 0));
+  treeEmptyLocate.addEventListener("click", (e) => void revealOpenFile(e.detail === 0));
+  tree.onChange(syncTreeTools);
+  syncTreeTools();
+  // Alt+Up in the list: the folder above, as in File Explorer (tree.ts leaves Alt to the app);
+  // the keys stay in the list
+  treeRoot.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp" || !e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
+    e.preventDefault();
+    void goUp().then(() => {
+      if (!treeRoot.contains(document.activeElement)) treeRoot.querySelector<HTMLElement>('.tree-row[tabindex="0"]')?.focus({ preventScroll: true });
+    });
+  });
   treeSearch.addEventListener("input", scheduleFolderSearch);
   treeSearch.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       e.preventDefault();
       closeFolderSearch();
-      treeSearch.blur();
+      // the keyboard stays in the file pane, on its current row (A-18, 2.4)
+      const row = treeRoot.querySelector<HTMLElement>('.tree-row[tabindex="0"]') ?? treeRoot.querySelector<HTMLElement>(".tree-row");
+      if (row) row.focus({ preventScroll: true });
+      else treeSearch.blur();
     } else if (e.key === "Enter") {
       e.preventDefault();
       searchResults.querySelector<HTMLButtonElement>(".search-hit, .search-file")?.click();
@@ -5036,7 +5230,7 @@ async function showVersion(): Promise<void> {
 // the rating prompt only makes sense for the Microsoft Store build
 async function showStoreRating(): Promise<void> {
   storeInstall = await ipc.isStoreInstall().catch(() => false);
-  if (storeInstall) $("#help-rate-card").hidden = false;
+  if (storeInstall) $("#help-rate").hidden = false;
 }
 
 async function boot(): Promise<void> {
@@ -5136,6 +5330,7 @@ async function boot(): Promise<void> {
   await ipc.onTreeChanged(() => {
     // pictures found by name (![[x.png]]) may have moved: looked for again
     forgetFoundFiles();
+    linkImages = null;
     void refreshTree().then((changed) => {
       // the search reads every file: again only when files came or went
       if (changed && treeSearch.value.trim()) void runFolderSearch();

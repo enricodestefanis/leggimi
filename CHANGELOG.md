@@ -7,6 +7,87 @@ where new features bump MINOR and fixes bump PATCH.
 
 The running version is shown in the help dialog (`F1`) and on the empty screen.
 
+## [2.4.0] - 2026-11-16
+
+The editor writes Markdown the way a code editor does, after Sublime Text: colours that show the
+structure, pairs that close themselves, several cursors, a table editor and link completion. The
+help is a window with its sections beside the text and a search, the file pane always finds its
+way back to the open file, and five fixes from the expert review of 2.2.
+
+### Added
+- **The editor shows the structure.** Code in fenced blocks has the preview's colours, for every
+  language the preview knows (in the light and sepia themes three of them a shade deeper, so they
+  keep 4.5:1 on the line being edited); headings are in the app's colour, with a thin line under the first
+  two levels; code blocks and front matter sit on a band; quotes have a bar on the left, in the
+  colour of their callout (`> [!WARNING]` orange, `> [!TIP]` green); inline code is on a chip;
+  `==highlight==` is yellow; math, `[[links]]` and the YAML of the front matter are coloured; a
+  ticked task turns green and its text grey. Markdown's own marks (`#`, `**`, `` ` ``, `[ ]( )`)
+  are grey, so the words come forward. Every line keeps its height.
+- **Pairs close themselves**: `(`, `[`, `{`, `"` and the backtick, with the cursor in between;
+  typing the closing one steps over it, and Backspace on an empty pair removes both. With text
+  selected, `*`, `_`, `~` and `=` wrap it: twice makes `**bold**`, `~~strikethrough~~`,
+  `==highlight==`. The apostrophe never pairs (l'altro). After ```` ``` ```` and a language name,
+  Enter closes the code block. Inside a code block, its language's rules hold.
+- **Several cursors**: Ctrl+D selects the word and then each next occurrence, Ctrl+click adds a
+  cursor, Ctrl+Alt+↑/↓ adds one above or below, Alt+drag selects a column; what you type goes to
+  every cursor, Esc goes back to one. The other occurrences of a selected word are marked, and so
+  is the bracket matching the one at the cursor.
+- **Keys as in Sublime Text**: Ctrl+L selects the line (again: the next one too), Ctrl+Shift+L
+  splits a selection into lines, Alt+F3 selects every occurrence, Ctrl+J joins lines, Ctrl+M goes
+  to the matching bracket, Ctrl+Enter and Ctrl+Shift+Enter add a line below or above, F9 sorts the
+  selected lines or the list under the cursor (accents and numbers in order), Ctrl+Shift+D
+  duplicates the line and Ctrl+Shift+↑/↓ moves it. The new commands are in the Tools menu and the
+  command palette.
+- **Tables**: with the cursor in a table, Tab lines the columns up (CJK and emoji count double,
+  the alignments kept) and selects the next cell, Shift+Tab the previous one; Tab in the last cell
+  or Enter at the end of the last row adds a row, Enter on an empty last row leaves the table.
+  *Format table* in the Tools menu lines it up without moving.
+- **Link completion**: after `](` the Markdown files of the folder, with their first heading beside
+  them; after `![](` the pictures; after `](#` the document's headings; after `](note.md#` another
+  note's; after `[[` the notes' names and after `[[Note#` their headings. The path is written
+  relative to the document, as the app's own links are.
+- **The help** has its sections listed beside the text, the one being read lit up, and a search
+  that narrows the text to the sections holding the words, marks them, counts them per section and
+  steps through them (Enter, Shift+Enter, F3, the arrows by the field). *Rate on the Store* (Store
+  version) is at the top, in sight.
+- **The file pane** has two buttons beside the up arrow: *Collapse folders* closes every folder but
+  the open file's, and *Back to the open file* takes the pane back to the file's folder, undoing
+  every Up, and lights its row up; it takes the accent colour while the open file is not in the
+  list. Both are in the command palette too, and Alt+↑ in the list goes up a folder.
+
+### Changed
+- The scrollbars' thumb stands out from the page and the panes (3:1 in every theme) and is
+  slightly wider.
+- Two tabs with the same file name show the folder that tells them apart (`README · alpha`), to
+  the eye and to screen readers.
+- *Keep on top* shows its state by the pin itself, filled when on, and by an outline in Windows'
+  contrast themes; so do the other pressed buttons.
+- A folder search result shows the words found near its start, a few words of context before
+  them, and its tooltip gives the line and its text.
+- The keys window (`?`) lists Ctrl+D, Ctrl+L, Ctrl+Shift+L, Ctrl+J, F9 and Tab in tables.
+- The file pane scrolls to the open file when the document changes, and the up arrow's tooltip
+  names the folder it goes to.
+
+### Fixed
+- Ctrl+D and Ctrl+Alt+↑/↓, which the help described, now add cursors: the editor kept a single
+  selection.
+- After Find and Esc the keyboard goes back where it was (or the match shown becomes the
+  selection); Esc in the outline's filter and in the folder search leaves it on the outline and on
+  the file pane, instead of nowhere.
+- In the editor, front matter no longer shows as a heading; `H~2~O`, `10:30:45` and `^2^`, plain
+  text in the preview, are no longer coloured as sub- and superscript or emoji; Cascadia Code's
+  ligatures no longer draw a table's `|---|` as one line.
+- A picture pasted while several cursors are on goes in once.
+- The file pane could get stuck: taken up to `C:\` with its up arrow, it listed nothing (it lists
+  three subfolders below the folder at the top) and no file opened from C: brought it back, since
+  the pane moved only for a file outside it. A file the pane does not list now brings it back to
+  the file's folder, and a folder with nothing to list says so, with a way back. The help said four
+  levels of subfolders: the pane lists three.
+- Edit could open with the editor scrolled to the end of its text, almost empty, while the preview
+  showed the top: it kept the place of the text it held before. It now opens at the section being
+  read, the top included. A tab left while editing also comes back to the exact place of its
+  editor (it landed lower down).
+
 ## [2.3.0] - 2026-11-13
 
 Paste anything and read it as Markdown, notes written with Obsidian read cleanly, and the fixes

@@ -41,6 +41,8 @@
   /* the edge of floating surfaces (menus, popovers, dialogs, bars); only the
      black theme needs more, where shadows and backdrops vanish on #000 */
   --float-border: var(--border);
+  /* a scrollbar's thumb at rest: 3:1 against the page and the panes (WCAG 1.4.11; A-12, 2.4) */
+  --scroll-thumb: #898882;
   --code-chip-bg: #eae8df;
   --code-chip-border: #d5d1c5;
   /* ==highlighted== text (markdown.css): a marker's yellow, opaque so that its
@@ -78,6 +80,7 @@
   --accent-soft: rgba(217, 119, 87, 0.14);
   /* 1.6:1 against the page, the text on it still 8:1 */
   --landing: rgba(217, 119, 87, 0.3);
+  --scroll-thumb: #7d7c76;
   --code-bg: #1b1a19;
   --link: #df8768;
   /* the link ink is 4.05:1 on --accent-soft over --surface: one step lighter */
@@ -106,6 +109,7 @@
   --border: #dccdb2;
   --accent: #b2552f;
   --accent-soft: rgba(178, 85, 47, 0.12);
+  --scroll-thumb: #8d7c67;
   --code-bg: #eee3cd;
   --link: #9a4322;
   /* white on the sepia accent clears AA (4.96:1): the fill stays the accent */
@@ -133,6 +137,7 @@
   --accent: #d97757;
   --accent-soft: rgba(217, 119, 87, 0.16);
   --landing: rgba(217, 119, 87, 0.34);
+  --scroll-thumb: #676767;
   --code-bg: #0c0c0c;
   --link: #df8768;
   --accent-fill: #d97757;
@@ -274,10 +279,12 @@ button {
   height: 8px;
 }
 
+/* 6 px of thumb in an 8 px bar, in a tone that stands out from the page
+   (it was --border, 1.2 to 1.4:1, and 4 px) */
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--scroll-thumb);
   border-radius: 4px;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   background-clip: content-box;
 }
 

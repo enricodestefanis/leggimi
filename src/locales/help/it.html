@@ -228,6 +228,32 @@
           riga per scegliere un blocco per nome. Incollare un link su un testo selezionato lo trasforma in un
           link Markdown.
         </p>
+        <p>
+          <strong>Mentre scrivi:</strong> parentesi <code>( [ {</code>, virgolette <code>"</code> e backtick <code>`</code> si
+          chiudono da soli, con il cursore in mezzo; scrivendo la chiusura la si scavalca, e <kbd>Backspace</kbd> su
+          una coppia vuota la toglie tutta. L'apostrofo non si chiude mai. Con del testo selezionato,
+          <code>*</code>, <code>_</code>, <code>~</code> e <code>=</code> lo racchiudono: due volte danno
+          <code>**grassetto**</code>, <code>~~barrato~~</code>, <code>==evidenziato==</code>. Dopo <code>```</code> e il nome
+          di un linguaggio, <kbd>Invio</kbd> chiude il blocco di codice. Dentro un blocco di codice valgono le regole
+          del suo linguaggio. Il codice ha gli stessi colori dell'anteprima, e i segni del Markdown sono in grigio.
+        </p>
+        <p>
+          <strong>Più cursori:</strong> <kbd>Ctrl</kbd>+<kbd>D</kbd> seleziona la parola e poi, a ogni pressione,
+          la sua occorrenza successiva; <kbd>Ctrl</kbd>+clic aggiunge un cursore, <kbd>Alt</kbd>+trascina seleziona
+          una colonna. Quello che scrivi va in ogni cursore; <kbd>Esc</kbd> torna a uno solo.
+        </p>
+        <p>
+          <strong>Link:</strong> dopo <code>](</code> l'editor propone i file Markdown della cartella (dopo
+          <code>![](</code> le immagini), dopo <code>](#</code> i titoli del documento, dopo <code>](nota.md#</code> quelli
+          di un'altra nota, dopo <code>[[</code> i nomi delle note. <kbd>Invio</kbd> o <kbd>Tab</kbd> scrivono il
+          percorso, relativo al documento.
+        </p>
+        <p>
+          <strong>Tabelle:</strong> con il cursore in una tabella, <kbd>Tab</kbd> allinea le colonne e passa alla
+          cella successiva (nell'ultima aggiunge una riga), <kbd>Shift</kbd>+<kbd>Tab</kbd> torna indietro,
+          <kbd>Invio</kbd> alla fine dell'ultima riga aggiunge una riga e, su una riga vuota, esce dalla tabella.
+          <strong>Formatta la tabella</strong>, nel menu Strumenti, allinea senza spostare il cursore.
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Grassetto / corsivo</td></tr>
@@ -238,12 +264,20 @@
             <tr><td><kbd>/</kbd></td><td>Menu dei blocchi, a inizio riga</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Trova / trova e sostituisci nel testo</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Risultato successivo / precedente</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Sposta la riga in su / in giù</td></tr>
-            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Duplica la riga</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (o <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>)</td><td>Sposta la riga in su / in giù</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> o <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>Duplica la riga</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>Elimina la riga</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Seleziona la riga</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> o <kbd>Alt</kbd>+<kbd>L</kbd></td><td>Seleziona la riga (di nuovo: anche la successiva)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Aggiungi alla selezione l'occorrenza successiva</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Aggiungi un cursore sopra / sotto</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / <kbd>Alt</kbd>+trascina</td><td>Aggiungi un cursore / seleziona una colonna</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>Seleziona tutte le occorrenze</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Dividi la selezione in righe, una per riga</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>J</kbd></td><td>Unisci la riga con la successiva</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Invio</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Invio</kbd></td><td>Nuova riga sotto / sopra</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>Vai alla parentesi corrispondente</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>Ordina le righe selezionate, o l'elenco sotto il cursore</td></tr>
+            <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> in una tabella</td><td>Cella successiva / precedente, con le colonne allineate</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Commenta / decommenta la riga (su tastiera italiana <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>7</kbd>)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Vai alla riga</td></tr>
             <tr><td><kbd>Esc</kbd>, poi <kbd>Tab</kbd></td><td>Esci dall'editor con la tastiera</td></tr>
@@ -281,12 +315,14 @@
 
         <h3>Sfogliare i file</h3>
         <p>
-          Il pannello a sinistra elenca i file Markdown della cartella che hai aperto, fino a quattro livelli
+          Il pannello a sinistra elenca i file Markdown della cartella che hai aperto, fino a tre livelli
           di sottocartelle. Aprire un file dal pannello mantiene la stessa cartella radice, così non perdi mai
           il filo; usa la <strong>freccia in su</strong> accanto a <em>File</em> per spostare la radice alla
-          cartella superiore. Aprire un documento fuori dalla cartella corrente sposta lì il pannello.
-          Le cartelle che chiudi restano chiuse mentre navighi, e anche al riavvio.
+          cartella superiore (con il fuoco nell'elenco, anche <kbd>Alt</kbd>+<kbd>↑</kbd>). Aprire un documento
+          fuori dalla cartella corrente, o che il pannello non mostra più, sposta lì il pannello, che scorre
+          fino al file aperto. Le cartelle che chiudi restano chiuse mentre navighi, e anche al riavvio.
         </p>
+        <p>Accanto alla freccia, <strong>Comprimi le cartelle</strong> chiude tutte le cartelle tranne quelle del file aperto, e <strong>Torna al file aperto</strong> (il mirino) riporta il pannello alla cartella del file e lo evidenzia; il mirino si colora quando il file aperto non è nell'elenco. Le due voci sono anche nella palette dei comandi.</p>
         <p>Le cartelle senza file Markdown sono nascoste, come le cartelle nascoste e di build tipo <code>node_modules</code>.</p>
         <p>Il pannello si aggiorna da solo quando nella cartella aggiungi, rinomini o elimini file. Se rinomini il documento aperto, la finestra lo segue; se lo elimini o lo sposti, il testo resta sullo schermo e un avviso propone <strong>Salva di nuovo</strong>.</p>
         <p>
@@ -409,8 +445,8 @@
           Leggimi?</em>: <strong>Valuta</strong> apre la finestra di valutazione dello Store sopra Leggimi (o la
           pagina dello Store, se la finestra non si può aprire), <strong>Più tardi</strong> lo richiede tra un
           mese e <strong>No, grazie</strong> mai più. La scheda compare in una finestra alla volta e, se resta
-          senza risposta, aspetta una settimana prima di tornare; <strong>Valuta sullo Store</strong>, in fondo
-          a questa guida, fa lo stesso di Valuta.
+          senza risposta, aspetta una settimana prima di tornare; <strong>Valuta sullo Store</strong>, in alto
+          a destra in questa guida, fa lo stesso di Valuta.
         </p>
         <p>
           Una versione <strong>portable</strong> è disponibile su GitHub come zip: scompattala dove vuoi ed

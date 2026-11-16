@@ -119,6 +119,18 @@
         <p>
           <strong>格式：</strong>编辑器上方的格式栏可对选中内容（或光标所在的词）设置格式，并插入表格、Mermaid 图表、公式和提示框。在行首输入 <kbd>/</kbd> 可按名称选择块。在选中的文字上粘贴链接会将其变成 Markdown 链接。
         </p>
+        <p>
+          <strong>输入时：</strong>括号 <code>( [ {</code>、引号 <code>"</code> 和反引号 <code>`</code> 会自动补全，光标位于中间；输入右半部分会直接跳过它，在空的一对上按 <kbd>Backspace</kbd> 会同时删除两个。撇号不会自动补全。选中文字时，<code>*</code>、<code>_</code>、<code>~</code> 和 <code>=</code> 会把它包起来：按两次分别得到 <code>**粗体**</code>、<code>~~删除线~~</code>、<code>==高亮==</code>。在 <code>```</code> 和语言名称之后按 <kbd>Enter</kbd> 会自动闭合代码块。代码块内遵循该语言的规则。代码的颜色与预览一致，Markdown 标记显示为灰色。
+        </p>
+        <p>
+          <strong>多个光标：</strong><kbd>Ctrl</kbd>+<kbd>D</kbd> 先选中当前词，之后每按一次选中它的下一个匹配项；<kbd>Ctrl</kbd>+单击添加光标，<kbd>Alt</kbd>+拖动选择一列。输入的内容会进入每个光标；按 <kbd>Esc</kbd> 回到一个光标。
+        </p>
+        <p>
+          <strong>链接：</strong>输入 <code>](</code> 后，编辑器会列出文件夹中的 Markdown 文件（输入 <code>![](</code> 后列出图片），输入 <code>](#</code> 后列出文档的标题，输入 <code>](note.md#</code> 后列出另一篇笔记的标题，输入 <code>[[</code> 后列出笔记名称。按 <kbd>Enter</kbd> 或 <kbd>Tab</kbd> 写入相对于文档的路径。
+        </p>
+        <p>
+          <strong>表格：</strong>光标在表格中时，<kbd>Tab</kbd> 会对齐各列并移到下一个单元格（在最后一个单元格中会添加一行），<kbd>Shift</kbd>+<kbd>Tab</kbd> 返回上一个，在最后一行末尾按 <kbd>Enter</kbd> 会添加一行，在空行上按则离开表格。工具菜单中的<strong>格式化表格</strong>会对齐表格而不移动光标。
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>粗体 / 斜体</td></tr>
@@ -129,12 +141,20 @@
             <tr><td><kbd>/</kbd></td><td>行首的块菜单</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>在文本中查找 / 查找并替换</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>下一个 / 上一个匹配</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>上移 / 下移当前行</td></tr>
-            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>复制当前行</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>（或 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>）</td><td>上移 / 下移当前行</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> 或 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>复制当前行</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>删除当前行</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>选中当前行</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> 或 <kbd>Alt</kbd>+<kbd>L</kbd></td><td>选中当前行（再按一次：连下一行一起选中）</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>将下一个相同内容加入选区</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>在上方 / 下方添加光标</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+单击 / <kbd>Alt</kbd>+拖动</td><td>添加光标 / 选择一列</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>选择所有匹配项</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>将选区拆分为多行，每行一个</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>J</kbd></td><td>与下一行合并</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>在下方 / 上方插入新行</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>跳转到匹配的括号</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>对选中的行排序，或对光标所在的列表排序</td></tr>
+            <tr><td>表格中的 <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>下一个 / 上一个单元格，并对齐各列</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>注释 / 取消注释当前行</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>转到行</td></tr>
             <tr><td><kbd>Esc</kbd>，然后 <kbd>Tab</kbd></td><td>用键盘离开编辑器</td></tr>
@@ -155,8 +175,9 @@
 
         <h3>浏览文件</h3>
         <p>
-          左侧面板列出你打开的文件夹中的 Markdown 文件，最多四层子文件夹。从面板打开文件会保持同一个根文件夹，不会迷失方向；用<em>文件</em>旁的<strong>向上箭头</strong>把根移到上级文件夹。打开当前文件夹之外的文档会把面板移到那里。你折叠的文件夹在浏览期间保持折叠，重启后也是如此。
+          左侧面板列出你打开的文件夹中的 Markdown 文件，最多三层子文件夹。从面板打开文件会保持同一个根文件夹，不会迷失方向；用<em>文件</em>旁的<strong>向上箭头</strong>把根移到上级文件夹（焦点在列表中时也可按 <kbd>Alt</kbd>+<kbd>↑</kbd>）。打开当前文件夹之外的文档，或面板已不再显示的文档，会把面板移到那里，并滚动到打开的文件。你折叠的文件夹在浏览期间保持折叠，重启后也是如此。
         </p>
+        <p>箭头旁的<strong>折叠文件夹</strong>会折叠除打开文件所在路径之外的所有文件夹；<strong>回到打开的文件</strong>（准星图标）会把面板带回该文件所在的文件夹并突出显示它；打开的文件不在列表中时，准星会显示为强调色。这两项也在命令面板中。</p>
         <p>没有 Markdown 文件的文件夹会被隐藏，隐藏文件夹和 <code>node_modules</code> 之类的构建文件夹也一样。</p>
         <p>文件夹中添加、重命名或删除文件时，面板会自动更新。重命名当前打开的文档时，窗口会跟着它；删除或移走它时，文字仍留在屏幕上，并有提示提供<strong>重新保存</strong>。</p>
         <p>
@@ -236,7 +257,7 @@
           在面板中的文件上右键，可选择<strong>在新标签页中打开</strong>、<strong>在新窗口中打开</strong>、<strong>在文件资源管理器中显示</strong>、<strong>复制路径</strong>或<strong>复制为 Markdown 链接</strong>（相对于当前文档）。图钉按钮让窗口保持在其他窗口之上；它不再有快捷键，因为 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> 现在用于重新打开最近关闭的标签页。
         </p>
         <p>
-          在 Microsoft Store 版本中，使用几天后会出现一张小卡片，询问<em>喜欢 Leggimi 吗？</em>：<strong>评分</strong>会在 Leggimi 上方打开商店的评分对话框（无法打开时则打开商店页面），<strong>稍后</strong>会在一个月后再次询问，<strong>不用了</strong>则不再询问。卡片一次只在一个窗口中出现；如果没有回应，会等一周后再出现。本帮助底部的<strong>在商店评分</strong>与“评分”作用相同。
+          在 Microsoft Store 版本中，使用几天后会出现一张小卡片，询问<em>喜欢 Leggimi 吗？</em>：<strong>评分</strong>会在 Leggimi 上方打开商店的评分对话框（无法打开时则打开商店页面），<strong>稍后</strong>会在一个月后再次询问，<strong>不用了</strong>则不再询问。卡片一次只在一个窗口中出现；如果没有回应，会等一周后再出现。本帮助右上角的<strong>在商店评分</strong>与“评分”作用相同。
         </p>
         <p>
           GitHub 上还提供<strong>便携版</strong> zip：解压到任意位置即可运行，设置保存在程序旁的 <code>data</code> 文件夹中，而不是用户配置文件里。

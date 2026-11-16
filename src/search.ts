@@ -46,19 +46,47 @@ export function init(elements: SearchEls): void {
       step(e.shiftKey ? -1 : 1);
     } else if (e.key === "Escape") {
       e.preventDefault();
-      close();
+      closeByUser();
     }
   });
   els.btnNext.addEventListener("click", () => step(1));
   els.btnPrev.addEventListener("click", () => step(-1));
-  els.btnClose.addEventListener("click", close);
+  els.btnClose.addEventListener("click", closeByUser);
 }
 
+// where the keyboard was before the bar took it, to give it back (A-18, 2.4)
+let returnFocus: HTMLElement | null = null;
+
 export function open(): void {
+  const was = document.activeElement;
+  if (was instanceof HTMLElement && was !== document.body && !els.bar.contains(was)) returnFocus = was;
+  else if (!els.bar.contains(was)) returnFocus = null;
   els.bar.hidden = false;
   els.input.focus();
   els.input.select();
   refresh();
+}
+
+/**
+ * Esc or the close button: the bar closes and the keyboard goes back where
+ * it was; with nowhere to go, the match being shown becomes the page's
+ * selection, so Tab and Shift+F10 carry on from there instead of the top.
+ */
+function closeByUser(): void {
+  const current = idx >= 0 ? ranges[idx]?.cloneRange() : null;
+  const back = returnFocus;
+  returnFocus = null;
+  close();
+  if (back?.isConnected) {
+    back.focus({ preventScroll: true });
+    if (document.activeElement === back) return;
+  }
+  els.input.blur();
+  if (current) {
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(current);
+  }
 }
 
 // open the find bar pre-filled, e.g. to carry a folder-search query into

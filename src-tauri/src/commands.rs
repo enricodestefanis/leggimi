@@ -926,6 +926,85 @@ fn build_node(path: &Path, depth: usize, count: &mut usize) -> Option<TreeNode> 
     }
 }
 
+/// Extensions of the pictures the editor proposes after `![](` (as the preview shows them).
+const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif", "ico"];
+
+/// The pictures under `dir`, for the editor's completion of `![](…)`: the
+/// file pane's walk (depth, skipped folders, at most 2000), the folder's own
+/// pictures before those of its subfolders. Absolute paths.
+#[tauri::command]
+pub async fn list_images(dir: String) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = dunce::canonicalize(&dir).map_err(|e| e.to_string())?;
+        let mut out = Vec::new();
+        collect_images(&root, 0, &mut out);
+        Ok(out)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn collect_images(dir: &Path, depth: usize, out: &mut Vec<String>) {
+    if depth >= MAX_DEPTH || out.len() >= MAX_ENTRIES {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(dir) else { return };
+    let mut files = Vec::new();
+    let mut dirs = Vec::new();
+    for entry in entries.filter_map(|e| e.ok()) {
+        // file_type does not follow links: a linked folder is not walked
+        let Ok(kind) = entry.file_type() else { continue };
+        let path = entry.path();
+        if kind.is_dir() {
+            if !skipped_dir(&entry.file_name().to_string_lossy()) {
+                dirs.push(path);
+            }
+        } else if kind.is_file() {
+            let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+            if IMAGE_EXTS.contains(&ext.as_str()) {
+                files.push(path);
+            }
+        }
+    }
+    files.sort_by_key(|p| p.to_string_lossy().to_lowercase());
+    dirs.sort_by_key(|p| p.to_string_lossy().to_lowercase());
+    for f in files {
+        if out.len() >= MAX_ENTRIES {
+            return;
+        }
+        out.push(f.to_string_lossy().into_owned());
+    }
+    for d in dirs {
+        collect_images(&d, depth + 1, out);
+    }
+}
+
+/// Largest file the editor reads for its link completion (the headings of another note).
+const PEEK_MAX: u64 = 4 * 1024 * 1024;
+
+/// A Markdown file's text, decoded as `read_markdown` decodes it, without its
+/// side effects: no entry in Windows' recent documents and no asset scope.
+/// The editor reads another note's headings with it, for `](note.md#…`.
+#[tauri::command]
+pub async fn peek_markdown(path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || peek(Path::new(&path)))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn peek(path: &Path) -> Result<String, String> {
+    let canon = dunce::canonicalize(path).map_err(|e| e.to_string())?;
+    let ext = canon.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    if !is_markdown_ext(&ext) {
+        return Err("not a Markdown file".to_owned());
+    }
+    let len = fs::metadata(&canon).map_err(|e| e.to_string())?.len();
+    if len > PEEK_MAX {
+        return Err("too large".to_owned());
+    }
+    Ok(decode_text(read_with_retry(&canon)?).0)
+}
+
 #[derive(Serialize)]
 pub struct SearchHit {
     pub path: String,
@@ -1006,14 +1085,25 @@ fn search_files(dir: &str, query: &str) -> Result<Vec<SearchHit>, String> {
 }
 
 // a window of the line centred on the first match, safe on any UTF-8
+/// The line of a folder-search hit as the pane shows it: the found words
+/// near its start (the pane shows some 30 characters before cutting), a few
+/// words of context before them, "…" where the line goes on (A-15, 2.4).
 fn make_preview(line: &str, needle_lower: &str) -> String {
     const MAX_CHARS: usize = 160;
+    // characters kept before the match, at most, cut back to a word's start
+    const BEFORE: usize = 20;
     let trimmed = line.trim();
     let lower = trimmed.to_lowercase();
     let byte = lower.find(needle_lower).unwrap_or(0);
     let char_off = lower[..byte].chars().count();
     let chars: Vec<char> = trimmed.chars().collect();
-    let start = char_off.saturating_sub(60).min(chars.len());
+    let mut start = char_off.saturating_sub(BEFORE).min(chars.len());
+    if start > 0 {
+        // from the first word that starts within those characters
+        if let Some(space) = chars[start..char_off.min(chars.len())].iter().position(|c| c.is_whitespace()) {
+            start += space + 1;
+        }
+    }
     let end = (start + MAX_CHARS).min(chars.len());
     let mut out = String::new();
     if start > 0 {
@@ -1505,6 +1595,63 @@ async fn rate_and_review(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn previews_start_near_the_match() {
+        let line = "Questo documento parla di molte cose diverse prima di arrivare alla parola chiave document finale";
+        let p = make_preview(line, "chiave");
+        assert!(p.starts_with('…'), "{p}");
+        let at = p.find("chiave").map(|b| p[..b].chars().count()).unwrap();
+        assert!(at <= 21, "the match {at} characters in: {p}");
+        assert_eq!(p, "…alla parola chiave document finale", "cut at a word's start");
+        // near the start of the line: nothing cut
+        assert_eq!(make_preview("  breve riga con chiave  ", "chiave"), "breve riga con chiave");
+        // a match far in a line with no spaces before it: cut where it must
+        let long = format!("{}chiave", "x".repeat(50));
+        assert_eq!(make_preview(&long, "chiave"), format!("…{}chiave", "x".repeat(20)));
+    }
+
+    #[test]
+    fn lists_pictures_for_the_editor() {
+        let root = std::env::temp_dir().join(format!("leggimi-images-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("img").join("deep")).unwrap();
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::create_dir_all(root.join("node_modules")).unwrap();
+        fs::write(root.join("b.PNG"), "").unwrap();
+        fs::write(root.join("a.jpg"), "").unwrap();
+        fs::write(root.join("note.md"), "").unwrap();
+        fs::write(root.join("img").join("c.svg"), "").unwrap();
+        fs::write(root.join("img").join("deep").join("d.webp"), "").unwrap();
+        fs::write(root.join(".git").join("x.png"), "").unwrap();
+        fs::write(root.join("node_modules").join("y.png"), "").unwrap();
+        let mut out = Vec::new();
+        collect_images(&root, 0, &mut out);
+        let names: Vec<String> = out
+            .iter()
+            .map(|p| Path::new(p).strip_prefix(&root).unwrap().to_string_lossy().replace('\\', "/"))
+            .collect();
+        assert_eq!(names, ["a.jpg", "b.PNG", "img/c.svg", "img/deep/d.webp"]);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn peeks_at_markdown_only() {
+        let root = std::env::temp_dir().join(format!("leggimi-peek-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        // UTF-16 with its BOM, as Windows PowerShell 5.1 writes it
+        let mut utf16 = vec![0xFF, 0xFE];
+        for unit in "# Perché\n".encode_utf16() {
+            utf16.extend_from_slice(&unit.to_le_bytes());
+        }
+        fs::write(root.join("note.md"), &utf16).unwrap();
+        fs::write(root.join("secret.txt"), "x").unwrap();
+        assert_eq!(peek(&root.join("note.md")).unwrap(), "# Perché\n");
+        assert!(peek(&root.join("secret.txt")).is_err(), "only Markdown files");
+        assert!(peek(&root.join("gone.md")).is_err());
+        let _ = fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn listed_path_follows_the_file_pane() {

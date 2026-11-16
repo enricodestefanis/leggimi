@@ -233,6 +233,33 @@
           début de ligne pour choisir un bloc par son nom. Coller un lien sur un texte sélectionné le transforme
           en lien Markdown.
         </p>
+        <p>
+          <strong>Pendant la frappe :</strong> les parenthèses et crochets <code>( [ {</code>, les guillemets
+          <code>"</code> et les accents graves <code>`</code> se ferment d'eux-mêmes, le curseur au milieu ; taper le
+          caractère fermant passe par-dessus, et <kbd>Retour arrière</kbd> sur une paire vide enlève les deux.
+          L'apostrophe ne se ferme jamais. Avec du texte sélectionné, <code>*</code>, <code>_</code>, <code>~</code>
+          et <code>=</code> l'entourent : deux fois donnent <code>**gras**</code>, <code>~~barré~~</code>,
+          <code>==surligné==</code>. Après <code>```</code> et un nom de langage, <kbd>Entrée</kbd> ferme le bloc de
+          code. Dans un bloc de code, les règles de son langage s'appliquent. Le code a les couleurs de l'aperçu,
+          et les marques du Markdown sont en gris.
+        </p>
+        <p>
+          <strong>Plusieurs curseurs :</strong> <kbd>Ctrl</kbd>+<kbd>D</kbd> sélectionne le mot puis, à chaque
+          pression, son occurrence suivante ; <kbd>Ctrl</kbd>+clic ajoute un curseur, <kbd>Alt</kbd>+glisser
+          sélectionne une colonne. Ce que vous tapez va à chaque curseur ; <kbd>Échap</kbd> revient à un seul.
+        </p>
+        <p>
+          <strong>Liens :</strong> après <code>](</code> l'éditeur propose les fichiers Markdown du dossier (après
+          <code>![](</code> ses images), après <code>](#</code> les titres du document, après <code>](note.md#</code>
+          ceux d'une autre note, après <code>[[</code> les noms des notes. <kbd>Entrée</kbd> ou <kbd>Tab</kbd> écrit
+          le chemin, relatif au document.
+        </p>
+        <p>
+          <strong>Tableaux :</strong> le curseur dans un tableau, <kbd>Tab</kbd> aligne les colonnes et passe à la
+          cellule suivante (dans la dernière, il ajoute une ligne), <kbd>Maj</kbd>+<kbd>Tab</kbd> revient en arrière,
+          <kbd>Entrée</kbd> à la fin de la dernière ligne ajoute une ligne et, sur une ligne vide, sort du tableau.
+          <strong>Mettre en forme le tableau</strong>, dans le menu Outils, aligne sans déplacer le curseur.
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Gras / italique</td></tr>
@@ -243,12 +270,20 @@
             <tr><td><kbd>/</kbd></td><td>Menu des blocs, en début de ligne</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Chercher / chercher et remplacer dans le texte</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Maj</kbd>+<kbd>F3</kbd></td><td>Résultat suivant / précédent</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Monter / descendre la ligne</td></tr>
-            <tr><td><kbd>Maj</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Dupliquer la ligne</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (ou <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>)</td><td>Monter / descendre la ligne</td></tr>
+            <tr><td><kbd>Maj</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> ou <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>D</kbd></td><td>Dupliquer la ligne</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>K</kbd></td><td>Supprimer la ligne</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Sélectionner la ligne</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> ou <kbd>Alt</kbd>+<kbd>L</kbd></td><td>Sélectionner la ligne (à nouveau : la suivante aussi)</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Ajouter l'occurrence suivante à la sélection</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Ajouter un curseur au-dessus / en dessous</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+clic / <kbd>Alt</kbd>+glisser</td><td>Ajouter un curseur / sélectionner une colonne</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>Sélectionner toutes les occurrences</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>L</kbd></td><td>Diviser la sélection en lignes, une par ligne</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>J</kbd></td><td>Joindre la ligne à la suivante</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> / <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>Entrée</kbd></td><td>Nouvelle ligne en dessous / au-dessus</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>Aller à la parenthèse correspondante</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>Trier les lignes sélectionnées, ou la liste sous le curseur</td></tr>
+            <tr><td><kbd>Tab</kbd> / <kbd>Maj</kbd>+<kbd>Tab</kbd> dans un tableau</td><td>Cellule suivante / précédente, colonnes alignées</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Commenter / décommenter la ligne</td></tr>
             <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Aller à la ligne</td></tr>
             <tr><td><kbd>Échap</kbd>, puis <kbd>Tab</kbd></td><td>Quitter l'éditeur au clavier</td></tr>
@@ -286,12 +321,14 @@
 
         <h3>Parcourir les fichiers</h3>
         <p>
-          Le panneau de gauche liste les fichiers Markdown du dossier ouvert, jusqu'à quatre niveaux de
+          Le panneau de gauche liste les fichiers Markdown du dossier ouvert, jusqu'à trois niveaux de
           sous-dossiers. Ouvrir un fichier depuis le panneau garde le même dossier racine, pour ne jamais perdre
           le fil ; la <strong>flèche vers le haut</strong> à côté de <em>Fichiers</em> déplace la racine au dossier
-          parent. Ouvrir un document hors du dossier courant y déplace le panneau. Les dossiers que vous repliez
-          restent repliés pendant la navigation — et après un redémarrage.
+          parent (avec le focus dans la liste, <kbd>Alt</kbd>+<kbd>↑</kbd> aussi). Ouvrir un document hors du
+          dossier courant, ou que le panneau ne montre plus, y déplace le panneau, qui défile jusqu'au fichier
+          ouvert. Les dossiers que vous repliez restent repliés pendant la navigation — et après un redémarrage.
         </p>
+        <p>À côté de la flèche, <strong>Replier les dossiers</strong> ferme tous les dossiers sauf ceux du fichier ouvert, et <strong>Revenir au fichier ouvert</strong> (la cible) ramène le panneau au dossier du fichier et le met en évidence ; la cible prend la couleur d'accent quand le fichier ouvert n'est pas dans la liste. Les deux sont aussi dans la palette de commandes.</p>
         <p>Les dossiers sans fichier Markdown sont masqués, comme les dossiers cachés et de build tels que <code>node_modules</code>.</p>
         <p>Le panneau se met à jour tout seul quand des fichiers sont ajoutés, renommés ou supprimés dans le dossier. Renommez le document ouvert et la fenêtre le suit ; supprimez-le ou déplacez-le et son texte reste à l'écran, avec un avis qui propose <strong>Enregistrer à nouveau</strong>.</p>
         <p>
@@ -415,7 +452,7 @@
           Leggimi (ou la page du Store, si elle ne peut pas s'ouvrir), <strong>Plus tard</strong> redemande dans
           un mois et <strong>Non merci</strong> plus jamais. La carte n'apparaît que dans une fenêtre à la fois
           et, restée sans réponse, attend une semaine avant de revenir ; <strong>Noter sur le Store</strong>, en
-          bas de cette aide, fait la même chose que Noter.
+          haut à droite de cette aide, fait la même chose que Noter.
         </p>
         <p>
           Une version <strong>portable</strong> est disponible sur GitHub sous forme de zip : décompressez-la

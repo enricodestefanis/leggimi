@@ -241,6 +241,33 @@
           <kbd>/</kbd> am Zeilenanfang, um einen Block nach Namen zu wählen. Ein über markierten Text
           eingefügter Link wird zu einem Markdown-Link.
         </p>
+        <p>
+          <strong>Beim Schreiben:</strong> Klammern <code>( [ {</code>, Anführungszeichen <code>"</code> und Backticks
+          <code>`</code> schließen sich selbst, der Cursor steht dazwischen; das schließende Zeichen zu tippen springt
+          darüber, und <kbd>Rücktaste</kbd> in einem leeren Paar entfernt beide. Der Apostroph schließt sich nie.
+          Mit ausgewähltem Text umschließen <code>*</code>, <code>_</code>, <code>~</code> und <code>=</code> ihn:
+          zweimal ergibt <code>**fett**</code>, <code>~~durchgestrichen~~</code>, <code>==markiert==</code>. Nach
+          <code>```</code> und einem Sprachnamen schließt <kbd>Eingabe</kbd> den Codeblock. In einem Codeblock gelten
+          die Regeln seiner Sprache. Code hat die Farben der Vorschau, die Zeichen des Markdown sind grau.
+        </p>
+        <p>
+          <strong>Mehrere Cursor:</strong> <kbd>Strg</kbd>+<kbd>D</kbd> wählt das Wort aus und bei jedem weiteren
+          Druck sein nächstes Vorkommen; <kbd>Strg</kbd>+Klick fügt einen Cursor hinzu, <kbd>Alt</kbd>+Ziehen wählt
+          eine Spalte aus. Was Sie tippen, landet bei jedem Cursor; <kbd>Esc</kbd> kehrt zu einem zurück.
+        </p>
+        <p>
+          <strong>Links:</strong> nach <code>](</code> schlägt der Editor die Markdown-Dateien des Ordners vor (nach
+          <code>![](</code> seine Bilder), nach <code>](#</code> die Überschriften des Dokuments, nach
+          <code>](notiz.md#</code> die einer anderen Notiz, nach <code>[[</code> die Namen der Notizen.
+          <kbd>Eingabe</kbd> oder <kbd>Tab</kbd> schreibt den Pfad, relativ zum Dokument.
+        </p>
+        <p>
+          <strong>Tabellen:</strong> steht der Cursor in einer Tabelle, richtet <kbd>Tab</kbd> die Spalten aus und
+          geht zur nächsten Zelle (in der letzten fügt es eine Zeile hinzu), <kbd>Umschalt</kbd>+<kbd>Tab</kbd> geht
+          zurück, <kbd>Eingabe</kbd> am Ende der letzten Zeile fügt eine Zeile hinzu und verlässt auf einer leeren
+          Zeile die Tabelle. <strong>Tabelle formatieren</strong> im Menü Werkzeuge richtet aus, ohne den Cursor
+          zu bewegen.
+        </p>
         <table class="help-keys">
           <tbody>
             <tr><td><kbd>Strg</kbd>+<kbd>B</kbd> / <kbd>Strg</kbd>+<kbd>I</kbd></td><td>Fett / kursiv</td></tr>
@@ -251,12 +278,20 @@
             <tr><td><kbd>/</kbd></td><td>Blockmenü, am Zeilenanfang</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>F</kbd> / <kbd>Strg</kbd>+<kbd>H</kbd></td><td>Suchen / suchen und ersetzen im Text</td></tr>
             <tr><td><kbd>F3</kbd> / <kbd>Umschalt</kbd>+<kbd>F3</kbd></td><td>Nächster / vorheriger Treffer</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Zeile nach oben / unten verschieben</td></tr>
-            <tr><td><kbd>Umschalt</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Zeile duplizieren</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (oder <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd>)</td><td>Zeile nach oben / unten verschieben</td></tr>
+            <tr><td><kbd>Umschalt</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> oder <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>D</kbd></td><td>Zeile duplizieren</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>K</kbd></td><td>Zeile löschen</td></tr>
-            <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Zeile auswählen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>L</kbd> oder <kbd>Alt</kbd>+<kbd>L</kbd></td><td>Zeile auswählen (noch einmal: auch die nächste)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>D</kbd></td><td>Nächstes Vorkommen zur Auswahl hinzufügen</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Strg</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Cursor darüber / darunter hinzufügen</td></tr>
+            <tr><td><kbd>Strg</kbd>+Klick / <kbd>Alt</kbd>+Ziehen</td><td>Cursor hinzufügen / eine Spalte auswählen</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>F3</kbd></td><td>Alle Vorkommen auswählen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>L</kbd></td><td>Auswahl in Zeilen aufteilen, eine pro Zeile</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>J</kbd></td><td>Zeile mit der nächsten verbinden</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Eingabe</kbd> / <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>Eingabe</kbd></td><td>Neue Zeile darunter / darüber</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>M</kbd></td><td>Zur passenden Klammer</td></tr>
+            <tr><td><kbd>F9</kbd></td><td>Ausgewählte Zeilen sortieren, oder die Liste unter dem Cursor</td></tr>
+            <tr><td><kbd>Tab</kbd> / <kbd>Umschalt</kbd>+<kbd>Tab</kbd> in einer Tabelle</td><td>Nächste / vorherige Zelle, mit ausgerichteten Spalten</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>/</kbd></td><td>Zeile aus-/einkommentieren (auf einer deutschen Tastatur <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>7</kbd>)</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd></td><td>Gehe zu Zeile</td></tr>
             <tr><td><kbd>Esc</kbd>, dann <kbd>Tab</kbd></td><td>Editor mit der Tastatur verlassen</td></tr>
@@ -296,12 +331,15 @@
 
         <h3>Dateien durchsuchen</h3>
         <p>
-          Der linke Bereich listet die Markdown-Dateien des geöffneten Ordners, bis zu vier Ebenen tief. Das
+          Der linke Bereich listet die Markdown-Dateien des geöffneten Ordners, bis zu drei Unterordner tief. Das
           Öffnen einer Datei aus dem Bereich behält denselben Stammordner, sodass Sie nie den Überblick
           verlieren; der <strong>Pfeil nach oben</strong> neben <em>Dateien</em> verschiebt den Stamm in den
-          übergeordneten Ordner. Ein Dokument außerhalb des aktuellen Ordners verlegt den Bereich dorthin.
-          Eingeklappte Ordner bleiben eingeklappt – beim Navigieren und über Neustarts hinweg.
+          übergeordneten Ordner (mit dem Fokus in der Liste auch <kbd>Alt</kbd>+<kbd>↑</kbd>). Ein Dokument
+          außerhalb des aktuellen Ordners, oder eines, das der Bereich nicht mehr zeigt, verlegt den Bereich
+          dorthin, und er scrollt zur geöffneten Datei. Eingeklappte Ordner bleiben eingeklappt – beim
+          Navigieren und über Neustarts hinweg.
         </p>
+        <p>Neben dem Pfeil klappt <strong>Ordner zuklappen</strong> alle Ordner außer denen der geöffneten Datei zu, und <strong>Zur geöffneten Datei</strong> (das Fadenkreuz) bringt den Bereich zum Ordner der Datei zurück und hebt sie hervor; das Fadenkreuz nimmt die Akzentfarbe an, wenn die geöffnete Datei nicht in der Liste steht. Beides gibt es auch in der Befehlspalette.</p>
         <p>Ordner ohne Markdown-Dateien werden ausgeblendet, ebenso versteckte und Build-Ordner wie <code>node_modules</code>.</p>
         <p>Die Liste aktualisiert sich von selbst, wenn im Ordner Dateien hinzugefügt, umbenannt oder gelöscht werden. Benennen Sie das geöffnete Dokument um, folgt ihm das Fenster; löschen oder verschieben Sie es, bleibt sein Text auf dem Bildschirm, und ein Hinweis bietet <strong>Erneut speichern</strong> an.</p>
         <p>
@@ -426,7 +464,7 @@
           Store-Seite, wenn der Dialog nicht erscheinen kann), <strong>Später</strong> fragt in einem Monat
           wieder und <strong>Nein, danke</strong> nie mehr. Die Karte erscheint immer nur in einem Fenster und
           wartet, wenn sie unbeantwortet bleibt, eine Woche, bevor sie wiederkommt; <strong>Im Store
-          bewerten</strong> unten in dieser Hilfe wirkt wie Bewerten.
+          bewerten</strong> oben rechts in dieser Hilfe wirkt wie Bewerten.
         </p>
         <p>
           Eine <strong>portable</strong> Version gibt es auf GitHub als Zip: irgendwo entpacken und starten; sie
