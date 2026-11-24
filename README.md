@@ -12,6 +12,10 @@
   <a href="PRIVACY.md"><img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-success" /></a>
 </p>
 
+<p align="center">
+  <img alt="Leggimi 2.4 in 35 seconds: an AI agent writes a brief in Markdown in a terminal; pasted into Leggimi with Ctrl+V it reads as a clean page; Ctrl+K jumps to a section; Ctrl+D fixes a date in three places at once; the brief goes into Word intact; then the reading settings and the dark theme" src="docs/trailer.gif" width="98%" />
+</p>
+
 *Leggimi* — Italian for "read me" — is a fast Markdown viewer and editor for Windows, made for
 reading what AI writes: answers from a chat, the briefs and plans an agent prepares, a project's
 README, your own notes. Double-click a `.md` file, or copy an answer and press `Ctrl+V` in
@@ -28,10 +32,6 @@ Tauri 2; the interface speaks English, Italian, German, French, Spanish and Simp
 <p align="center">
   <img alt="The command palette (Ctrl+K): typing “dec” finds the heading “The decision” in the document and the file decisions.md in the folder" src="docs/screenshot-jump.png" width="49%" />
   <img alt="The editor with its colours, a date selected three times with Ctrl+D, the format bar and the live preview" src="docs/screenshot-editor.png" width="49%" />
-</p>
-
-<p align="center">
-  <img alt="Leggimi 2.4 in 35 seconds: an AI agent writes a brief in Markdown in a terminal; pasted into Leggimi with Ctrl+V it reads as a clean page; Ctrl+K jumps to a section; Ctrl+D fixes a date in three places at once; the brief goes into Word intact; then the reading settings and the dark theme" src="docs/trailer.gif" width="98%" />
 </p>
 
 ## Install
